@@ -9,6 +9,29 @@ const api = axios.create({
   },
 })
 
+export function setAccessToken(token) {
+  if (token) {
+    api.defaults.headers.common.Authorization = `Bearer ${token}`
+  } else {
+    delete api.defaults.headers.common.Authorization
+  }
+}
+
+export async function login(payload) {
+  const { data } = await api.post("/api/auth/login", payload)
+  return data
+}
+
+export async function getCurrentUser() {
+  const { data } = await api.get("/api/auth/me")
+  return data
+}
+
+export async function getDemoUsers() {
+  const { data } = await api.get("/api/auth/demo-users")
+  return data
+}
+
 export async function getHealth() {
   const { data } = await api.get("/api/health")
   return data

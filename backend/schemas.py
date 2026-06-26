@@ -314,3 +314,30 @@ class QuoteExplanationResponse(BaseModel):
     explanation_bullets: list[str]
     decision_boundaries: list[str]
     explanation_source: str
+
+
+class UserResponse(OrmModel):
+    id: int
+    username: str
+    display_name: str
+    role: Literal["admin", "manager", "viewer"]
+    active: bool = True
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
+class DemoUserResponse(BaseModel):
+    username: str
+    display_name: str
+    role: Literal["admin", "manager", "viewer"]
+    demo_only: bool = True
+    password_hint: str

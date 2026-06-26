@@ -10,7 +10,9 @@ from backend.models import (
     PriceTable,
     PriceTableItem,
     Product,
+    User,
 )
+from backend.auth import hash_password
 
 
 DEMO_PRODUCTS = [
@@ -41,6 +43,27 @@ DEMO_COMPETITORS = [
     },
 ]
 
+DEMO_USERS = [
+    {
+        "username": "admin",
+        "display_name": "Demo Admin",
+        "role": "admin",
+        "password": "admin-demo-password",
+    },
+    {
+        "username": "manager",
+        "display_name": "Demo Manager",
+        "role": "manager",
+        "password": "manager-demo-password",
+    },
+    {
+        "username": "viewer",
+        "display_name": "Demo Viewer",
+        "role": "viewer",
+        "password": "viewer-demo-password",
+    },
+]
+
 
 def seed_demo_data() -> None:
     db = SessionLocal()
@@ -52,6 +75,7 @@ def seed_demo_data() -> None:
 
 
 def _seed_demo_data(db: Session) -> None:
+    _seed_demo_users(db)
     products: dict[str, Product] = {}
     for product_data in DEMO_PRODUCTS:
         product = db.query(Product).filter(Product.sku == product_data["sku"]).first()
@@ -141,6 +165,21 @@ def _seed_demo_data(db: Session) -> None:
     _ensure_price_item(db, draft_table.id, second_product.id, 18000.0, 0.34)
     _ensure_price_item(db, active_table.id, first_product.id, 59000.0, 0.39)
     _ensure_price_item(db, active_table.id, second_product.id, 21000.0, 0.37)
+
+
+def _seed_demo_users(db: Session) -> None:
+    if db.query(User).first() is not None:
+        return
+    for user_data in DEMO_USERS:
+        db.add(
+            User(
+                username=user_data["username"],
+                display_name=user_data["display_name"],
+                role=user_data["role"],
+                password_hash=hash_password(user_data["password"]),
+                active=True,
+            )
+        )
 
 
 def _ensure_price_item(
