@@ -37,6 +37,25 @@ export async function getAuditLogs(params = {}) {
   return data
 }
 
+export async function importCsv(entity, file) {
+  const formData = new FormData()
+  formData.append("file", file)
+  const { data } = await api.post(`/api/import/${entity}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  })
+  return data
+}
+
+export async function downloadCsv(entity, filename) {
+  const { data } = await api.get(`/api/export/${entity}.csv`, { responseType: "blob" })
+  const url = window.URL.createObjectURL(data)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = filename
+  link.click()
+  window.URL.revokeObjectURL(url)
+}
+
 export async function getHealth() {
   const { data } = await api.get("/api/health")
   return data
