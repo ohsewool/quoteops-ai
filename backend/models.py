@@ -26,6 +26,7 @@ class Product(Base):
 
     competitor_prices = relationship("CompetitorPrice", back_populates="product")
     cost_profiles = relationship("CostProfile", back_populates="product")
+    approval_requests = relationship("PriceApprovalRequest", back_populates="product")
     price_table_items = relationship("PriceTableItem", back_populates="product")
 
 
@@ -115,3 +116,33 @@ class PriceTableItem(Base):
 
     price_table = relationship("PriceTable", back_populates="items")
     product = relationship("Product", back_populates="price_table_items")
+
+
+class PriceApprovalRequest(Base):
+    __tablename__ = "price_approval_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    product_id: Mapped[int] = mapped_column(
+        ForeignKey("products.id"), nullable=False, index=True
+    )
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    proposed_unit_price: Mapped[float] = mapped_column(Float, nullable=False)
+    proposed_total_price: Mapped[float] = mapped_column(Float, nullable=False)
+    unit_cost: Mapped[float] = mapped_column(Float, nullable=False)
+    total_cost: Mapped[float] = mapped_column(Float, nullable=False)
+    estimated_gross_profit: Mapped[float] = mapped_column(Float, nullable=False)
+    estimated_margin_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    minimum_margin_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    validation_status: Mapped[str] = mapped_column(String(20), nullable=False)
+    risk_level: Mapped[str] = mapped_column(String(20), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    reviewer_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    submitted_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    product = relationship("Product", back_populates="approval_requests")
