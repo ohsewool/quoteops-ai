@@ -1,15 +1,26 @@
 # Python
 __pycache__/
+backend/__pycache__/
+*.pyc
 *.py[cod]
 .venv/
 .env
+.env.local
+quoteops.db
 *.sqlite
+*.sqlite3
 *.db
 
 # Node
 node_modules/
+frontend/node_modules/
 dist/
+frontend/dist/
 .vite/
+test-results/
+frontend/test-results/
+playwright-report/
+frontend/playwright-report/
 
 # OS
 .DS_Store
