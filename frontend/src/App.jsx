@@ -6,10 +6,14 @@ import {
   createQuoteExplanation,
   createQuotePreview,
   getApprovalRequests,
+  getCurrentUser,
+  getDemoUsers,
   getHealth,
   getProducts,
   getSystemStatus,
+  login,
   rejectApprovalRequest,
+  setAccessToken,
   validatePrice,
 } from "./api/client"
 
@@ -58,6 +62,12 @@ function App() {
   const [results, setResults] = useState(emptyResult)
   const [loading, setLoading] = useState("")
   const [error, setError] = useState("")
+  const [demoUsers, setDemoUsers] = useState([])
+  const [loginForm, setLoginForm] = useState({
+    username: "manager",
+    password: "manager-demo-password",
+  })
+  const [currentUser, setCurrentUser] = useState(null)
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === Number(selectedProductId)),
@@ -65,6 +75,13 @@ function App() {
   )
 
   useEffect(() => {
+    const savedToken = localStorage.getItem("quoteops_token")
+    if (savedToken) {
+      setAccessToken(savedToken)
+      getCurrentUser()
+        .then(setCurrentUser)
+        .catch(() => handleLogout())
+    }
     loadInitialData()
   }, [])
 
@@ -81,20 +98,45 @@ function App() {
   }
 
   async function loadInitialData() {
-    await runAction("초기 데이터 로딩", async () => {
-      const [healthData, statusData, productData, approvalData] = await Promise.all([
+    await runAction("Loading initial data", async () => {
+      const [healthData, statusData, productData, approvalData, demoUserData] = await Promise.all([
         getHealth(),
         getSystemStatus(),
         getProducts(),
         getApprovalRequests(),
+        getDemoUsers(),
       ])
       setHealth(healthData)
       setSystemStatus(statusData)
       setProducts(productData)
       setApprovalRequests(approvalData)
+      setDemoUsers(demoUserData)
       if (productData.length > 0) {
         setSelectedProductId(String(productData[0].id))
       }
+    })
+  }
+
+  async function handleLogin(event) {
+    event.preventDefault()
+    await runAction("Logging in", async () => {
+      const data = await login(loginForm)
+      localStorage.setItem("quoteops_token", data.access_token)
+      setAccessToken(data.access_token)
+      setCurrentUser(data.user)
+    })
+  }
+
+  function handleLogout() {
+    localStorage.removeItem("quoteops_token")
+    setAccessToken("")
+    setCurrentUser(null)
+  }
+
+  function useDemoUser(username) {
+    setLoginForm({
+      username,
+      password: `${username}-demo-password`,
     })
   }
 
@@ -106,22 +148,21 @@ function App() {
   }
 
   async function handleQuotePreview() {
-    await runAction("견적 미리보기", async () => {
-      const payload = {
+    await runAction("Creating quote preview", async () => {
+      const data = await createQuotePreview({
         ...basePayload(),
         material_cost: toNumber(optionalCosts.material_cost),
         labor_cost: toNumber(optionalCosts.labor_cost),
         overhead_cost: toNumber(optionalCosts.overhead_cost),
         target_margin_rate: toNumber(optionalCosts.target_margin_rate),
-      }
-      const data = await createQuotePreview(payload)
+      })
       setResults((current) => ({ ...current, quotePreview: data }))
       setProposedUnitPrice(data.suggested_unit_price)
     })
   }
 
   async function handleCandidates() {
-    await runAction("후보 가격 생성", async () => {
+    await runAction("Generating candidate prices", async () => {
       const data = await createCandidatePrices({
         ...basePayload(),
         margin_rates: parseMarginRates(marginRates),
@@ -135,7 +176,7 @@ function App() {
   }
 
   async function handleValidation() {
-    await runAction("가격 검증", async () => {
+    await runAction("Validating proposed price", async () => {
       const data = await validatePrice({
         ...basePayload(),
         candidate_unit_price: Number(proposedUnitPrice),
@@ -146,7 +187,7 @@ function App() {
   }
 
   async function handleCreateApproval() {
-    await runAction("승인 요청 생성", async () => {
+    await runAction("Creating approval request", async () => {
       await createApprovalRequest({
         ...basePayload(),
         proposed_unit_price: Number(proposedUnitPrice),
@@ -157,10 +198,12 @@ function App() {
   }
 
   async function handleReviewApproval(id, decision) {
-    await runAction(`승인 요청 ${decision}`, async () => {
+    await runAction(`Reviewing approval request`, async () => {
       const payload = {
         reviewer_name: reviewerName,
-        review_note: reviewNote || (decision === "approve" ? "Approved in frontend MVP." : "Rejected in frontend MVP."),
+        review_note:
+          reviewNote ||
+          (decision === "approve" ? "Approved in frontend MVP." : "Rejected in frontend MVP."),
       }
       if (decision === "approve") {
         await approveApprovalRequest(id, payload)
@@ -172,7 +215,7 @@ function App() {
   }
 
   async function handleExplanation() {
-    await runAction("설명 생성", async () => {
+    await runAction("Generating explanation", async () => {
       const validation = results.validation
       const quote = results.quotePreview
       const data = await createQuoteExplanation({
@@ -196,27 +239,61 @@ function App() {
         <header className="mb-6 flex flex-col gap-3 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-500">QuoteOps AI</p>
-            <h1 className="text-3xl font-semibold tracking-tight">API-connected pricing workspace</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">Admin API workspace</h1>
           </div>
           <button className="button secondary" onClick={loadInitialData} disabled={!!loading}>
-            새로고침
+            Refresh
           </button>
         </header>
 
         {error && <div className="mb-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
-        {loading && <div className="mb-5 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">{loading} 중...</div>}
+        {loading && <div className="mb-5 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">{loading}...</div>}
 
-        <section className="grid gap-4 lg:grid-cols-4">
-          <StatusCard label="Health" value={health?.status || "-"} />
-          <StatusCard label="Database" value={systemStatus?.database_configured ? "configured" : "-"} />
-          <StatusCard label="DB type" value={systemStatus?.database_type || "-"} />
-          <StatusCard label="OpenAI" value={systemStatus?.openai_configured ? "configured" : "not configured"} />
+        <section className="mb-5 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+          <Panel title="Admin login">
+            {currentUser ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Badge>{currentUser.display_name}</Badge>
+                  <Badge>role: {currentUser.role}</Badge>
+                </div>
+                <button className="button secondary" onClick={handleLogout}>Log out</button>
+              </div>
+            ) : (
+              <form className="grid gap-3 md:grid-cols-[1fr_1fr_auto]" onSubmit={handleLogin}>
+                <label className="field">
+                  <span>Username</span>
+                  <input value={loginForm.username} onChange={(event) => setLoginForm((current) => ({ ...current, username: event.target.value }))} />
+                </label>
+                <label className="field">
+                  <span>Password</span>
+                  <input type="password" value={loginForm.password} onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))} />
+                </label>
+                <button className="button" type="submit">Log in</button>
+              </form>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {demoUsers.map((user) => (
+                <button className="button compact secondary" key={user.username} onClick={() => useDemoUser(user.username)}>
+                  Use {user.username}
+                </button>
+              ))}
+            </div>
+            <p className="text-sm text-slate-500">Demo credentials are for local MVP testing only.</p>
+          </Panel>
+
+          <section className="grid gap-4 lg:grid-cols-4">
+            <StatusCard label="Health" value={health?.status || "-"} />
+            <StatusCard label="Database" value={systemStatus?.database_configured ? "configured" : "-"} />
+            <StatusCard label="DB type" value={systemStatus?.database_type || "-"} />
+            <StatusCard label="OpenAI" value={systemStatus?.openai_configured ? "configured" : "not configured"} />
+          </section>
         </section>
 
-        <section className="mt-5 grid gap-5 lg:grid-cols-[360px_1fr]">
+        <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
           <Panel title="Product and inputs">
             <label className="field">
-              <span>상품</span>
+              <span>Product</span>
               <select value={selectedProductId} onChange={(event) => setSelectedProductId(event.target.value)}>
                 {products.map((product) => (
                   <option key={product.id} value={product.id}>{product.name}</option>
@@ -224,11 +301,11 @@ function App() {
               </select>
             </label>
             <label className="field">
-              <span>수량</span>
+              <span>Quantity</span>
               <input type="number" min="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
             </label>
             <label className="field">
-              <span>제안 단가</span>
+              <span>Proposed unit price</span>
               <input type="number" min="1" value={proposedUnitPrice} onChange={(event) => setProposedUnitPrice(event.target.value)} />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -240,32 +317,32 @@ function App() {
               ))}
             </div>
             <label className="field">
-              <span>마진율 후보</span>
+              <span>Candidate margin rates</span>
               <input value={marginRates} onChange={(event) => setMarginRates(event.target.value)} />
             </label>
             <label className="checkbox">
               <input type="checkbox" checked={includeCompetitors} onChange={(event) => setIncludeCompetitors(event.target.checked)} />
-              경쟁사 기준 포함
+              Include competitor context
             </label>
-            <p className="text-sm text-slate-500">선택됨: {selectedProduct?.name || "상품 없음"}</p>
+            <p className="text-sm text-slate-500">Selected: {selectedProduct?.name || "No product"}</p>
           </Panel>
 
           <div className="grid gap-5">
             <Panel title="Quote preview">
-              <ActionButton onClick={handleQuotePreview}>견적 미리보기 생성</ActionButton>
+              <ActionButton onClick={handleQuotePreview}>Create quote preview</ActionButton>
               <MetricGrid data={results.quotePreview} fields={["unit_cost", "total_cost", "suggested_unit_price", "suggested_total_price", "estimated_gross_profit", "estimated_margin_rate"]} />
               <Notes notes={results.quotePreview?.calculation_notes} />
             </Panel>
 
             <Panel title="Candidate prices">
-              <ActionButton onClick={handleCandidates}>후보 가격 생성</ActionButton>
+              <ActionButton onClick={handleCandidates}>Generate candidate prices</ActionButton>
               <div className="grid gap-3 md:grid-cols-3">
                 {results.candidates?.candidates?.map((candidate) => (
                   <div className="rounded-md border border-slate-200 bg-slate-50 p-4" key={candidate.strategy}>
                     <h3 className="font-semibold">{candidate.strategy}</h3>
-                    <p>마진: {candidate.margin_rate}</p>
-                    <p>단가: {formatMoney(candidate.unit_price)}</p>
-                    <p>총액: {formatMoney(candidate.total_price)}</p>
+                    <p>Margin: {candidate.margin_rate}</p>
+                    <p>Unit: {formatMoney(candidate.unit_price)}</p>
+                    <p>Total: {formatMoney(candidate.total_price)}</p>
                     <Notes notes={candidate.notes} />
                   </div>
                 ))}
@@ -274,7 +351,7 @@ function App() {
             </Panel>
 
             <Panel title="Price validation">
-              <ActionButton onClick={handleValidation}>제안 가격 검증</ActionButton>
+              <ActionButton onClick={handleValidation}>Validate proposed price</ActionButton>
               {results.validation && (
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-2">
@@ -298,31 +375,31 @@ function App() {
             <Panel title="Approval workflow">
               <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
                 <label className="field">
-                  <span>검토자</span>
+                  <span>Reviewer</span>
                   <input value={reviewerName} onChange={(event) => setReviewerName(event.target.value)} />
                 </label>
                 <label className="field">
-                  <span>검토 메모</span>
+                  <span>Review note</span>
                   <input value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} />
                 </label>
-                <ActionButton onClick={handleCreateApproval}>승인 요청 생성</ActionButton>
+                <ActionButton onClick={handleCreateApproval}>Create approval request</ActionButton>
               </div>
               <div className="overflow-x-auto">
                 <table>
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>상품</th>
-                      <th>단가</th>
-                      <th>검증</th>
-                      <th>위험</th>
-                      <th>상태</th>
-                      <th>액션</th>
+                      <th>Product</th>
+                      <th>Unit price</th>
+                      <th>Validation</th>
+                      <th>Risk</th>
+                      <th>Status</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {approvalRequests.length === 0 && (
-                      <tr><td colSpan="7">승인 요청이 없습니다.</td></tr>
+                      <tr><td colSpan="7">No approval requests.</td></tr>
                     )}
                     {approvalRequests.map((request) => (
                       <tr key={request.id}>
@@ -335,8 +412,8 @@ function App() {
                         <td>
                           {request.status === "pending" ? (
                             <div className="flex gap-2">
-                              <button className="button compact" onClick={() => handleReviewApproval(request.id, "approve")}>승인</button>
-                              <button className="button compact secondary" onClick={() => handleReviewApproval(request.id, "reject")}>반려</button>
+                              <button className="button compact" onClick={() => handleReviewApproval(request.id, "approve")}>Approve</button>
+                              <button className="button compact secondary" onClick={() => handleReviewApproval(request.id, "reject")}>Reject</button>
                             </div>
                           ) : request.review_note || "-"}
                         </td>
@@ -348,7 +425,7 @@ function App() {
             </Panel>
 
             <Panel title="Explanation">
-              <ActionButton onClick={handleExplanation}>설명 생성</ActionButton>
+              <ActionButton onClick={handleExplanation}>Generate explanation</ActionButton>
               {results.explanation && (
                 <div className="space-y-3">
                   <p className="rounded-md bg-slate-950 p-4 text-white">{results.explanation.explanation_summary}</p>
@@ -392,7 +469,7 @@ function Badge({ children }) {
 }
 
 function MetricGrid({ data, fields }) {
-  if (!data) return <p className="empty">아직 결과가 없습니다.</p>
+  if (!data) return <p className="empty">No result yet.</p>
   return (
     <div className="grid gap-3 md:grid-cols-3">
       {fields.map((field) => (
