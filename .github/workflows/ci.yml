@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  backend-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pytest httpx
+
+      - name: Block docs-only implementation PRs
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          changed_files="$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")"
+
+          echo "Changed files:"
+          echo "$changed_files"
+
+          if [ -z "$changed_files" ]; then
+            echo "No changed files found."
+            exit 1
+          fi
+
+          implementation_files="$(echo "$changed_files" | grep -E '^(backend/|frontend/|tests/|\.github/workflows/|requirements\.txt$|package\.json$|frontend/package\.json$)' || true)"
+
+          if [ -z "$implementation_files" ]; then
+            echo "This PR only changes docs/text files. Implementation PRs must include code, tests, workflow, or dependency changes."
+            exit 1
+          fi
+
+      - name: Compile backend
+        run: python -m compileall backend
+
+      - name: Run tests
+        run: pytest -q
