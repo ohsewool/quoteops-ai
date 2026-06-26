@@ -1,41 +1,49 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import os
-from datetime import datetime, timezone
+
+from backend.config import get_settings
+from backend.db import create_db_and_tables
+from backend.routers import (
+    competitors_api,
+    cost_profiles_api,
+    health_api,
+    price_tables_api,
+    products_api,
+)
+from backend.seed import seed_demo_data
+
+settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    create_db_and_tables()
+    seed_demo_data()
+    yield
+
 
 app = FastAPI(
     title="QuoteOps AI API",
     description="AI-assisted pricing and quoting operations backend.",
-    version="0.1.0",
+    version="0.1.0-dev",
+    lifespan=lifespan,
 )
-
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin.strip() for origin in allowed_origins if origin.strip()],
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-class HealthResponse(BaseModel):
-    status: str
-    service: str
-    timestamp: str
-    llm_enabled: bool
-
-
-@app.get("/api/health", response_model=HealthResponse)
-def health() -> HealthResponse:
-    return HealthResponse(
-        status="ok",
-        service="quoteops-ai",
-        timestamp=datetime.now(timezone.utc).isoformat(),
-        llm_enabled=os.getenv("LLM_ENABLED", "false").lower() == "true",
-    )
+app.include_router(health_api.router)
+app.include_router(products_api.router)
+app.include_router(competitors_api.router)
+app.include_router(cost_profiles_api.router)
+app.include_router(price_tables_api.router)
 
 
 @app.get("/")
