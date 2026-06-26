@@ -22,7 +22,9 @@ class Settings:
 
 
 def get_settings() -> Settings:
-    allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
+    allowed_origins = os.getenv(
+        "ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    )
     return Settings(
         database_url=os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL),
         allowed_origins=[
