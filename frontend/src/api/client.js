@@ -32,6 +32,11 @@ export async function getDemoUsers() {
   return data
 }
 
+export async function getAuditLogs(params = {}) {
+  const { data } = await api.get("/api/audit-logs", { params })
+  return data
+}
+
 export async function getHealth() {
   const { data } = await api.get("/api/health")
   return data

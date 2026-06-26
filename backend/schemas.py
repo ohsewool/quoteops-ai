@@ -341,3 +341,16 @@ class DemoUserResponse(BaseModel):
     role: Literal["admin", "manager", "viewer"]
     demo_only: bool = True
     password_hint: str
+
+
+class AuditLogResponse(OrmModel):
+    id: int
+    actor_user_id: int | None = None
+    actor_username: str
+    actor_role: str
+    action: str
+    entity_type: str
+    entity_id: str | None = None
+    summary: str
+    metadata_json: str
+    created_at: datetime
