@@ -179,3 +179,39 @@ class QuotePreviewResponse(BaseModel):
     estimated_gross_profit: float
     estimated_margin_rate: float
     calculation_notes: list[str]
+
+
+class CandidatePriceRequest(BaseModel):
+    product_id: int
+    quantity: int
+    margin_rates: list[float] | None = None
+    include_competitor_context: bool = False
+
+
+class CandidatePriceOption(BaseModel):
+    strategy: str
+    margin_rate: float
+    unit_price: float
+    total_price: float
+    estimated_gross_profit: float
+    estimated_margin_rate: float
+    notes: list[str]
+
+
+class CompetitorContextResponse(BaseModel):
+    available: bool
+    reference_price_count: int
+    min_reference_price: float | None = None
+    max_reference_price: float | None = None
+    average_reference_price: float | None = None
+
+
+class CandidatePriceResponse(BaseModel):
+    product_id: int
+    product_name: str
+    quantity: int
+    unit_cost: float
+    total_cost: float
+    candidates: list[CandidatePriceOption]
+    competitor_context: CompetitorContextResponse | None = None
+    calculation_notes: list[str]
