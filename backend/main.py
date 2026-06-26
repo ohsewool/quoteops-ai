@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.config import get_settings
 from backend.db import create_db_and_tables
 from backend.routers import (
+    candidate_prices_api,
     competitors_api,
     cost_profiles_api,
     health_api,
@@ -41,6 +42,7 @@ app.add_middleware(
 )
 
 app.include_router(health_api.router)
+app.include_router(candidate_prices_api.router)
 app.include_router(products_api.router)
 app.include_router(competitors_api.router)
 app.include_router(cost_profiles_api.router)
