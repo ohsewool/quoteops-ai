@@ -11,6 +11,7 @@ from backend.routers import (
     health_api,
     price_tables_api,
     products_api,
+    quote_preview_api,
 )
 from backend.seed import seed_demo_data
 
@@ -44,6 +45,7 @@ app.include_router(products_api.router)
 app.include_router(competitors_api.router)
 app.include_router(cost_profiles_api.router)
 app.include_router(price_tables_api.router)
+app.include_router(quote_preview_api.router)
 
 
 @app.get("/")

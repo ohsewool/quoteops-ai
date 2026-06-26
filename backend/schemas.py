@@ -156,3 +156,26 @@ class PriceTableItemResponse(OrmModel):
     price: float
     margin_rate: float
     created_at: datetime
+
+
+class QuotePreviewRequest(BaseModel):
+    product_id: int
+    quantity: int
+    material_cost: float | None = None
+    labor_cost: float | None = None
+    overhead_cost: float | None = None
+    target_margin_rate: float | None = None
+
+
+class QuotePreviewResponse(BaseModel):
+    product_id: int
+    product_name: str
+    quantity: int
+    unit_cost: float
+    total_cost: float
+    target_margin_rate: float
+    suggested_unit_price: float
+    suggested_total_price: float
+    estimated_gross_profit: float
+    estimated_margin_rate: float
+    calculation_notes: list[str]
