@@ -354,3 +354,18 @@ class AuditLogResponse(OrmModel):
     summary: str
     metadata_json: str
     created_at: datetime
+
+
+class CsvImportError(BaseModel):
+    row_number: int
+    message: str
+
+
+class CsvImportSummary(BaseModel):
+    entity_type: str
+    received_rows: int
+    created_rows: int
+    updated_rows: int
+    failed_rows: int
+    errors: list[CsvImportError]
+    notes: list[str]

@@ -5,6 +5,7 @@ import {
   createCandidatePrices,
   createQuoteExplanation,
   createQuotePreview,
+  downloadCsv,
   getAuditLogs,
   getApprovalRequests,
   getCurrentUser,
@@ -12,6 +13,7 @@ import {
   getHealth,
   getProducts,
   getSystemStatus,
+  importCsv,
   login,
   rejectApprovalRequest,
   setAccessToken,
@@ -65,6 +67,12 @@ function App() {
   const [error, setError] = useState("")
   const [demoUsers, setDemoUsers] = useState([])
   const [auditLogs, setAuditLogs] = useState([])
+  const [csvFiles, setCsvFiles] = useState({
+    products: null,
+    "cost-profiles": null,
+    "competitor-prices": null,
+  })
+  const [csvImportResult, setCsvImportResult] = useState(null)
   const [loginForm, setLoginForm] = useState({
     username: "manager",
     password: "manager-demo-password",
@@ -146,6 +154,25 @@ function App() {
       return
     }
     setAuditLogs(await getAuditLogs({ limit: 10 }))
+  }
+
+  async function handleCsvImport(entity) {
+    if (!csvFiles[entity]) {
+      setError("Choose a CSV file first.")
+      return
+    }
+    await runAction(`Importing ${entity} CSV`, async () => {
+      const result = await importCsv(entity, csvFiles[entity])
+      setCsvImportResult(result)
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleCsvExport(entity, filename) {
+    await runAction(`Exporting ${entity} CSV`, async () => {
+      await downloadCsv(entity, filename)
+      await refreshAuditLogs()
+    })
   }
 
   function useDemoUser(username) {
@@ -456,6 +483,48 @@ function App() {
                 </div>
               )}
             </Panel>
+
+            {currentUser && (
+              <Panel title="CSV import and export">
+                <div className="grid gap-3 md:grid-cols-3">
+                  {[
+                    ["products", "Products"],
+                    ["cost-profiles", "Cost profiles"],
+                    ["competitor-prices", "Competitor prices"],
+                  ].map(([entity, label]) => (
+                    <div className="rounded-md border border-slate-200 bg-slate-50 p-3" key={entity}>
+                      <label className="field">
+                        <span>{label} CSV</span>
+                        <input
+                          accept=".csv,text/csv"
+                          type="file"
+                          onChange={(event) => setCsvFiles((current) => ({ ...current, [entity]: event.target.files?.[0] || null }))}
+                        />
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {["admin", "manager"].includes(currentUser.role) && (
+                          <button className="button compact" onClick={() => handleCsvImport(entity)}>Import</button>
+                        )}
+                        <button className="button compact secondary" onClick={() => handleCsvExport(entity, `${entity}.csv`)}>Export</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {csvImportResult && (
+                  <div className="rounded-md border border-slate-200 bg-white p-3 text-sm">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge>{csvImportResult.entity_type}</Badge>
+                      <Badge>received: {csvImportResult.received_rows}</Badge>
+                      <Badge>created: {csvImportResult.created_rows}</Badge>
+                      <Badge>updated: {csvImportResult.updated_rows}</Badge>
+                      <Badge>failed: {csvImportResult.failed_rows}</Badge>
+                    </div>
+                    <Notes notes={csvImportResult.notes} />
+                    <Notes title="Import errors" notes={csvImportResult.errors?.map((item) => `row ${item.row_number}: ${item.message}`)} />
+                  </div>
+                )}
+              </Panel>
+            )}
 
             {currentUser && ["admin", "manager"].includes(currentUser.role) && (
               <Panel title="Audit logs">
