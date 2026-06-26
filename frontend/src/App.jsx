@@ -5,6 +5,7 @@ import {
   createCandidatePrices,
   createQuoteExplanation,
   createQuotePreview,
+  getAuditLogs,
   getApprovalRequests,
   getCurrentUser,
   getDemoUsers,
@@ -63,6 +64,7 @@ function App() {
   const [loading, setLoading] = useState("")
   const [error, setError] = useState("")
   const [demoUsers, setDemoUsers] = useState([])
+  const [auditLogs, setAuditLogs] = useState([])
   const [loginForm, setLoginForm] = useState({
     username: "manager",
     password: "manager-demo-password",
@@ -79,7 +81,10 @@ function App() {
     if (savedToken) {
       setAccessToken(savedToken)
       getCurrentUser()
-        .then(setCurrentUser)
+        .then((user) => {
+          setCurrentUser(user)
+          refreshAuditLogs(user)
+        })
         .catch(() => handleLogout())
     }
     loadInitialData()
@@ -124,6 +129,7 @@ function App() {
       localStorage.setItem("quoteops_token", data.access_token)
       setAccessToken(data.access_token)
       setCurrentUser(data.user)
+      await refreshAuditLogs(data.user)
     })
   }
 
@@ -131,6 +137,15 @@ function App() {
     localStorage.removeItem("quoteops_token")
     setAccessToken("")
     setCurrentUser(null)
+    setAuditLogs([])
+  }
+
+  async function refreshAuditLogs(user = currentUser) {
+    if (!user || !["admin", "manager"].includes(user.role)) {
+      setAuditLogs([])
+      return
+    }
+    setAuditLogs(await getAuditLogs({ limit: 10 }))
   }
 
   function useDemoUser(username) {
@@ -158,6 +173,7 @@ function App() {
       })
       setResults((current) => ({ ...current, quotePreview: data }))
       setProposedUnitPrice(data.suggested_unit_price)
+      await refreshAuditLogs()
     })
   }
 
@@ -172,6 +188,7 @@ function App() {
       if (data.candidates?.length) {
         setProposedUnitPrice(data.candidates[0].unit_price)
       }
+      await refreshAuditLogs()
     })
   }
 
@@ -183,6 +200,7 @@ function App() {
         include_competitor_context: includeCompetitors,
       })
       setResults((current) => ({ ...current, validation: data }))
+      await refreshAuditLogs()
     })
   }
 
@@ -194,6 +212,7 @@ function App() {
         submitted_note: "Frontend MVP approval request.",
       })
       setApprovalRequests(await getApprovalRequests())
+      await refreshAuditLogs()
     })
   }
 
@@ -211,6 +230,7 @@ function App() {
         await rejectApprovalRequest(id, payload)
       }
       setApprovalRequests(await getApprovalRequests())
+      await refreshAuditLogs()
     })
   }
 
@@ -230,6 +250,7 @@ function App() {
         explanation_style: "concise",
       })
       setResults((current) => ({ ...current, explanation: data }))
+      await refreshAuditLogs()
     })
   }
 
@@ -435,6 +456,39 @@ function App() {
                 </div>
               )}
             </Panel>
+
+            {currentUser && ["admin", "manager"].includes(currentUser.role) && (
+              <Panel title="Audit logs">
+                <ActionButton onClick={() => refreshAuditLogs()}>Refresh audit logs</ActionButton>
+                <div className="overflow-x-auto">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Action</th>
+                        <th>Actor</th>
+                        <th>Entity</th>
+                        <th>Summary</th>
+                        <th>Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditLogs.length === 0 && (
+                        <tr><td colSpan="5">No audit logs loaded.</td></tr>
+                      )}
+                      {auditLogs.map((log) => (
+                        <tr key={log.id}>
+                          <td>{log.action}</td>
+                          <td>{log.actor_username}</td>
+                          <td>{log.entity_type}</td>
+                          <td>{log.summary}</td>
+                          <td>{new Date(log.created_at).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Panel>
+            )}
           </div>
         </section>
       </div>

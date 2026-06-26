@@ -5,6 +5,7 @@ from backend.auth import create_access_token, get_current_user, verify_password
 from backend.db import get_db
 from backend.models import User
 from backend.schemas import DemoUserResponse, LoginRequest, LoginResponse, UserResponse
+from backend.services.audit_service import create_audit_log
 
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -14,8 +15,25 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
     user = db.query(User).filter(User.username == payload.username).first()
     if user is None or not user.active or not verify_password(payload.password, user.password_hash):
+        create_audit_log(
+            db,
+            action="auth_login_failed",
+            entity_type="auth",
+            summary="Login failed.",
+            metadata={"attempted_username": payload.username},
+        )
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    return LoginResponse(access_token=create_access_token(user), user=user)
+    response = LoginResponse(access_token=create_access_token(user), user=user)
+    create_audit_log(
+        db,
+        action="auth_login_success",
+        entity_type="auth",
+        entity_id=user.id,
+        summary=f"User {user.username} logged in.",
+        metadata={"username": user.username, "role": user.role},
+        actor=user,
+    )
+    return response
 
 
 @router.get("/me", response_model=UserResponse)

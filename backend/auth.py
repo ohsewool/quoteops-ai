@@ -85,6 +85,22 @@ def get_current_user(
     return user
 
 
+def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    db: Session = Depends(get_db),
+) -> User | None:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        return None
+    try:
+        payload = decode_access_token(credentials.credentials)
+    except HTTPException:
+        return None
+    user = db.get(User, payload.get("user_id"))
+    if user is None or not user.active:
+        return None
+    return user
+
+
 def require_any_role(roles: Iterable[str]):
     allowed = set(roles)
 
