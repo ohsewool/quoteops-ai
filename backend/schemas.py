@@ -285,3 +285,32 @@ class ApprovalRequestResponse(OrmModel):
     updated_at: datetime
     reviewed_at: datetime | None = None
     workflow_notes: list[str]
+
+
+class QuoteExplanationRequest(BaseModel):
+    product_id: int | None = None
+    quantity: int | None = None
+    unit_cost: float | None = None
+    proposed_unit_price: float | None = None
+    candidate_unit_price: float | None = None
+    estimated_margin_rate: float | None = None
+    validation_status: str | None = None
+    risk_level: str | None = None
+    approval_request_id: int | None = None
+    explanation_audience: str | None = None
+    explanation_style: str | None = "concise"
+
+
+class QuoteExplanationResponse(BaseModel):
+    product_id: int
+    product_name: str
+    quantity: int
+    unit_cost: float
+    proposed_unit_price: float
+    estimated_margin_rate: float
+    validation_status: Literal["passed", "warning", "failed"]
+    risk_level: Literal["low", "medium", "high"]
+    explanation_summary: str
+    explanation_bullets: list[str]
+    decision_boundaries: list[str]
+    explanation_source: str
