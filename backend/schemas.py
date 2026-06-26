@@ -248,3 +248,40 @@ class PriceValidationResponse(BaseModel):
     checks: list[PriceValidationCheck]
     competitor_context: CompetitorContextResponse | None = None
     calculation_notes: list[str]
+
+
+class ApprovalRequestCreate(BaseModel):
+    product_id: int
+    quantity: int
+    proposed_unit_price: float
+    minimum_margin_rate: float | None = None
+    submitted_note: str | None = None
+
+
+class ApprovalDecisionRequest(BaseModel):
+    reviewer_name: str = Field(..., min_length=1, max_length=120)
+    review_note: str | None = None
+
+
+class ApprovalRequestResponse(OrmModel):
+    id: int
+    product_id: int
+    product_name: str
+    quantity: int
+    proposed_unit_price: float
+    proposed_total_price: float
+    unit_cost: float
+    total_cost: float
+    estimated_gross_profit: float
+    estimated_margin_rate: float
+    minimum_margin_rate: float
+    validation_status: Literal["passed", "warning", "failed"]
+    risk_level: Literal["low", "medium", "high"]
+    status: Literal["pending", "approved", "rejected", "cancelled"]
+    submitted_note: str | None = None
+    reviewer_name: str | None = None
+    review_note: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    reviewed_at: datetime | None = None
+    workflow_notes: list[str]
