@@ -215,3 +215,36 @@ class CandidatePriceResponse(BaseModel):
     candidates: list[CandidatePriceOption]
     competitor_context: CompetitorContextResponse | None = None
     calculation_notes: list[str]
+
+
+class PriceValidationRequest(BaseModel):
+    product_id: int
+    quantity: int
+    candidate_unit_price: float
+    minimum_margin_rate: float | None = None
+    include_competitor_context: bool = False
+
+
+class PriceValidationCheck(BaseModel):
+    code: str
+    severity: Literal["error", "warning"]
+    passed: bool
+    message: str
+
+
+class PriceValidationResponse(BaseModel):
+    product_id: int
+    product_name: str
+    quantity: int
+    candidate_unit_price: float
+    candidate_total_price: float
+    unit_cost: float
+    total_cost: float
+    estimated_gross_profit: float
+    estimated_margin_rate: float
+    minimum_margin_rate: float
+    validation_status: Literal["passed", "warning", "failed"]
+    risk_level: Literal["low", "medium", "high"]
+    checks: list[PriceValidationCheck]
+    competitor_context: CompetitorContextResponse | None = None
+    calculation_notes: list[str]
