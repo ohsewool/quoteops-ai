@@ -356,6 +356,99 @@ class AuditLogResponse(OrmModel):
     created_at: datetime
 
 
+class DashboardActionCount(BaseModel):
+    action: str
+    count: int
+
+
+class DashboardLatestAction(BaseModel):
+    action: str
+    actor_username: str
+    created_at: datetime
+
+
+class DashboardQuoteMetrics(BaseModel):
+    total_quote_requests: int
+    new_quote_requests: int
+    reviewing_quote_requests: int
+    quoted_quote_requests: int
+    closed_quote_requests: int
+    cancelled_quote_requests: int
+
+
+class DashboardApprovalMetrics(BaseModel):
+    total_approval_requests: int
+    pending_approval_requests: int
+    approved_requests: int
+    rejected_requests: int
+    approval_rate: float
+    rejection_rate: float
+    average_estimated_margin_rate: float | None = None
+
+
+class DashboardValidationMetrics(BaseModel):
+    passed_validations: int
+    warning_validations: int
+    failed_validations: int
+    low_risk_count: int
+    medium_risk_count: int
+    high_risk_count: int
+
+
+class DashboardPricingMetrics(BaseModel):
+    total_products: int
+    active_products: int
+    total_price_tables: int
+    draft_price_tables: int
+    active_price_tables: int
+    archived_price_tables: int
+    total_cost_profiles: int
+    average_target_margin_rate: float | None = None
+    average_approved_margin_rate: float | None = None
+
+
+class DashboardWorkflowMetrics(BaseModel):
+    total_workflow_jobs: int
+    pending_jobs: int
+    running_jobs: int
+    completed_jobs: int
+    failed_jobs: int
+    cancelled_jobs: int
+    job_success_rate: float
+
+
+class DashboardAuditMetrics(BaseModel):
+    total_audit_logs: int
+    recent_audit_log_count: int
+    top_actions: list[DashboardActionCount]
+    latest_actions: list[DashboardLatestAction]
+
+
+class DashboardSummaryMetrics(BaseModel):
+    total_products: int
+    total_quote_requests: int
+    total_approval_requests: int
+    approved_requests: int
+    rejected_requests: int
+    pending_approval_requests: int
+    average_estimated_margin_rate: float | None = None
+    high_risk_count: int
+    completed_jobs: int
+    failed_jobs: int
+
+
+class DashboardResponse(BaseModel):
+    generated_at: datetime
+    summary: DashboardSummaryMetrics
+    quote_metrics: DashboardQuoteMetrics
+    approval_metrics: DashboardApprovalMetrics
+    validation_metrics: DashboardValidationMetrics
+    pricing_metrics: DashboardPricingMetrics
+    workflow_metrics: DashboardWorkflowMetrics
+    audit_metrics: DashboardAuditMetrics
+    dashboard_notes: list[str]
+
+
 class CsvImportError(BaseModel):
     row_number: int
     message: str
