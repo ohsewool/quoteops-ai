@@ -3,13 +3,19 @@ __pycache__/
 *.py[cod]
 .venv/
 .env
+*.env
+.env.local
+quoteops.db
 *.sqlite
+*.sqlite3
 *.db
 
 # Node
 node_modules/
 dist/
 .vite/
+frontend/node_modules/
+frontend/dist/
 
 # OS
 .DS_Store
