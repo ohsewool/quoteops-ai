@@ -96,6 +96,31 @@ export async function getPricingSimulations() {
   return data
 }
 
+export async function createCustomerQuoteRequest(payload) {
+  const { data } = await api.post("/api/customer-quote-requests", payload)
+  return data
+}
+
+export async function getCustomerQuoteRequests() {
+  const { data } = await api.get("/api/customer-quote-requests")
+  return data
+}
+
+export async function updateCustomerQuoteRequestStatus(id, payload) {
+  const { data } = await api.post(`/api/customer-quote-requests/${id}/status`, payload)
+  return data
+}
+
+export async function createCustomerQuotePreview(id) {
+  const { data } = await api.post(`/api/customer-quote-requests/${id}/quote-preview`)
+  return data
+}
+
+export async function createCustomerQuoteCandidates(id, payload) {
+  const { data } = await api.post(`/api/customer-quote-requests/${id}/candidate-prices`, payload)
+  return data
+}
+
 export async function createApprovalRequest(payload) {
   const { data } = await api.post("/api/approval-requests", payload)
   return data

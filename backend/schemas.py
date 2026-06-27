@@ -408,3 +408,57 @@ class PricingSimulationResponse(OrmModel):
     created_by_username: str
     created_at: datetime
     simulation_notes: list[str]
+
+
+QuoteRequestStatus = Literal["new", "reviewing", "quoted", "closed", "cancelled"]
+
+
+class CustomerQuoteRequestCreate(BaseModel):
+    customer_name: str = Field(..., min_length=1, max_length=120)
+    customer_email: str = Field(..., min_length=1, max_length=160)
+    customer_company: str | None = None
+    product_id: int
+    quantity: int
+    requested_due_date: datetime | None = None
+    request_note: str | None = None
+
+
+class CustomerQuoteRequestUpdate(BaseModel):
+    customer_name: str | None = Field(default=None, min_length=1, max_length=120)
+    customer_email: str | None = Field(default=None, min_length=1, max_length=160)
+    customer_company: str | None = None
+    quantity: int | None = None
+    requested_due_date: datetime | None = None
+    request_note: str | None = None
+    assigned_to_username: str | None = None
+    internal_note: str | None = None
+
+
+class CustomerQuoteRequestStatusUpdate(BaseModel):
+    status: QuoteRequestStatus
+    assigned_to_username: str | None = None
+    internal_note: str | None = None
+
+
+class CustomerQuoteCandidatePriceRequest(BaseModel):
+    margin_rates: list[float] | None = None
+    include_competitor_context: bool = False
+
+
+class CustomerQuoteRequestResponse(OrmModel):
+    id: int
+    customer_name: str
+    customer_email: str
+    customer_company: str | None = None
+    product_id: int
+    product_name: str
+    quantity: int
+    requested_due_date: datetime | None = None
+    request_note: str | None = None
+    status: QuoteRequestStatus
+    assigned_to_username: str | None = None
+    internal_note: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    reviewed_at: datetime | None = None
+    workflow_notes: list[str]

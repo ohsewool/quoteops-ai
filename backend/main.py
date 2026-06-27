@@ -12,6 +12,7 @@ from backend.routers import (
     candidate_prices_api,
     competitors_api,
     cost_profiles_api,
+    customer_quote_requests_api,
     explanations_api,
     health_api,
     import_export_api,
@@ -56,6 +57,7 @@ app.include_router(candidate_prices_api.router)
 app.include_router(products_api.router)
 app.include_router(competitors_api.router)
 app.include_router(cost_profiles_api.router)
+app.include_router(customer_quote_requests_api.router)
 app.include_router(explanations_api.router)
 app.include_router(import_export_api.router)
 app.include_router(price_tables_api.router)
