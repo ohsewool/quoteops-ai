@@ -101,6 +101,26 @@ export async function comparePriceTableSnapshots(payload) {
   return data
 }
 
+export async function createWorkflowJob(payload) {
+  const { data } = await api.post("/api/workflow-jobs", payload)
+  return data
+}
+
+export async function getWorkflowJobs(params = {}) {
+  const { data } = await api.get("/api/workflow-jobs", { params })
+  return data
+}
+
+export async function runWorkflowJob(id) {
+  const { data } = await api.post(`/api/workflow-jobs/${id}/run`)
+  return data
+}
+
+export async function cancelWorkflowJob(id) {
+  const { data } = await api.post(`/api/workflow-jobs/${id}/cancel`)
+  return data
+}
+
 export async function createQuotePreview(payload) {
   const { data } = await api.post("/api/quote-preview", payload)
   return data

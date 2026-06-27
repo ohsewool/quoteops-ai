@@ -22,6 +22,7 @@ from backend.routers import (
     products_api,
     quote_preview_api,
     validation_api,
+    workflow_jobs_api,
 )
 from backend.seed import seed_demo_data
 
@@ -66,6 +67,7 @@ app.include_router(price_tables_api.router)
 app.include_router(pricing_simulations_api.router)
 app.include_router(quote_preview_api.router)
 app.include_router(validation_api.router)
+app.include_router(workflow_jobs_api.router)
 
 
 @app.get("/")

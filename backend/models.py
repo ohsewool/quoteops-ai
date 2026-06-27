@@ -285,3 +285,23 @@ class PriceTableSnapshotItem(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     snapshot = relationship("PriceTableSnapshot", back_populates="items")
+
+
+class WorkflowJob(Base):
+    __tablename__ = "workflow_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    job_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(140), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    input_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
+    result_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by_username: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
