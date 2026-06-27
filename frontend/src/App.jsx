@@ -3,6 +3,7 @@ import {
   approveApprovalRequest,
   comparePriceTableSnapshots,
   comparePriceTables,
+  cancelWorkflowJob,
   createApprovalRequest,
   createCandidatePrices,
   createCustomerQuoteCandidates,
@@ -12,6 +13,7 @@ import {
   createQuoteExplanation,
   createQuotePreview,
   createPriceTableSnapshot,
+  createWorkflowJob,
   downloadCsv,
   getAuditLogs,
   getApprovalRequests,
@@ -25,9 +27,11 @@ import {
   getPriceTableSummary,
   getPricingSimulations,
   getSystemStatus,
+  getWorkflowJobs,
   importCsv,
   login,
   rejectApprovalRequest,
+  runWorkflowJob,
   setAccessToken,
   updateCustomerQuoteRequestStatus,
   validatePrice,
@@ -123,6 +127,14 @@ function App() {
   const [baseSnapshotId, setBaseSnapshotId] = useState("")
   const [targetSnapshotId, setTargetSnapshotId] = useState("")
   const [priceTableComparison, setPriceTableComparison] = useState(null)
+  const [workflowJobForm, setWorkflowJobForm] = useState({
+    job_type: "pricing_simulation",
+    title: "Bulk pricing simulation",
+    description: "Compare 1, 10, and 50 unit pricing.",
+    input: '{\n  "product_id": 1,\n  "quantities": [1, 10, 50],\n  "margin_rates": [0.25, 0.35, 0.45],\n  "include_competitor_context": true\n}',
+  })
+  const [workflowJobs, setWorkflowJobs] = useState([])
+  const [activeWorkflowJob, setActiveWorkflowJob] = useState(null)
   const [loginForm, setLoginForm] = useState({
     username: "manager",
     password: "manager-demo-password",
@@ -144,6 +156,7 @@ function App() {
           refreshAuditLogs(user)
           getPricingSimulations().then(setPricingSimulations).catch(() => {})
           getCustomerQuoteRequests().then(setCustomerQuoteRequests).catch(() => {})
+          getWorkflowJobs().then(setWorkflowJobs).catch(() => {})
         })
         .catch(() => handleLogout())
     }
@@ -198,6 +211,7 @@ function App() {
       await refreshAuditLogs(data.user)
       setPricingSimulations(await getPricingSimulations())
       setCustomerQuoteRequests(await getCustomerQuoteRequests())
+      setWorkflowJobs(await getWorkflowJobs())
     })
   }
 
@@ -209,6 +223,8 @@ function App() {
     setPricingSimulations([])
     setActiveSimulation(null)
     setCustomerQuoteRequests([])
+    setWorkflowJobs([])
+    setActiveWorkflowJob(null)
   }
 
   async function refreshAuditLogs(user = currentUser) {
@@ -347,6 +363,43 @@ function App() {
         target_snapshot_id: Number(targetSnapshotId),
       })
       setPriceTableComparison(comparison)
+      await refreshAuditLogs()
+    })
+  }
+
+  async function refreshWorkflowJobs() {
+    if (!currentUser) return
+    setWorkflowJobs(await getWorkflowJobs())
+  }
+
+  async function handleCreateWorkflowJob() {
+    await runAction("Creating workflow job", async () => {
+      const job = await createWorkflowJob({
+        job_type: workflowJobForm.job_type,
+        title: workflowJobForm.title,
+        description: workflowJobForm.description,
+        input: JSON.parse(workflowJobForm.input),
+      })
+      setActiveWorkflowJob(job)
+      await refreshWorkflowJobs()
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleRunWorkflowJob(id) {
+    await runAction("Running workflow job", async () => {
+      const job = await runWorkflowJob(id)
+      setActiveWorkflowJob(job)
+      await refreshWorkflowJobs()
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleCancelWorkflowJob(id) {
+    await runAction("Cancelling workflow job", async () => {
+      const job = await cancelWorkflowJob(id)
+      setActiveWorkflowJob(job)
+      await refreshWorkflowJobs()
       await refreshAuditLogs()
     })
   }
@@ -935,6 +988,79 @@ function App() {
                     <Notes notes={csvImportResult.notes} />
                     <Notes title="Import errors" notes={csvImportResult.errors?.map((item) => `row ${item.row_number}: ${item.message}`)} />
                   </div>
+                )}
+              </Panel>
+            )}
+
+            {currentUser && (
+              <Panel title="Workflow jobs">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="field">
+                    <span>Job type</span>
+                    <select value={workflowJobForm.job_type} onChange={(event) => setWorkflowJobForm((current) => ({ ...current, job_type: event.target.value }))}>
+                      {["pricing_simulation", "price_validation_batch", "quote_request_review"].map((jobType) => (
+                        <option key={jobType} value={jobType}>{jobType}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Title</span>
+                    <input value={workflowJobForm.title} onChange={(event) => setWorkflowJobForm((current) => ({ ...current, title: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>Description</span>
+                    <input value={workflowJobForm.description} onChange={(event) => setWorkflowJobForm((current) => ({ ...current, description: event.target.value }))} />
+                  </label>
+                </div>
+                <label className="field">
+                  <span>Input JSON</span>
+                  <textarea rows="8" value={workflowJobForm.input} onChange={(event) => setWorkflowJobForm((current) => ({ ...current, input: event.target.value }))} />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {["admin", "manager"].includes(currentUser.role) && (
+                    <button className="button compact" onClick={handleCreateWorkflowJob}>Create job</button>
+                  )}
+                  <button className="button compact secondary" onClick={refreshWorkflowJobs}>Refresh jobs</button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Type</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {workflowJobs.length === 0 && (
+                        <tr><td colSpan="5">No workflow jobs.</td></tr>
+                      )}
+                      {workflowJobs.map((job) => (
+                        <tr key={job.id}>
+                          <td>{job.id}</td>
+                          <td>{job.job_type}</td>
+                          <td>{job.title}</td>
+                          <td>{job.status}</td>
+                          <td>
+                            <div className="flex flex-wrap gap-2">
+                              <button className="button compact secondary" onClick={() => setActiveWorkflowJob(job)}>View</button>
+                              {job.status === "pending" && ["admin", "manager"].includes(currentUser.role) && (
+                                <>
+                                  <button className="button compact" onClick={() => handleRunWorkflowJob(job.id)}>Run</button>
+                                  <button className="button compact secondary" onClick={() => handleCancelWorkflowJob(job.id)}>Cancel</button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {activeWorkflowJob && (
+                  <pre className="overflow-x-auto rounded-md bg-slate-950 p-4 text-sm text-white">{JSON.stringify(activeWorkflowJob.result || { error: activeWorkflowJob.error_message, status: activeWorkflowJob.status }, null, 2)}</pre>
                 )}
               </Panel>
             )}

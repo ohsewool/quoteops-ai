@@ -545,3 +545,31 @@ class PriceTableComparisonResponse(BaseModel):
     summary: PriceTableComparisonSummary
     changes: list[PriceTableComparisonChange]
     comparison_notes: list[str]
+
+
+WorkflowJobStatus = Literal["pending", "running", "completed", "failed", "cancelled"]
+WorkflowJobType = Literal["pricing_simulation", "price_validation_batch", "quote_request_review"]
+
+
+class WorkflowJobCreate(BaseModel):
+    job_type: WorkflowJobType
+    title: str = Field(..., min_length=1, max_length=140)
+    description: str | None = None
+    input: dict = Field(default_factory=dict)
+
+
+class WorkflowJobResponse(OrmModel):
+    id: int
+    job_type: WorkflowJobType
+    status: WorkflowJobStatus
+    title: str
+    description: str | None = None
+    input: dict
+    result: dict | None = None
+    error_message: str | None = None
+    created_by_username: str
+    created_at: datetime
+    updated_at: datetime
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    workflow_notes: list[str]
