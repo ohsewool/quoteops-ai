@@ -369,3 +369,42 @@ class CsvImportSummary(BaseModel):
     failed_rows: int
     errors: list[CsvImportError]
     notes: list[str]
+
+
+class PricingSimulationCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=140)
+    product_id: int
+    quantities: list[int]
+    margin_rates: list[float]
+    include_competitor_context: bool = False
+    notes: str | None = None
+
+
+class PricingSimulationScenarioResponse(OrmModel):
+    id: int
+    quantity: int
+    margin_rate: float
+    unit_price: float
+    total_price: float
+    total_cost: float
+    estimated_gross_profit: float
+    estimated_margin_rate: float
+    validation_status: Literal["passed", "warning", "failed"]
+    risk_level: Literal["low", "medium", "high"]
+    created_at: datetime
+
+
+class PricingSimulationResponse(OrmModel):
+    id: int
+    name: str
+    product_id: int
+    product_name: str
+    unit_cost: float
+    include_competitor_context: bool
+    scenario_count: int
+    scenarios: list[PricingSimulationScenarioResponse]
+    competitor_context: CompetitorContextResponse | None = None
+    notes: str | None = None
+    created_by_username: str
+    created_at: datetime
+    simulation_notes: list[str]

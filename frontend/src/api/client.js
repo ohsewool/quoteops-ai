@@ -86,6 +86,16 @@ export async function validatePrice(payload) {
   return data
 }
 
+export async function createPricingSimulation(payload) {
+  const { data } = await api.post("/api/pricing-simulations", payload)
+  return data
+}
+
+export async function getPricingSimulations() {
+  const { data } = await api.get("/api/pricing-simulations")
+  return data
+}
+
 export async function createApprovalRequest(payload) {
   const { data } = await api.post("/api/approval-requests", payload)
   return data
