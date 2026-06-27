@@ -22,6 +22,7 @@ import {
   getAuditLogs,
   getApprovalRequests,
   getCurrentUser,
+  getDashboardSummary,
   getCustomerQuoteRequests,
   getDemoUsers,
   getHealth,
@@ -57,6 +58,11 @@ function toNumber(value) {
 function formatMoney(value) {
   if (value === null || value === undefined) return "-"
   return new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 2 }).format(value)
+}
+
+function formatRate(value) {
+  if (value === null || value === undefined) return "-"
+  return `${Math.round(Number(value) * 1000) / 10}%`
 }
 
 function parseMarginRates(value) {
@@ -98,6 +104,7 @@ function App() {
   const [error, setError] = useState("")
   const [demoUsers, setDemoUsers] = useState([])
   const [auditLogs, setAuditLogs] = useState([])
+  const [dashboardSummary, setDashboardSummary] = useState(null)
   const [csvFiles, setCsvFiles] = useState({
     products: null,
     "cost-profiles": null,
@@ -175,6 +182,7 @@ function App() {
         .then((user) => {
           setCurrentUser(user)
           refreshAuditLogs(user)
+          getDashboardSummary().then(setDashboardSummary).catch(() => {})
           getPricingSimulations().then(setPricingSimulations).catch(() => {})
           getStrategyTemplates().then((templates) => {
             setStrategyTemplates(templates)
@@ -234,6 +242,7 @@ function App() {
       setAccessToken(data.access_token)
       setCurrentUser(data.user)
       await refreshAuditLogs(data.user)
+      setDashboardSummary(await getDashboardSummary())
       setPricingSimulations(await getPricingSimulations())
       const templates = await getStrategyTemplates()
       setStrategyTemplates(templates)
@@ -248,6 +257,7 @@ function App() {
     setAccessToken("")
     setCurrentUser(null)
     setAuditLogs([])
+    setDashboardSummary(null)
     setPricingSimulations([])
     setActiveSimulation(null)
     setStrategyTemplates([])
@@ -265,6 +275,12 @@ function App() {
       return
     }
     setAuditLogs(await getAuditLogs({ limit: 10 }))
+  }
+
+  async function refreshDashboardSummary() {
+    if (!currentUser) return
+    setDashboardSummary(await getDashboardSummary())
+    await refreshAuditLogs()
   }
 
   async function handleCsvImport(entity) {
@@ -674,6 +690,87 @@ function App() {
             <StatusCard label="DB type" value={systemStatus?.database_type || "-"} />
             <StatusCard label="OpenAI" value={systemStatus?.openai_configured ? "configured" : "not configured"} />
           </section>
+
+          {currentUser && dashboardSummary && (
+            <Panel title="KPI dashboard">
+              <div className="flex flex-wrap gap-2">
+                <button className="button compact" onClick={refreshDashboardSummary}>Refresh dashboard</button>
+                <Badge>generated: {new Date(dashboardSummary.generated_at).toLocaleString()}</Badge>
+              </div>
+              <div className="grid gap-3 md:grid-cols-4">
+                <StatusCard label="Products" value={dashboardSummary.summary.total_products} />
+                <StatusCard label="Quote requests" value={dashboardSummary.summary.total_quote_requests} />
+                <StatusCard label="Approvals" value={dashboardSummary.summary.total_approval_requests} />
+                <StatusCard label="High risk" value={dashboardSummary.summary.high_risk_count} />
+              </div>
+              <div className="grid gap-4 xl:grid-cols-2">
+                <DashboardMetricTable
+                  title="Quote requests"
+                  rows={[
+                    ["new", dashboardSummary.quote_metrics.new_quote_requests],
+                    ["reviewing", dashboardSummary.quote_metrics.reviewing_quote_requests],
+                    ["quoted", dashboardSummary.quote_metrics.quoted_quote_requests],
+                    ["closed", dashboardSummary.quote_metrics.closed_quote_requests],
+                    ["cancelled", dashboardSummary.quote_metrics.cancelled_quote_requests],
+                  ]}
+                />
+                <DashboardMetricTable
+                  title="Approval metrics"
+                  rows={[
+                    ["pending", dashboardSummary.approval_metrics.pending_approval_requests],
+                    ["approved", dashboardSummary.approval_metrics.approved_requests],
+                    ["rejected", dashboardSummary.approval_metrics.rejected_requests],
+                    ["approval rate", formatRate(dashboardSummary.approval_metrics.approval_rate)],
+                    ["avg margin", dashboardSummary.approval_metrics.average_estimated_margin_rate ?? "-"],
+                  ]}
+                />
+                <DashboardMetricTable
+                  title="Validation and risk"
+                  rows={[
+                    ["passed", dashboardSummary.validation_metrics.passed_validations],
+                    ["warning", dashboardSummary.validation_metrics.warning_validations],
+                    ["failed", dashboardSummary.validation_metrics.failed_validations],
+                    ["low risk", dashboardSummary.validation_metrics.low_risk_count],
+                    ["high risk", dashboardSummary.validation_metrics.high_risk_count],
+                  ]}
+                />
+                <DashboardMetricTable
+                  title="Workflow jobs"
+                  rows={[
+                    ["pending", dashboardSummary.workflow_metrics.pending_jobs],
+                    ["running", dashboardSummary.workflow_metrics.running_jobs],
+                    ["completed", dashboardSummary.workflow_metrics.completed_jobs],
+                    ["failed", dashboardSummary.workflow_metrics.failed_jobs],
+                    ["success rate", formatRate(dashboardSummary.workflow_metrics.job_success_rate)],
+                  ]}
+                />
+              </div>
+              <div className="overflow-x-auto">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Recent action</th>
+                      <th>Actor</th>
+                      <th>Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dashboardSummary.audit_metrics.latest_actions.length === 0 && (
+                      <tr><td colSpan="3">No recent audit actions.</td></tr>
+                    )}
+                    {dashboardSummary.audit_metrics.latest_actions.map((action) => (
+                      <tr key={`${action.action}-${action.created_at}`}>
+                        <td>{action.action}</td>
+                        <td>{action.actor_username}</td>
+                        <td>{new Date(action.created_at).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Notes notes={dashboardSummary.dashboard_notes} />
+            </Panel>
+          )}
         </section>
 
         <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
@@ -1387,6 +1484,28 @@ function MetricGrid({ data, fields }) {
           <p className="font-semibold">{formatMoney(data[field])}</p>
         </div>
       ))}
+    </div>
+  )
+}
+
+function DashboardMetricTable({ title, rows }) {
+  return (
+    <div className="overflow-x-auto rounded-md border border-slate-200">
+      <table>
+        <thead>
+          <tr>
+            <th colSpan="2">{title}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(([label, value]) => (
+            <tr key={label}>
+              <td>{label}</td>
+              <td>{value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

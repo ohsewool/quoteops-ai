@@ -37,6 +37,11 @@ export async function getAuditLogs(params = {}) {
   return data
 }
 
+export async function getDashboardSummary() {
+  const { data } = await api.get("/api/dashboard/summary")
+  return data
+}
+
 export async function importCsv(entity, file) {
   const formData = new FormData()
   formData.append("file", file)
