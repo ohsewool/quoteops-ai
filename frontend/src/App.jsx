@@ -25,6 +25,7 @@ import {
   getAuditLogs,
   getApprovalRequests,
   getCurrentUser,
+  getDashboardInsights,
   getDashboardSummary,
   getCustomerQuoteRequests,
   getDemoGuide,
@@ -122,6 +123,7 @@ function App() {
   const [demoScenario, setDemoScenario] = useState(null)
   const [auditLogs, setAuditLogs] = useState([])
   const [dashboardSummary, setDashboardSummary] = useState(null)
+  const [dashboardInsights, setDashboardInsights] = useState(null)
   const [htmlReports, setHtmlReports] = useState([])
   const [activeHtmlReport, setActiveHtmlReport] = useState(null)
   const [htmlReportForm, setHtmlReportForm] = useState({
@@ -215,6 +217,7 @@ function App() {
           setCurrentUser(user)
           refreshAuditLogs(user)
           getDashboardSummary().then(setDashboardSummary).catch(() => {})
+          getDashboardInsights().then(setDashboardInsights).catch(() => {})
           getHtmlReports().then(setHtmlReports).catch(() => {})
           getPricingSimulations().then(setPricingSimulations).catch(() => {})
           getStrategyTemplates().then((templates) => {
@@ -279,6 +282,7 @@ function App() {
       setCurrentUser(data.user)
       await refreshAuditLogs(data.user)
       setDashboardSummary(await getDashboardSummary())
+      setDashboardInsights(await getDashboardInsights())
       setHtmlReports(await getHtmlReports())
       setPricingSimulations(await getPricingSimulations())
       const templates = await getStrategyTemplates()
@@ -298,6 +302,7 @@ function App() {
     setCurrentUser(null)
     setAuditLogs([])
     setDashboardSummary(null)
+    setDashboardInsights(null)
     setHtmlReports([])
     setActiveHtmlReport(null)
     setPricingSimulations([])
@@ -344,6 +349,7 @@ function App() {
       setDemoScenario(result)
       setDemoStatus(await getDemoStatus())
       setDashboardSummary(await getDashboardSummary())
+      setDashboardInsights(await getDashboardInsights())
       setScenarioComparisons(await getScenarioComparisons())
       setHtmlReports(await getHtmlReports())
       await refreshAuditLogs()
@@ -372,6 +378,13 @@ function App() {
   async function refreshDashboardSummary() {
     if (!currentUser) return
     setDashboardSummary(await getDashboardSummary())
+    setDashboardInsights(await getDashboardInsights())
+    await refreshAuditLogs()
+  }
+
+  async function refreshDashboardInsights() {
+    if (!currentUser) return
+    setDashboardInsights(await getDashboardInsights())
     await refreshAuditLogs()
   }
 
@@ -944,6 +957,32 @@ function App() {
                 </table>
               </div>
               <Notes notes={dashboardSummary.dashboard_notes} />
+            </Panel>
+          )}
+
+          {currentUser && dashboardInsights && (
+            <Panel title="Dashboard insights">
+              <div className="flex flex-wrap gap-2">
+                <button className="button compact" onClick={refreshDashboardInsights}>Refresh insights</button>
+                <Badge>insights: {dashboardInsights.insight_count}</Badge>
+                <Badge>generated: {new Date(dashboardInsights.generated_at).toLocaleString()}</Badge>
+              </div>
+              <div className="grid gap-3 xl:grid-cols-2">
+                {dashboardInsights.insights.map((insight) => (
+                  <div className="rounded-md border border-slate-200 bg-slate-50 p-4" key={`${insight.category}-${insight.title}`}>
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      <Badge>{insight.severity}</Badge>
+                      <Badge>{insight.category}</Badge>
+                    </div>
+                    <p className="font-semibold">{insight.title}</p>
+                    <p className="mt-1 text-sm text-slate-600">{insight.message}</p>
+                    <p className="mt-3 text-sm font-semibold text-slate-700">Recommended action</p>
+                    <p className="text-sm text-slate-600">{insight.recommended_action}</p>
+                    <p className="mt-3 text-xs text-slate-500">{insight.decision_boundary}</p>
+                  </div>
+                ))}
+              </div>
+              <Notes notes={dashboardInsights.insight_notes} />
             </Panel>
           )}
 

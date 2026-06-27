@@ -67,6 +67,11 @@ export async function getDashboardSummary() {
   return data
 }
 
+export async function getDashboardInsights() {
+  const { data } = await api.get("/api/dashboard/insights")
+  return data
+}
+
 export async function createHtmlReport(payload) {
   const { data } = await api.post("/api/html-reports", payload)
   return data
