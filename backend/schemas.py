@@ -12,12 +12,16 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     timestamp: str
+    database_type: str
+    database_connection_ok: bool
 
 
 class SystemStatusResponse(BaseModel):
     service: str
     database_configured: bool
     database_type: str
+    database_url_safe: str
+    database_connection_ok: bool
     openai_configured: bool
     demo_tools_enabled: bool
 

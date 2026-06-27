@@ -858,10 +858,11 @@ function App() {
             <p className="text-sm text-slate-500">Demo credentials are for local MVP testing only.</p>
           </Panel>
 
-          <section className="grid gap-4 lg:grid-cols-4">
+          <section className="grid gap-4 lg:grid-cols-5">
             <StatusCard label="Health" value={health?.status || "-"} />
             <StatusCard label="Database" value={systemStatus?.database_configured ? "configured" : "-"} />
             <StatusCard label="DB type" value={systemStatus?.database_type || "-"} />
+            <StatusCard label="DB connection" value={systemStatus?.database_connection_ok ? "ok" : "check"} />
             <StatusCard label="OpenAI" value={systemStatus?.openai_configured ? "configured" : "not configured"} />
           </section>
 
