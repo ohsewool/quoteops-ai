@@ -453,6 +453,49 @@ class DashboardResponse(BaseModel):
     dashboard_notes: list[str]
 
 
+DashboardInsightCategory = Literal[
+    "quote_requests",
+    "approvals",
+    "validation_risk",
+    "pricing_margin",
+    "workflow_jobs",
+    "audit_activity",
+    "system_health",
+]
+DashboardInsightSeverity = Literal["info", "warning", "critical"]
+
+
+class DashboardInsight(BaseModel):
+    category: DashboardInsightCategory
+    severity: DashboardInsightSeverity
+    title: str
+    message: str
+    metric_refs: dict[str, int | float | None]
+    recommended_action: str
+    decision_boundary: str
+
+
+class DashboardInsightsResponse(BaseModel):
+    generated_at: datetime
+    insight_count: int
+    insights: list[DashboardInsight]
+    insight_notes: list[str]
+
+
+class DashboardInsightRule(BaseModel):
+    code: str
+    category: DashboardInsightCategory
+    metric: str
+    warning_threshold: str | None = None
+    critical_threshold: str | None = None
+    description: str
+
+
+class DashboardInsightRulesResponse(BaseModel):
+    rules: list[DashboardInsightRule]
+    rule_notes: list[str]
+
+
 class CsvImportError(BaseModel):
     row_number: int
     message: str
