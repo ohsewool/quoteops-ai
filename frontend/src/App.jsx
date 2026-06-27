@@ -3,6 +3,9 @@ import {
   approveApprovalRequest,
   createApprovalRequest,
   createCandidatePrices,
+  createCustomerQuoteCandidates,
+  createCustomerQuotePreview,
+  createCustomerQuoteRequest,
   createPricingSimulation,
   createQuoteExplanation,
   createQuotePreview,
@@ -10,6 +13,7 @@ import {
   getAuditLogs,
   getApprovalRequests,
   getCurrentUser,
+  getCustomerQuoteRequests,
   getDemoUsers,
   getHealth,
   getProducts,
@@ -19,6 +23,7 @@ import {
   login,
   rejectApprovalRequest,
   setAccessToken,
+  updateCustomerQuoteRequestStatus,
   validatePrice,
 } from "./api/client"
 
@@ -91,6 +96,15 @@ function App() {
   })
   const [pricingSimulations, setPricingSimulations] = useState([])
   const [activeSimulation, setActiveSimulation] = useState(null)
+  const [customerQuoteForm, setCustomerQuoteForm] = useState({
+    customer_name: "Demo Customer",
+    customer_email: "customer@example.com",
+    customer_company: "Demo Company",
+    quantity: 25,
+    request_note: "Please provide a quote for 25 units.",
+  })
+  const [customerQuoteRequests, setCustomerQuoteRequests] = useState([])
+  const [quoteRequestStatus, setQuoteRequestStatus] = useState("reviewing")
   const [loginForm, setLoginForm] = useState({
     username: "manager",
     password: "manager-demo-password",
@@ -111,6 +125,7 @@ function App() {
           setCurrentUser(user)
           refreshAuditLogs(user)
           getPricingSimulations().then(setPricingSimulations).catch(() => {})
+          getCustomerQuoteRequests().then(setCustomerQuoteRequests).catch(() => {})
         })
         .catch(() => handleLogout())
     }
@@ -158,6 +173,7 @@ function App() {
       setCurrentUser(data.user)
       await refreshAuditLogs(data.user)
       setPricingSimulations(await getPricingSimulations())
+      setCustomerQuoteRequests(await getCustomerQuoteRequests())
     })
   }
 
@@ -168,6 +184,7 @@ function App() {
     setAuditLogs([])
     setPricingSimulations([])
     setActiveSimulation(null)
+    setCustomerQuoteRequests([])
   }
 
   async function refreshAuditLogs(user = currentUser) {
@@ -214,6 +231,54 @@ function App() {
       })
       setActiveSimulation(data)
       setPricingSimulations(await getPricingSimulations())
+      await refreshAuditLogs()
+    })
+  }
+
+  async function refreshCustomerQuoteRequests() {
+    if (!currentUser) return
+    setCustomerQuoteRequests(await getCustomerQuoteRequests())
+  }
+
+  async function handleCreateCustomerQuoteRequest() {
+    await runAction("Creating customer quote request", async () => {
+      await createCustomerQuoteRequest({
+        ...customerQuoteForm,
+        product_id: Number(selectedProductId),
+        quantity: Number(customerQuoteForm.quantity),
+      })
+      await refreshCustomerQuoteRequests()
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleCustomerQuoteStatus(id) {
+    await runAction("Updating customer quote request status", async () => {
+      await updateCustomerQuoteRequestStatus(id, {
+        status: quoteRequestStatus,
+        assigned_to_username: currentUser?.username || "manager",
+        internal_note: "Reviewed in frontend MVP.",
+      })
+      await refreshCustomerQuoteRequests()
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleCustomerQuotePreview(id) {
+    await runAction("Creating quote preview from request", async () => {
+      const data = await createCustomerQuotePreview(id)
+      setResults((current) => ({ ...current, quotePreview: data }))
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleCustomerQuoteCandidates(id) {
+    await runAction("Generating candidate prices from request", async () => {
+      const data = await createCustomerQuoteCandidates(id, {
+        margin_rates: parseMarginRates(marginRates),
+        include_competitor_context: includeCompetitors,
+      })
+      setResults((current) => ({ ...current, candidates: data }))
       await refreshAuditLogs()
     })
   }
@@ -599,6 +664,70 @@ function App() {
                 </div>
               )}
             </Panel>
+
+            {currentUser && (
+              <Panel title="Customer quote requests">
+                <div className="grid gap-3 md:grid-cols-2">
+                  {["customer_name", "customer_email", "customer_company", "quantity", "request_note"].map((field) => (
+                    <label className="field" key={field}>
+                      <span>{field}</span>
+                      <input value={customerQuoteForm[field]} onChange={(event) => setCustomerQuoteForm((current) => ({ ...current, [field]: event.target.value }))} />
+                    </label>
+                  ))}
+                </div>
+                <ActionButton onClick={handleCreateCustomerQuoteRequest}>Submit quote request</ActionButton>
+                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                  <label className="field">
+                    <span>Status update</span>
+                    <select value={quoteRequestStatus} onChange={(event) => setQuoteRequestStatus(event.target.value)}>
+                      {["new", "reviewing", "quoted", "closed"].map((status) => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <ActionButton onClick={refreshCustomerQuoteRequests}>Refresh requests</ActionButton>
+                </div>
+                <div className="overflow-x-auto">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Customer</th>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customerQuoteRequests.length === 0 && (
+                        <tr><td colSpan="6">No customer quote requests.</td></tr>
+                      )}
+                      {customerQuoteRequests.map((request) => (
+                        <tr key={request.id}>
+                          <td>{request.id}</td>
+                          <td>{request.customer_name}</td>
+                          <td>{request.product_name}</td>
+                          <td>{request.quantity}</td>
+                          <td>{request.status}</td>
+                          <td>
+                            <div className="flex flex-wrap gap-2">
+                              {["admin", "manager"].includes(currentUser.role) && (
+                                <>
+                                  <button className="button compact" onClick={() => handleCustomerQuoteStatus(request.id)}>Set status</button>
+                                  <button className="button compact secondary" onClick={() => handleCustomerQuotePreview(request.id)}>Preview</button>
+                                  <button className="button compact secondary" onClick={() => handleCustomerQuoteCandidates(request.id)}>Candidates</button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Panel>
+            )}
 
             {currentUser && (
               <Panel title="CSV import and export">

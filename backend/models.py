@@ -29,6 +29,7 @@ class Product(Base):
     approval_requests = relationship("PriceApprovalRequest", back_populates="product")
     price_table_items = relationship("PriceTableItem", back_populates="product")
     pricing_simulations = relationship("PricingSimulation", back_populates="product")
+    customer_quote_requests = relationship("CustomerQuoteRequest", back_populates="product")
 
 
 class Competitor(Base):
@@ -221,3 +222,28 @@ class PricingSimulationScenario(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     simulation = relationship("PricingSimulation", back_populates="scenarios")
+
+
+class CustomerQuoteRequest(Base):
+    __tablename__ = "customer_quote_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    customer_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    customer_email: Mapped[str] = mapped_column(String(160), nullable=False)
+    customer_company: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    product_id: Mapped[int] = mapped_column(
+        ForeignKey("products.id"), nullable=False, index=True
+    )
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    requested_due_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    request_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="new", nullable=False)
+    assigned_to_username: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    internal_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    product = relationship("Product", back_populates="customer_quote_requests")
