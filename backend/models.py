@@ -28,6 +28,7 @@ class Product(Base):
     cost_profiles = relationship("CostProfile", back_populates="product")
     approval_requests = relationship("PriceApprovalRequest", back_populates="product")
     price_table_items = relationship("PriceTableItem", back_populates="product")
+    pricing_simulations = relationship("PricingSimulation", back_populates="product")
 
 
 class Competitor(Base):
@@ -176,3 +177,47 @@ class AuditLog(Base):
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     metadata_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+
+class PricingSimulation(Base):
+    __tablename__ = "pricing_simulations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(140), nullable=False)
+    product_id: Mapped[int] = mapped_column(
+        ForeignKey("products.id"), nullable=False, index=True
+    )
+    unit_cost: Mapped[float] = mapped_column(Float, nullable=False)
+    include_competitor_context: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    competitor_context_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by_username: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    product = relationship("Product", back_populates="pricing_simulations")
+    scenarios = relationship(
+        "PricingSimulationScenario",
+        back_populates="simulation",
+        cascade="all, delete-orphan",
+    )
+
+
+class PricingSimulationScenario(Base):
+    __tablename__ = "pricing_simulation_scenarios"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    simulation_id: Mapped[int] = mapped_column(
+        ForeignKey("pricing_simulations.id"), nullable=False, index=True
+    )
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    margin_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    unit_price: Mapped[float] = mapped_column(Float, nullable=False)
+    total_price: Mapped[float] = mapped_column(Float, nullable=False)
+    total_cost: Mapped[float] = mapped_column(Float, nullable=False)
+    estimated_gross_profit: Mapped[float] = mapped_column(Float, nullable=False)
+    estimated_margin_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    validation_status: Mapped[str] = mapped_column(String(20), nullable=False)
+    risk_level: Mapped[str] = mapped_column(String(20), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    simulation = relationship("PricingSimulation", back_populates="scenarios")

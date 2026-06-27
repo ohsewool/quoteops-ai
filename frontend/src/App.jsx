@@ -3,6 +3,7 @@ import {
   approveApprovalRequest,
   createApprovalRequest,
   createCandidatePrices,
+  createPricingSimulation,
   createQuoteExplanation,
   createQuotePreview,
   downloadCsv,
@@ -12,6 +13,7 @@ import {
   getDemoUsers,
   getHealth,
   getProducts,
+  getPricingSimulations,
   getSystemStatus,
   importCsv,
   login,
@@ -44,6 +46,14 @@ function parseMarginRates(value) {
     .filter((item) => !Number.isNaN(item))
 }
 
+function parseIntegerList(value) {
+  if (!value.trim()) return []
+  return value
+    .split(",")
+    .map((item) => Number.parseInt(item.trim(), 10))
+    .filter((item) => !Number.isNaN(item))
+}
+
 function App() {
   const [health, setHealth] = useState(null)
   const [systemStatus, setSystemStatus] = useState(null)
@@ -73,6 +83,14 @@ function App() {
     "competitor-prices": null,
   })
   const [csvImportResult, setCsvImportResult] = useState(null)
+  const [simulationInputs, setSimulationInputs] = useState({
+    name: "Demo simulation for bulk order",
+    quantities: "1,10,50",
+    margin_rates: "0.25,0.35,0.45",
+    notes: "Compare small and bulk order scenarios.",
+  })
+  const [pricingSimulations, setPricingSimulations] = useState([])
+  const [activeSimulation, setActiveSimulation] = useState(null)
   const [loginForm, setLoginForm] = useState({
     username: "manager",
     password: "manager-demo-password",
@@ -92,6 +110,7 @@ function App() {
         .then((user) => {
           setCurrentUser(user)
           refreshAuditLogs(user)
+          getPricingSimulations().then(setPricingSimulations).catch(() => {})
         })
         .catch(() => handleLogout())
     }
@@ -138,6 +157,7 @@ function App() {
       setAccessToken(data.access_token)
       setCurrentUser(data.user)
       await refreshAuditLogs(data.user)
+      setPricingSimulations(await getPricingSimulations())
     })
   }
 
@@ -146,6 +166,8 @@ function App() {
     setAccessToken("")
     setCurrentUser(null)
     setAuditLogs([])
+    setPricingSimulations([])
+    setActiveSimulation(null)
   }
 
   async function refreshAuditLogs(user = currentUser) {
@@ -171,6 +193,27 @@ function App() {
   async function handleCsvExport(entity, filename) {
     await runAction(`Exporting ${entity} CSV`, async () => {
       await downloadCsv(entity, filename)
+      await refreshAuditLogs()
+    })
+  }
+
+  async function refreshPricingSimulations() {
+    if (!currentUser) return
+    setPricingSimulations(await getPricingSimulations())
+  }
+
+  async function handlePricingSimulation() {
+    await runAction("Running pricing simulation", async () => {
+      const data = await createPricingSimulation({
+        name: simulationInputs.name,
+        product_id: Number(selectedProductId),
+        quantities: parseIntegerList(simulationInputs.quantities),
+        margin_rates: parseMarginRates(simulationInputs.margin_rates) || [],
+        include_competitor_context: includeCompetitors,
+        notes: simulationInputs.notes,
+      })
+      setActiveSimulation(data)
+      setPricingSimulations(await getPricingSimulations())
       await refreshAuditLogs()
     })
   }
@@ -419,6 +462,79 @@ function App() {
                 </div>
               )}
             </Panel>
+
+            {currentUser && (
+              <Panel title="Pricing simulation">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="field">
+                    <span>Simulation name</span>
+                    <input value={simulationInputs.name} onChange={(event) => setSimulationInputs((current) => ({ ...current, name: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>Quantities</span>
+                    <input value={simulationInputs.quantities} onChange={(event) => setSimulationInputs((current) => ({ ...current, quantities: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>Margin rates</span>
+                    <input value={simulationInputs.margin_rates} onChange={(event) => setSimulationInputs((current) => ({ ...current, margin_rates: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>Notes</span>
+                    <input value={simulationInputs.notes} onChange={(event) => setSimulationInputs((current) => ({ ...current, notes: event.target.value }))} />
+                  </label>
+                </div>
+                {["admin", "manager"].includes(currentUser.role) && (
+                  <ActionButton onClick={handlePricingSimulation}>Run simulation</ActionButton>
+                )}
+                {activeSimulation && (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge>{activeSimulation.name}</Badge>
+                      <Badge>scenarios: {activeSimulation.scenario_count}</Badge>
+                      <Badge>unit cost: {formatMoney(activeSimulation.unit_cost)}</Badge>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Qty</th>
+                            <th>Margin</th>
+                            <th>Unit price</th>
+                            <th>Total</th>
+                            <th>Profit</th>
+                            <th>Status</th>
+                            <th>Risk</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeSimulation.scenarios.map((scenario) => (
+                            <tr key={scenario.id}>
+                              <td>{scenario.quantity}</td>
+                              <td>{scenario.margin_rate}</td>
+                              <td>{formatMoney(scenario.unit_price)}</td>
+                              <td>{formatMoney(scenario.total_price)}</td>
+                              <td>{formatMoney(scenario.estimated_gross_profit)}</td>
+                              <td>{scenario.validation_status}</td>
+                              <td>{scenario.risk_level}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <Notes notes={activeSimulation.simulation_notes} />
+                  </div>
+                )}
+                {pricingSimulations.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {pricingSimulations.slice(0, 5).map((simulation) => (
+                      <button className="button compact secondary" key={simulation.id} onClick={() => setActiveSimulation(simulation)}>
+                        #{simulation.id} {simulation.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </Panel>
+            )}
 
             <Panel title="Approval workflow">
               <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
