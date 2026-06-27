@@ -71,6 +71,36 @@ export async function getProducts() {
   return data
 }
 
+export async function getPriceTables() {
+  const { data } = await api.get("/api/price-tables")
+  return data
+}
+
+export async function getPriceTableSummary(id) {
+  const { data } = await api.get(`/api/price-tables/${id}/summary`)
+  return data
+}
+
+export async function createPriceTableSnapshot(id, payload) {
+  const { data } = await api.post(`/api/price-tables/${id}/snapshots`, payload)
+  return data
+}
+
+export async function getPriceTableSnapshots(id) {
+  const { data } = await api.get(`/api/price-tables/${id}/snapshots`)
+  return data
+}
+
+export async function comparePriceTables(payload) {
+  const { data } = await api.post("/api/price-tables/compare", payload)
+  return data
+}
+
+export async function comparePriceTableSnapshots(payload) {
+  const { data } = await api.post("/api/price-table-snapshots/compare", payload)
+  return data
+}
+
 export async function createQuotePreview(payload) {
   const { data } = await api.post("/api/quote-preview", payload)
   return data

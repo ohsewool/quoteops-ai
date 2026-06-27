@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import {
   approveApprovalRequest,
+  comparePriceTableSnapshots,
+  comparePriceTables,
   createApprovalRequest,
   createCandidatePrices,
   createCustomerQuoteCandidates,
@@ -9,6 +11,7 @@ import {
   createPricingSimulation,
   createQuoteExplanation,
   createQuotePreview,
+  createPriceTableSnapshot,
   downloadCsv,
   getAuditLogs,
   getApprovalRequests,
@@ -17,6 +20,9 @@ import {
   getDemoUsers,
   getHealth,
   getProducts,
+  getPriceTables,
+  getPriceTableSnapshots,
+  getPriceTableSummary,
   getPricingSimulations,
   getSystemStatus,
   importCsv,
@@ -105,6 +111,18 @@ function App() {
   })
   const [customerQuoteRequests, setCustomerQuoteRequests] = useState([])
   const [quoteRequestStatus, setQuoteRequestStatus] = useState("reviewing")
+  const [priceTables, setPriceTables] = useState([])
+  const [selectedPriceTableId, setSelectedPriceTableId] = useState("")
+  const [targetPriceTableId, setTargetPriceTableId] = useState("")
+  const [priceTableSummary, setPriceTableSummary] = useState(null)
+  const [priceTableSnapshots, setPriceTableSnapshots] = useState([])
+  const [snapshotForm, setSnapshotForm] = useState({
+    label: "Before price review",
+    note: "Snapshot before deterministic comparison.",
+  })
+  const [baseSnapshotId, setBaseSnapshotId] = useState("")
+  const [targetSnapshotId, setTargetSnapshotId] = useState("")
+  const [priceTableComparison, setPriceTableComparison] = useState(null)
   const [loginForm, setLoginForm] = useState({
     username: "manager",
     password: "manager-demo-password",
@@ -146,18 +164,24 @@ function App() {
 
   async function loadInitialData() {
     await runAction("Loading initial data", async () => {
-      const [healthData, statusData, productData, approvalData, demoUserData] = await Promise.all([
+      const [healthData, statusData, productData, approvalData, demoUserData, priceTableData] = await Promise.all([
         getHealth(),
         getSystemStatus(),
         getProducts(),
         getApprovalRequests(),
         getDemoUsers(),
+        getPriceTables(),
       ])
       setHealth(healthData)
       setSystemStatus(statusData)
       setProducts(productData)
       setApprovalRequests(approvalData)
       setDemoUsers(demoUserData)
+      setPriceTables(priceTableData)
+      if (priceTableData.length > 0) {
+        setSelectedPriceTableId(String(priceTableData[0].id))
+        setTargetPriceTableId(String(priceTableData[Math.min(1, priceTableData.length - 1)].id))
+      }
       if (productData.length > 0) {
         setSelectedProductId(String(productData[0].id))
       }
@@ -279,6 +303,50 @@ function App() {
         include_competitor_context: includeCompetitors,
       })
       setResults((current) => ({ ...current, candidates: data }))
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handlePriceTableSummary() {
+    await runAction("Loading price table summary", async () => {
+      const summary = await getPriceTableSummary(selectedPriceTableId)
+      setPriceTableSummary(summary)
+      setPriceTableSnapshots(await getPriceTableSnapshots(selectedPriceTableId))
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleCreateSnapshot() {
+    await runAction("Creating price table snapshot", async () => {
+      await createPriceTableSnapshot(selectedPriceTableId, snapshotForm)
+      const snapshots = await getPriceTableSnapshots(selectedPriceTableId)
+      setPriceTableSnapshots(snapshots)
+      if (snapshots.length > 0) {
+        setBaseSnapshotId(String(snapshots[0].id))
+        setTargetSnapshotId(String(snapshots[0].id))
+      }
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleComparePriceTables() {
+    await runAction("Comparing price tables", async () => {
+      const comparison = await comparePriceTables({
+        base_price_table_id: Number(selectedPriceTableId),
+        target_price_table_id: Number(targetPriceTableId),
+      })
+      setPriceTableComparison(comparison)
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleCompareSnapshots() {
+    await runAction("Comparing price table snapshots", async () => {
+      const comparison = await comparePriceTableSnapshots({
+        base_snapshot_id: Number(baseSnapshotId),
+        target_snapshot_id: Number(targetSnapshotId),
+      })
+      setPriceTableComparison(comparison)
       await refreshAuditLogs()
     })
   }
@@ -596,6 +664,106 @@ function App() {
                         #{simulation.id} {simulation.name}
                       </button>
                     ))}
+                  </div>
+                )}
+              </Panel>
+            )}
+
+            {currentUser && (
+              <Panel title="Price table history and comparison">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="field">
+                    <span>Base price table</span>
+                    <select value={selectedPriceTableId} onChange={(event) => setSelectedPriceTableId(event.target.value)}>
+                      {priceTables.map((table) => (
+                        <option key={table.id} value={table.id}>{table.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Target price table</span>
+                    <select value={targetPriceTableId} onChange={(event) => setTargetPriceTableId(event.target.value)}>
+                      {priceTables.map((table) => (
+                        <option key={table.id} value={table.id}>{table.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Snapshot label</span>
+                    <input value={snapshotForm.label} onChange={(event) => setSnapshotForm((current) => ({ ...current, label: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>Snapshot note</span>
+                    <input value={snapshotForm.note} onChange={(event) => setSnapshotForm((current) => ({ ...current, note: event.target.value }))} />
+                  </label>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button className="button compact" onClick={handlePriceTableSummary}>View summary</button>
+                  {["admin", "manager"].includes(currentUser.role) && (
+                    <button className="button compact" onClick={handleCreateSnapshot}>Create snapshot</button>
+                  )}
+                  <button className="button compact secondary" onClick={handleComparePriceTables}>Compare tables</button>
+                </div>
+                {priceTableSummary && (
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <StatusCard label="Items" value={priceTableSummary.item_count} />
+                    <StatusCard label="Average" value={formatMoney(priceTableSummary.average_price)} />
+                    <StatusCard label="Min" value={formatMoney(priceTableSummary.min_price)} />
+                    <StatusCard label="Max" value={formatMoney(priceTableSummary.max_price)} />
+                  </div>
+                )}
+                {priceTableSnapshots.length > 0 && (
+                  <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                    <label className="field">
+                      <span>Base snapshot</span>
+                      <select value={baseSnapshotId} onChange={(event) => setBaseSnapshotId(event.target.value)}>
+                        {priceTableSnapshots.map((snapshot) => (
+                          <option key={snapshot.id} value={snapshot.id}>{snapshot.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Target snapshot</span>
+                      <select value={targetSnapshotId} onChange={(event) => setTargetSnapshotId(event.target.value)}>
+                        {priceTableSnapshots.map((snapshot) => (
+                          <option key={snapshot.id} value={snapshot.id}>{snapshot.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <button className="button compact secondary" onClick={handleCompareSnapshots}>Compare snapshots</button>
+                  </div>
+                )}
+                {priceTableComparison && (
+                  <div className="overflow-x-auto">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>SKU</th>
+                          <th>Type</th>
+                          <th>Base</th>
+                          <th>Target</th>
+                          <th>Delta</th>
+                          <th>Delta rate</th>
+                          <th>Margin delta</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {priceTableComparison.changes.map((change) => (
+                          <tr key={`${change.product_id}-${change.change_type}`}>
+                            <td>{change.product_name}</td>
+                            <td>{change.product_sku}</td>
+                            <td>{change.change_type}</td>
+                            <td>{formatMoney(change.base_price)}</td>
+                            <td>{formatMoney(change.target_price)}</td>
+                            <td>{formatMoney(change.price_delta)}</td>
+                            <td>{change.price_delta_rate ?? "-"}</td>
+                            <td>{change.margin_delta ?? "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <Notes notes={priceTableComparison.comparison_notes} />
                   </div>
                 )}
               </Panel>
