@@ -847,3 +847,47 @@ class HtmlReportResponse(OrmModel):
     created_at: datetime
     updated_at: datetime
     report_notes: list[str]
+
+
+class DemoStatusResponse(BaseModel):
+    demo_ready: bool
+    counts: dict[str, int]
+    demo_notes: list[str]
+
+
+class DemoSeedResponse(BaseModel):
+    seed_completed: bool
+    created_or_verified: dict[str, int]
+    demo_notes: list[str]
+
+
+class DemoResetResponse(BaseModel):
+    reset_completed: bool
+    deleted_or_disabled: dict[str, int]
+    safety_notes: list[str]
+
+
+class DemoScenarioStep(BaseModel):
+    step: int
+    title: str
+    api: str
+
+
+class DemoFullScenarioResponse(BaseModel):
+    scenario_name: str
+    ready: bool
+    demo_product_sku: str
+    generated_ids: dict[str, int | None]
+    steps: list[DemoScenarioStep]
+    decision_boundaries: list[str]
+    demo_notes: list[str]
+
+
+class DemoGuideResponse(BaseModel):
+    demo_login_users: list[dict[str, str]]
+    recommended_demo_flow: list[DemoScenarioStep]
+    important_api_endpoints: list[str]
+    business_safety_boundaries: list[str]
+    frontend_show: list[str]
+    what_not_to_claim: list[str]
+    guide_notes: list[str]

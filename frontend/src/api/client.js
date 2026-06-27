@@ -32,6 +32,31 @@ export async function getDemoUsers() {
   return data
 }
 
+export async function getDemoStatus() {
+  const { data } = await api.get("/api/demo/status")
+  return data
+}
+
+export async function seedDemoData() {
+  const { data } = await api.post("/api/demo/seed")
+  return data
+}
+
+export async function resetDemoData() {
+  const { data } = await api.post("/api/demo/reset")
+  return data
+}
+
+export async function createFullDemoScenario() {
+  const { data } = await api.post("/api/demo/scenario/full")
+  return data
+}
+
+export async function getDemoGuide() {
+  const { data } = await api.get("/api/demo/guide")
+  return data
+}
+
 export async function getAuditLogs(params = {}) {
   const { data } = await api.get("/api/audit-logs", { params })
   return data
