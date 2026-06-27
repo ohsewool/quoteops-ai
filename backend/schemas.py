@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class OrmModel(BaseModel):
@@ -408,6 +408,106 @@ class PricingSimulationResponse(OrmModel):
     created_by_username: str
     created_at: datetime
     simulation_notes: list[str]
+
+
+RiskPreference = Literal["conservative", "balanced", "aggressive"]
+
+
+class StrategyTemplateBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=140)
+    strategy_code: str = Field(..., min_length=1, max_length=80)
+    description: str | None = None
+    margin_rates: list[float]
+    default_quantities: list[int] = Field(default_factory=lambda: [1, 10, 50])
+    include_competitor_context_default: bool = False
+    risk_preference: RiskPreference = "balanced"
+    active: bool = True
+    notes: str | None = None
+
+    @field_validator("margin_rates")
+    @classmethod
+    def validate_margin_rates(cls, value: list[float]) -> list[float]:
+        if not value:
+            raise ValueError("margin_rates must not be empty")
+        if any(margin_rate < 0 or margin_rate >= 1 for margin_rate in value):
+            raise ValueError("Each margin rate must be >= 0 and < 1")
+        return value
+
+    @field_validator("default_quantities")
+    @classmethod
+    def validate_default_quantities(cls, value: list[int]) -> list[int]:
+        if not value:
+            raise ValueError("default_quantities must not be empty")
+        if any(quantity <= 0 for quantity in value):
+            raise ValueError("Each default quantity must be greater than 0")
+        return value
+
+
+class StrategyTemplateCreate(StrategyTemplateBase):
+    pass
+
+
+class StrategyTemplateUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=140)
+    strategy_code: str | None = Field(default=None, min_length=1, max_length=80)
+    description: str | None = None
+    margin_rates: list[float] | None = None
+    default_quantities: list[int] | None = None
+    include_competitor_context_default: bool | None = None
+    risk_preference: RiskPreference | None = None
+    active: bool | None = None
+    notes: str | None = None
+
+    @field_validator("margin_rates")
+    @classmethod
+    def validate_optional_margin_rates(cls, value: list[float] | None) -> list[float] | None:
+        if value is None:
+            return value
+        return StrategyTemplateBase.validate_margin_rates(value)
+
+    @field_validator("default_quantities")
+    @classmethod
+    def validate_optional_quantities(cls, value: list[int] | None) -> list[int] | None:
+        if value is None:
+            return value
+        return StrategyTemplateBase.validate_default_quantities(value)
+
+
+class StrategyTemplateResponse(BaseModel):
+    id: int
+    name: str
+    strategy_code: str
+    description: str | None = None
+    margin_rates: list[float]
+    default_quantities: list[int]
+    include_competitor_context_default: bool
+    risk_preference: RiskPreference
+    active: bool
+    notes: str | None = None
+    created_by_username: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class StrategyTemplateCandidatePriceRequest(BaseModel):
+    product_id: int
+    quantity: int
+    include_competitor_context: bool | None = None
+
+
+class StrategyTemplatePricingSimulationRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=140)
+    product_id: int
+    quantities: list[int] | None = None
+    include_competitor_context: bool | None = None
+    notes: str | None = None
+
+    @field_validator("quantities")
+    @classmethod
+    def validate_optional_quantities(cls, value: list[int] | None) -> list[int] | None:
+        if value is None:
+            return value
+        return StrategyTemplateBase.validate_default_quantities(value)
 
 
 QuoteRequestStatus = Literal["new", "reviewing", "quoted", "closed", "cancelled"]

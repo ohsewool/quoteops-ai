@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -9,6 +10,7 @@ from backend.models import (
     CostProfile,
     PriceTable,
     PriceTableItem,
+    PricingStrategyTemplate,
     Product,
     User,
 )
@@ -64,6 +66,39 @@ DEMO_USERS = [
     },
 ]
 
+DEMO_STRATEGY_TEMPLATES = [
+    {
+        "name": "Standard Margin",
+        "strategy_code": "standard_margin",
+        "description": "Balanced margin strategy for normal quote operations.",
+        "margin_rates": [0.25, 0.35, 0.45],
+        "default_quantities": [1, 10, 50],
+        "include_competitor_context_default": True,
+        "risk_preference": "balanced",
+        "notes": "Demo-only deterministic strategy template.",
+    },
+    {
+        "name": "Premium Margin",
+        "strategy_code": "premium_margin",
+        "description": "Higher margin strategy for premium service positioning.",
+        "margin_rates": [0.4, 0.5, 0.6],
+        "default_quantities": [1, 10, 50],
+        "include_competitor_context_default": True,
+        "risk_preference": "aggressive",
+        "notes": "Demo-only deterministic strategy template.",
+    },
+    {
+        "name": "Conservative Bulk",
+        "strategy_code": "conservative_bulk",
+        "description": "Conservative bulk strategy for safer quantity pricing.",
+        "margin_rates": [0.2, 0.25, 0.3],
+        "default_quantities": [10, 50, 100],
+        "include_competitor_context_default": False,
+        "risk_preference": "conservative",
+        "notes": "Demo-only deterministic strategy template.",
+    },
+]
+
 
 def seed_demo_data() -> None:
     db = SessionLocal()
@@ -76,6 +111,7 @@ def seed_demo_data() -> None:
 
 def _seed_demo_data(db: Session) -> None:
     _seed_demo_users(db)
+    _seed_demo_strategy_templates(db)
     products: dict[str, Product] = {}
     for product_data in DEMO_PRODUCTS:
         product = db.query(Product).filter(Product.sku == product_data["sku"]).first()
@@ -178,6 +214,37 @@ def _seed_demo_users(db: Session) -> None:
                 role=user_data["role"],
                 password_hash=hash_password(user_data["password"]),
                 active=True,
+            )
+        )
+
+
+def _seed_demo_strategy_templates(db: Session) -> None:
+    for template_data in DEMO_STRATEGY_TEMPLATES:
+        exists = (
+            db.query(PricingStrategyTemplate)
+            .filter(PricingStrategyTemplate.strategy_code == template_data["strategy_code"])
+            .first()
+        )
+        if exists is not None:
+            continue
+        db.add(
+            PricingStrategyTemplate(
+                name=template_data["name"],
+                strategy_code=template_data["strategy_code"],
+                description=template_data["description"],
+                margin_rates_json=json.dumps(
+                    template_data["margin_rates"], separators=(",", ":")
+                ),
+                default_quantities_json=json.dumps(
+                    template_data["default_quantities"], separators=(",", ":")
+                ),
+                include_competitor_context_default=template_data[
+                    "include_competitor_context_default"
+                ],
+                risk_preference=template_data["risk_preference"],
+                active=True,
+                notes=template_data["notes"],
+                created_by_username="system",
             )
         )
 

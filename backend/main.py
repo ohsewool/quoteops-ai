@@ -21,6 +21,7 @@ from backend.routers import (
     pricing_simulations_api,
     products_api,
     quote_preview_api,
+    strategy_templates_api,
     validation_api,
     workflow_jobs_api,
 )
@@ -66,6 +67,7 @@ app.include_router(price_table_history_api.router)
 app.include_router(price_tables_api.router)
 app.include_router(pricing_simulations_api.router)
 app.include_router(quote_preview_api.router)
+app.include_router(strategy_templates_api.router)
 app.include_router(validation_api.router)
 app.include_router(workflow_jobs_api.router)
 

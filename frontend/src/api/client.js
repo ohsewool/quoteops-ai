@@ -146,6 +146,36 @@ export async function getPricingSimulations() {
   return data
 }
 
+export async function getStrategyTemplates() {
+  const { data } = await api.get("/api/strategy-templates")
+  return data
+}
+
+export async function createStrategyTemplate(payload) {
+  const { data } = await api.post("/api/strategy-templates", payload)
+  return data
+}
+
+export async function updateStrategyTemplate(id, payload) {
+  const { data } = await api.put(`/api/strategy-templates/${id}`, payload)
+  return data
+}
+
+export async function disableStrategyTemplate(id) {
+  const { data } = await api.delete(`/api/strategy-templates/${id}`)
+  return data
+}
+
+export async function createStrategyTemplateCandidates(id, payload) {
+  const { data } = await api.post(`/api/strategy-templates/${id}/candidate-prices`, payload)
+  return data
+}
+
+export async function createStrategyTemplateSimulation(id, payload) {
+  const { data } = await api.post(`/api/strategy-templates/${id}/pricing-simulation`, payload)
+  return data
+}
+
 export async function createCustomerQuoteRequest(payload) {
   const { data } = await api.post("/api/customer-quote-requests", payload)
   return data
