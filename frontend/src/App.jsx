@@ -6,6 +6,7 @@ import {
   cancelWorkflowJob,
   createApprovalRequest,
   createCandidatePrices,
+  createFullDemoScenario,
   createHtmlReport,
   createCustomerQuoteCandidates,
   createCustomerQuotePreview,
@@ -26,6 +27,8 @@ import {
   getCurrentUser,
   getDashboardSummary,
   getCustomerQuoteRequests,
+  getDemoGuide,
+  getDemoStatus,
   getDemoUsers,
   getHealth,
   getHtmlReport,
@@ -44,7 +47,9 @@ import {
   importCsv,
   login,
   rejectApprovalRequest,
+  resetDemoData,
   runWorkflowJob,
+  seedDemoData,
   setAccessToken,
   updateStrategyTemplate,
   updateCustomerQuoteRequestStatus,
@@ -110,6 +115,11 @@ function App() {
   const [loading, setLoading] = useState("")
   const [error, setError] = useState("")
   const [demoUsers, setDemoUsers] = useState([])
+  const [demoStatus, setDemoStatus] = useState(null)
+  const [demoGuide, setDemoGuide] = useState(null)
+  const [demoSeedResult, setDemoSeedResult] = useState(null)
+  const [demoResetResult, setDemoResetResult] = useState(null)
+  const [demoScenario, setDemoScenario] = useState(null)
   const [auditLogs, setAuditLogs] = useState([])
   const [dashboardSummary, setDashboardSummary] = useState(null)
   const [htmlReports, setHtmlReports] = useState([])
@@ -214,6 +224,8 @@ function App() {
           getScenarioComparisons().then(setScenarioComparisons).catch(() => {})
           getCustomerQuoteRequests().then(setCustomerQuoteRequests).catch(() => {})
           getWorkflowJobs().then(setWorkflowJobs).catch(() => {})
+          getDemoStatus().then(setDemoStatus).catch(() => {})
+          getDemoGuide().then(setDemoGuide).catch(() => {})
         })
         .catch(() => handleLogout())
     }
@@ -275,6 +287,8 @@ function App() {
       setScenarioComparisons(await getScenarioComparisons())
       setCustomerQuoteRequests(await getCustomerQuoteRequests())
       setWorkflowJobs(await getWorkflowJobs())
+      setDemoStatus(await getDemoStatus())
+      setDemoGuide(await getDemoGuide())
     })
   }
 
@@ -297,6 +311,54 @@ function App() {
     setCustomerQuoteRequests([])
     setWorkflowJobs([])
     setActiveWorkflowJob(null)
+    setDemoStatus(null)
+    setDemoGuide(null)
+    setDemoSeedResult(null)
+    setDemoResetResult(null)
+    setDemoScenario(null)
+  }
+
+  async function refreshDemoStatusAndGuide() {
+    if (!currentUser) return
+    setDemoStatus(await getDemoStatus())
+    setDemoGuide(await getDemoGuide())
+    await refreshAuditLogs()
+  }
+
+  async function handleSeedDemoData() {
+    await runAction("Seeding demo data", async () => {
+      const result = await seedDemoData()
+      setDemoSeedResult(result)
+      setProducts(await getProducts())
+      setPriceTables(await getPriceTables())
+      setDemoStatus(await getDemoStatus())
+      setScenarioComparisons(await getScenarioComparisons())
+      setHtmlReports(await getHtmlReports())
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleCreateFullDemoScenario() {
+    await runAction("Creating full demo scenario", async () => {
+      const result = await createFullDemoScenario()
+      setDemoScenario(result)
+      setDemoStatus(await getDemoStatus())
+      setDashboardSummary(await getDashboardSummary())
+      setScenarioComparisons(await getScenarioComparisons())
+      setHtmlReports(await getHtmlReports())
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleResetDemoData() {
+    await runAction("Resetting known demo data", async () => {
+      const result = await resetDemoData()
+      setDemoResetResult(result)
+      setDemoStatus(await getDemoStatus())
+      setProducts(await getProducts())
+      setPriceTables(await getPriceTables())
+      await refreshAuditLogs()
+    })
   }
 
   async function refreshAuditLogs(user = currentUser) {
@@ -881,6 +943,96 @@ function App() {
                 </table>
               </div>
               <Notes notes={dashboardSummary.dashboard_notes} />
+            </Panel>
+          )}
+
+          {currentUser && (
+            <Panel title="Demo tools">
+              <div className="flex flex-wrap gap-2">
+                <button className="button compact secondary" onClick={refreshDemoStatusAndGuide}>Refresh demo status</button>
+                {currentUser.role === "admin" && (
+                  <button className="button compact" onClick={handleSeedDemoData}>Seed demo data</button>
+                )}
+                {["admin", "manager"].includes(currentUser.role) && (
+                  <button className="button compact" onClick={handleCreateFullDemoScenario}>Create full scenario</button>
+                )}
+                {currentUser.role === "admin" && (
+                  <button className="button compact secondary border-red-200 text-red-700" onClick={handleResetDemoData}>Reset known demo data</button>
+                )}
+              </div>
+
+              {demoStatus && (
+                <div className="grid gap-3 md:grid-cols-4">
+                  <StatusCard label="Demo ready" value={demoStatus.demo_ready ? "ready" : "needs seed"} />
+                  <StatusCard label="Demo products" value={demoStatus.counts.products} />
+                  <StatusCard label="Demo competitors" value={demoStatus.counts.competitors} />
+                  <StatusCard label="Scenario comparisons" value={demoStatus.counts.scenario_comparisons} />
+                </div>
+              )}
+
+              {demoScenario && (
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    <Badge>{demoScenario.scenario_name}</Badge>
+                    <Badge>{demoScenario.demo_product_sku}</Badge>
+                    <Badge>{demoScenario.ready ? "ready" : "not ready"}</Badge>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Step</th>
+                          <th>Title</th>
+                          <th>API</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {demoScenario.steps.map((step) => (
+                          <tr key={step.step}>
+                            <td>{step.step}</td>
+                            <td>{step.title}</td>
+                            <td>{step.api}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <Notes title="Decision boundaries" notes={demoScenario.decision_boundaries} />
+                  <Notes title="Scenario notes" notes={demoScenario.demo_notes} />
+                </div>
+              )}
+
+              {demoGuide && (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <div className="rounded-md border border-slate-200 bg-white p-3">
+                    <p className="mb-2 font-semibold">Local demo users</p>
+                    <div className="space-y-2 text-sm">
+                      {demoGuide.demo_login_users.map((user) => (
+                        <div className="flex flex-wrap gap-2" key={user.username}>
+                          <Badge>{user.username}</Badge>
+                          <Badge>{user.role}</Badge>
+                          <span className="text-slate-600">{user.password_hint}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-md border border-slate-200 bg-white p-3">
+                    <Notes title="Safety boundaries" notes={demoGuide.business_safety_boundaries} />
+                    <Notes title="What not to claim" notes={demoGuide.what_not_to_claim} />
+                  </div>
+                </div>
+              )}
+
+              {(demoSeedResult || demoResetResult) && (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {demoSeedResult && (
+                    <pre className="overflow-x-auto rounded-md bg-slate-950 p-4 text-sm text-white">{JSON.stringify(demoSeedResult.created_or_verified, null, 2)}</pre>
+                  )}
+                  {demoResetResult && (
+                    <pre className="overflow-x-auto rounded-md bg-slate-950 p-4 text-sm text-white">{JSON.stringify(demoResetResult.deleted_or_disabled, null, 2)}</pre>
+                  )}
+                </div>
+              )}
             </Panel>
           )}
 
