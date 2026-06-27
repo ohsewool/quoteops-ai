@@ -14,6 +14,10 @@ import {
   createQuotePreview,
   createPriceTableSnapshot,
   createWorkflowJob,
+  createStrategyTemplate,
+  createStrategyTemplateCandidates,
+  createStrategyTemplateSimulation,
+  disableStrategyTemplate,
   downloadCsv,
   getAuditLogs,
   getApprovalRequests,
@@ -26,6 +30,7 @@ import {
   getPriceTableSnapshots,
   getPriceTableSummary,
   getPricingSimulations,
+  getStrategyTemplates,
   getSystemStatus,
   getWorkflowJobs,
   importCsv,
@@ -33,6 +38,7 @@ import {
   rejectApprovalRequest,
   runWorkflowJob,
   setAccessToken,
+  updateStrategyTemplate,
   updateCustomerQuoteRequestStatus,
   validatePrice,
 } from "./api/client"
@@ -106,6 +112,21 @@ function App() {
   })
   const [pricingSimulations, setPricingSimulations] = useState([])
   const [activeSimulation, setActiveSimulation] = useState(null)
+  const [strategyTemplates, setStrategyTemplates] = useState([])
+  const [selectedStrategyTemplateId, setSelectedStrategyTemplateId] = useState("")
+  const [strategyTemplateForm, setStrategyTemplateForm] = useState({
+    name: "Standard Margin Strategy",
+    strategy_code: "standard_margin_custom",
+    description: "Balanced margin strategy for normal quote operations.",
+    margin_rates: "0.25,0.35,0.45",
+    default_quantities: "1,10,50",
+    include_competitor_context_default: true,
+    risk_preference: "balanced",
+    active: true,
+    notes: "Human-defined deterministic strategy template.",
+  })
+  const [strategyTemplateCandidates, setStrategyTemplateCandidates] = useState(null)
+  const [strategyTemplateSimulation, setStrategyTemplateSimulation] = useState(null)
   const [customerQuoteForm, setCustomerQuoteForm] = useState({
     customer_name: "Demo Customer",
     customer_email: "customer@example.com",
@@ -155,6 +176,10 @@ function App() {
           setCurrentUser(user)
           refreshAuditLogs(user)
           getPricingSimulations().then(setPricingSimulations).catch(() => {})
+          getStrategyTemplates().then((templates) => {
+            setStrategyTemplates(templates)
+            if (templates.length > 0) setSelectedStrategyTemplateId(String(templates[0].id))
+          }).catch(() => {})
           getCustomerQuoteRequests().then(setCustomerQuoteRequests).catch(() => {})
           getWorkflowJobs().then(setWorkflowJobs).catch(() => {})
         })
@@ -210,6 +235,9 @@ function App() {
       setCurrentUser(data.user)
       await refreshAuditLogs(data.user)
       setPricingSimulations(await getPricingSimulations())
+      const templates = await getStrategyTemplates()
+      setStrategyTemplates(templates)
+      if (templates.length > 0) setSelectedStrategyTemplateId(String(templates[0].id))
       setCustomerQuoteRequests(await getCustomerQuoteRequests())
       setWorkflowJobs(await getWorkflowJobs())
     })
@@ -222,6 +250,10 @@ function App() {
     setAuditLogs([])
     setPricingSimulations([])
     setActiveSimulation(null)
+    setStrategyTemplates([])
+    setSelectedStrategyTemplateId("")
+    setStrategyTemplateCandidates(null)
+    setStrategyTemplateSimulation(null)
     setCustomerQuoteRequests([])
     setWorkflowJobs([])
     setActiveWorkflowJob(null)
@@ -259,6 +291,15 @@ function App() {
     setPricingSimulations(await getPricingSimulations())
   }
 
+  async function refreshStrategyTemplates() {
+    if (!currentUser) return
+    const templates = await getStrategyTemplates()
+    setStrategyTemplates(templates)
+    if (!selectedStrategyTemplateId && templates.length > 0) {
+      setSelectedStrategyTemplateId(String(templates[0].id))
+    }
+  }
+
   async function handlePricingSimulation() {
     await runAction("Running pricing simulation", async () => {
       const data = await createPricingSimulation({
@@ -269,6 +310,74 @@ function App() {
         include_competitor_context: includeCompetitors,
         notes: simulationInputs.notes,
       })
+      setActiveSimulation(data)
+      setPricingSimulations(await getPricingSimulations())
+      await refreshAuditLogs()
+    })
+  }
+
+  function strategyTemplatePayload() {
+    return {
+      name: strategyTemplateForm.name,
+      strategy_code: strategyTemplateForm.strategy_code,
+      description: strategyTemplateForm.description,
+      margin_rates: parseMarginRates(strategyTemplateForm.margin_rates) || [],
+      default_quantities: parseIntegerList(strategyTemplateForm.default_quantities),
+      include_competitor_context_default: strategyTemplateForm.include_competitor_context_default,
+      risk_preference: strategyTemplateForm.risk_preference,
+      active: strategyTemplateForm.active,
+      notes: strategyTemplateForm.notes,
+    }
+  }
+
+  async function handleCreateStrategyTemplate() {
+    await runAction("Creating strategy template", async () => {
+      const template = await createStrategyTemplate(strategyTemplatePayload())
+      await refreshStrategyTemplates()
+      setSelectedStrategyTemplateId(String(template.id))
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleUpdateStrategyTemplate() {
+    await runAction("Updating strategy template", async () => {
+      const template = await updateStrategyTemplate(selectedStrategyTemplateId, strategyTemplatePayload())
+      await refreshStrategyTemplates()
+      setSelectedStrategyTemplateId(String(template.id))
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleDisableStrategyTemplate() {
+    await runAction("Disabling strategy template", async () => {
+      await disableStrategyTemplate(selectedStrategyTemplateId)
+      await refreshStrategyTemplates()
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleStrategyTemplateCandidates() {
+    await runAction("Generating strategy template candidates", async () => {
+      const data = await createStrategyTemplateCandidates(selectedStrategyTemplateId, {
+        product_id: Number(selectedProductId),
+        quantity: Number(quantity),
+        include_competitor_context: includeCompetitors,
+      })
+      setStrategyTemplateCandidates(data)
+      setResults((current) => ({ ...current, candidates: data }))
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleStrategyTemplateSimulation() {
+    await runAction("Running strategy template simulation", async () => {
+      const data = await createStrategyTemplateSimulation(selectedStrategyTemplateId, {
+        name: `${strategyTemplateForm.name} simulation`,
+        product_id: Number(selectedProductId),
+        quantities: parseIntegerList(strategyTemplateForm.default_quantities),
+        include_competitor_context: includeCompetitors,
+      })
+      setStrategyTemplateSimulation(data)
       setActiveSimulation(data)
       setPricingSimulations(await getPricingSimulations())
       await refreshAuditLogs()
@@ -717,6 +826,144 @@ function App() {
                         #{simulation.id} {simulation.name}
                       </button>
                     ))}
+                  </div>
+                )}
+              </Panel>
+            )}
+
+            {currentUser && (
+              <Panel title="Strategy templates">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="field">
+                    <span>Template</span>
+                    <select value={selectedStrategyTemplateId} onChange={(event) => setSelectedStrategyTemplateId(event.target.value)}>
+                      {strategyTemplates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          #{template.id} {template.name} ({template.strategy_code})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Name</span>
+                    <input value={strategyTemplateForm.name} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, name: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>Strategy code</span>
+                    <input value={strategyTemplateForm.strategy_code} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, strategy_code: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>Risk preference</span>
+                    <select value={strategyTemplateForm.risk_preference} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, risk_preference: event.target.value }))}>
+                      {["conservative", "balanced", "aggressive"].map((risk) => (
+                        <option key={risk} value={risk}>{risk}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Margin rates</span>
+                    <input value={strategyTemplateForm.margin_rates} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, margin_rates: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>Default quantities</span>
+                    <input value={strategyTemplateForm.default_quantities} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, default_quantities: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>Description</span>
+                    <input value={strategyTemplateForm.description} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, description: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>Notes</span>
+                    <input value={strategyTemplateForm.notes} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, notes: event.target.value }))} />
+                  </label>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                    <input
+                      checked={strategyTemplateForm.include_competitor_context_default}
+                      type="checkbox"
+                      onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, include_competitor_context_default: event.target.checked }))}
+                    />
+                    Include competitor context by default
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                    <input
+                      checked={strategyTemplateForm.active}
+                      type="checkbox"
+                      onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, active: event.target.checked }))}
+                    />
+                    Active
+                  </label>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {["admin", "manager"].includes(currentUser.role) && (
+                    <>
+                      <button className="button compact" onClick={handleCreateStrategyTemplate}>Create template</button>
+                      <button className="button compact secondary" onClick={handleUpdateStrategyTemplate}>Update selected</button>
+                      <button className="button compact secondary" onClick={handleDisableStrategyTemplate}>Disable selected</button>
+                    </>
+                  )}
+                  <button className="button compact secondary" onClick={refreshStrategyTemplates}>Refresh templates</button>
+                  <button className="button compact" onClick={handleStrategyTemplateCandidates}>Apply to candidates</button>
+                  <button className="button compact" onClick={handleStrategyTemplateSimulation}>Apply to simulation</button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Code</th>
+                        <th>Risk</th>
+                        <th>Margins</th>
+                        <th>Quantities</th>
+                        <th>Active</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {strategyTemplates.length === 0 && (
+                        <tr><td colSpan="7">No strategy templates.</td></tr>
+                      )}
+                      {strategyTemplates.map((template) => (
+                        <tr key={template.id}>
+                          <td>{template.id}</td>
+                          <td>{template.name}</td>
+                          <td>{template.strategy_code}</td>
+                          <td>{template.risk_preference}</td>
+                          <td>{template.margin_rates.join(", ")}</td>
+                          <td>{template.default_quantities.join(", ")}</td>
+                          <td>{template.active ? "yes" : "no"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {strategyTemplateCandidates && (
+                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      <Badge>template candidates</Badge>
+                      <Badge>product: {strategyTemplateCandidates.product_name}</Badge>
+                      <Badge>quantity: {strategyTemplateCandidates.quantity}</Badge>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {strategyTemplateCandidates.candidates.map((candidate) => (
+                        <div className="rounded-md bg-white p-3" key={candidate.strategy}>
+                          <strong>{candidate.strategy}</strong>
+                          <p>Margin: {candidate.margin_rate}</p>
+                          <p>Unit: {formatMoney(candidate.unit_price)}</p>
+                          <p>Total: {formatMoney(candidate.total_price)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {strategyTemplateSimulation && (
+                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge>{strategyTemplateSimulation.name}</Badge>
+                      <Badge>scenarios: {strategyTemplateSimulation.scenario_count}</Badge>
+                      <Badge>unit cost: {formatMoney(strategyTemplateSimulation.unit_cost)}</Badge>
+                    </div>
                   </div>
                 )}
               </Panel>
