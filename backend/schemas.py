@@ -828,3 +828,22 @@ class ScenarioComparisonResponse(BaseModel):
     created_by_username: str
     created_at: datetime
     updated_at: datetime
+
+
+class HtmlReportCreate(BaseModel):
+    report_type: str = Field(..., min_length=1, max_length=40)
+    title: str = Field(..., min_length=1, max_length=160)
+    source_id: int | None = None
+
+
+class HtmlReportResponse(OrmModel):
+    id: int
+    report_type: str
+    title: str
+    source_type: str
+    source_id: str | None = None
+    summary_text: str
+    created_by_username: str
+    created_at: datetime
+    updated_at: datetime
+    report_notes: list[str]

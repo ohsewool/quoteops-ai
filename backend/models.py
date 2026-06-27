@@ -379,3 +379,20 @@ class ScenarioComparisonItem(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     comparison = relationship("ScenarioComparison", back_populates="items")
+
+
+class HtmlReport(Base):
+    __tablename__ = "html_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    report_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    source_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    html_content: Mapped[str] = mapped_column(Text, nullable=False)
+    summary_text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_by_username: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
