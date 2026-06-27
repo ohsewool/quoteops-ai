@@ -100,6 +100,7 @@ class PriceTable(Base):
     )
 
     items = relationship("PriceTableItem", back_populates="price_table")
+    snapshots = relationship("PriceTableSnapshot", back_populates="price_table")
 
 
 class PriceTableItem(Base):
@@ -247,3 +248,40 @@ class CustomerQuoteRequest(Base):
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     product = relationship("Product", back_populates="customer_quote_requests")
+
+
+class PriceTableSnapshot(Base):
+    __tablename__ = "price_table_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    price_table_id: Mapped[int] = mapped_column(
+        ForeignKey("price_tables.id"), nullable=False, index=True
+    )
+    label: Mapped[str] = mapped_column(String(140), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by_username: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    price_table = relationship("PriceTable", back_populates="snapshots")
+    items = relationship(
+        "PriceTableSnapshotItem",
+        back_populates="snapshot",
+        cascade="all, delete-orphan",
+    )
+
+
+class PriceTableSnapshotItem(Base):
+    __tablename__ = "price_table_snapshot_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    snapshot_id: Mapped[int] = mapped_column(
+        ForeignKey("price_table_snapshots.id"), nullable=False, index=True
+    )
+    product_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    product_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    product_sku: Mapped[str] = mapped_column(String(80), nullable=False)
+    price: Mapped[float] = mapped_column(Float, nullable=False)
+    margin_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    snapshot = relationship("PriceTableSnapshot", back_populates="items")

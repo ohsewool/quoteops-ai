@@ -462,3 +462,86 @@ class CustomerQuoteRequestResponse(OrmModel):
     updated_at: datetime
     reviewed_at: datetime | None = None
     workflow_notes: list[str]
+
+
+class PriceTableSummaryResponse(BaseModel):
+    price_table_id: int
+    name: str
+    status: str
+    item_count: int
+    average_price: float | None = None
+    min_price: float | None = None
+    max_price: float | None = None
+    average_margin_rate: float | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class PriceTableSnapshotCreate(BaseModel):
+    label: str = Field(..., min_length=1, max_length=140)
+    note: str | None = None
+
+
+class PriceTableSnapshotItemResponse(OrmModel):
+    id: int
+    snapshot_id: int
+    product_id: int
+    product_name: str
+    product_sku: str
+    price: float
+    margin_rate: float
+    created_at: datetime
+
+
+class PriceTableSnapshotResponse(OrmModel):
+    id: int
+    price_table_id: int
+    label: str
+    note: str | None = None
+    created_by_username: str
+    created_at: datetime
+    item_count: int
+    items: list[PriceTableSnapshotItemResponse]
+
+
+class PriceTableCompareRequest(BaseModel):
+    base_price_table_id: int
+    target_price_table_id: int
+
+
+class PriceTableSnapshotCompareRequest(BaseModel):
+    base_snapshot_id: int
+    target_snapshot_id: int
+
+
+class PriceTableComparisonSummary(BaseModel):
+    added_items: int
+    removed_items: int
+    changed_items: int
+    unchanged_items: int
+    average_price_delta: float | None = None
+    average_price_delta_rate: float | None = None
+
+
+class PriceTableComparisonChange(BaseModel):
+    product_id: int
+    product_name: str
+    product_sku: str
+    change_type: Literal["added", "removed", "changed", "unchanged"]
+    base_price: float | None = None
+    target_price: float | None = None
+    price_delta: float | None = None
+    price_delta_rate: float | None = None
+    base_margin_rate: float | None = None
+    target_margin_rate: float | None = None
+    margin_delta: float | None = None
+
+
+class PriceTableComparisonResponse(BaseModel):
+    base_id: int
+    target_id: int
+    base_name: str
+    target_name: str
+    summary: PriceTableComparisonSummary
+    changes: list[PriceTableComparisonChange]
+    comparison_notes: list[str]
