@@ -42,6 +42,26 @@ export async function getDashboardSummary() {
   return data
 }
 
+export async function createHtmlReport(payload) {
+  const { data } = await api.post("/api/html-reports", payload)
+  return data
+}
+
+export async function getHtmlReports() {
+  const { data } = await api.get("/api/html-reports")
+  return data
+}
+
+export async function getHtmlReport(id) {
+  const { data } = await api.get(`/api/html-reports/${id}`)
+  return data
+}
+
+export async function getHtmlReportContent(id) {
+  const { data } = await api.get(`/api/html-reports/${id}/content`, { responseType: "text" })
+  return data
+}
+
 export async function importCsv(entity, file) {
   const formData = new FormData()
   formData.append("file", file)

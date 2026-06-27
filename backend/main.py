@@ -16,6 +16,7 @@ from backend.routers import (
     dashboard_api,
     explanations_api,
     health_api,
+    html_reports_api,
     import_export_api,
     price_table_history_api,
     price_tables_api,
@@ -55,6 +56,7 @@ app.add_middleware(
 )
 
 app.include_router(health_api.router)
+app.include_router(html_reports_api.router)
 app.include_router(approval_requests_api.router)
 app.include_router(audit_logs_api.router)
 app.include_router(auth_api.router)

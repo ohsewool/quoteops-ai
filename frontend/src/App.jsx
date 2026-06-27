@@ -6,6 +6,7 @@ import {
   cancelWorkflowJob,
   createApprovalRequest,
   createCandidatePrices,
+  createHtmlReport,
   createCustomerQuoteCandidates,
   createCustomerQuotePreview,
   createCustomerQuoteRequest,
@@ -27,6 +28,9 @@ import {
   getCustomerQuoteRequests,
   getDemoUsers,
   getHealth,
+  getHtmlReport,
+  getHtmlReportContent,
+  getHtmlReports,
   getProducts,
   getPriceTables,
   getPriceTableSnapshots,
@@ -108,6 +112,13 @@ function App() {
   const [demoUsers, setDemoUsers] = useState([])
   const [auditLogs, setAuditLogs] = useState([])
   const [dashboardSummary, setDashboardSummary] = useState(null)
+  const [htmlReports, setHtmlReports] = useState([])
+  const [activeHtmlReport, setActiveHtmlReport] = useState(null)
+  const [htmlReportForm, setHtmlReportForm] = useState({
+    report_type: "dashboard_summary",
+    title: "Current KPI dashboard report",
+    source_id: "",
+  })
   const [csvFiles, setCsvFiles] = useState({
     products: null,
     "cost-profiles": null,
@@ -194,6 +205,7 @@ function App() {
           setCurrentUser(user)
           refreshAuditLogs(user)
           getDashboardSummary().then(setDashboardSummary).catch(() => {})
+          getHtmlReports().then(setHtmlReports).catch(() => {})
           getPricingSimulations().then(setPricingSimulations).catch(() => {})
           getStrategyTemplates().then((templates) => {
             setStrategyTemplates(templates)
@@ -255,6 +267,7 @@ function App() {
       setCurrentUser(data.user)
       await refreshAuditLogs(data.user)
       setDashboardSummary(await getDashboardSummary())
+      setHtmlReports(await getHtmlReports())
       setPricingSimulations(await getPricingSimulations())
       const templates = await getStrategyTemplates()
       setStrategyTemplates(templates)
@@ -271,6 +284,8 @@ function App() {
     setCurrentUser(null)
     setAuditLogs([])
     setDashboardSummary(null)
+    setHtmlReports([])
+    setActiveHtmlReport(null)
     setPricingSimulations([])
     setActiveSimulation(null)
     setStrategyTemplates([])
@@ -296,6 +311,45 @@ function App() {
     if (!currentUser) return
     setDashboardSummary(await getDashboardSummary())
     await refreshAuditLogs()
+  }
+
+  async function refreshHtmlReports() {
+    if (!currentUser) return
+    setHtmlReports(await getHtmlReports())
+  }
+
+  async function handleCreateHtmlReport() {
+    await runAction("Creating HTML report", async () => {
+      const payload = {
+        report_type: htmlReportForm.report_type,
+        title: htmlReportForm.title,
+      }
+      if (htmlReportForm.source_id !== "") {
+        payload.source_id = Number(htmlReportForm.source_id)
+      }
+      const report = await createHtmlReport(payload)
+      setActiveHtmlReport(report)
+      setHtmlReports(await getHtmlReports())
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleViewHtmlReport(id) {
+    await runAction("Loading HTML report", async () => {
+      const report = await getHtmlReport(id)
+      setActiveHtmlReport(report)
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleOpenHtmlReportContent(id) {
+    await runAction("Opening HTML report", async () => {
+      const content = await getHtmlReportContent(id)
+      const url = window.URL.createObjectURL(new Blob([content], { type: "text/html" }))
+      window.open(url, "_blank", "noopener,noreferrer")
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000)
+      await refreshAuditLogs()
+    })
   }
 
   async function handleCsvImport(entity) {
@@ -827,6 +881,82 @@ function App() {
                 </table>
               </div>
               <Notes notes={dashboardSummary.dashboard_notes} />
+            </Panel>
+          )}
+
+          {currentUser && (
+            <Panel title="HTML reports">
+              <div className="grid gap-3 md:grid-cols-3">
+                <label className="field">
+                  <span>Report type</span>
+                  <select value={htmlReportForm.report_type} onChange={(event) => setHtmlReportForm((current) => ({ ...current, report_type: event.target.value }))}>
+                    {["dashboard_summary", "approval_request", "pricing_simulation", "scenario_comparison", "quote_preview", "price_validation"].map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Title</span>
+                  <input value={htmlReportForm.title} onChange={(event) => setHtmlReportForm((current) => ({ ...current, title: event.target.value }))} />
+                </label>
+                <label className="field">
+                  <span>Source ID</span>
+                  <input value={htmlReportForm.source_id} onChange={(event) => setHtmlReportForm((current) => ({ ...current, source_id: event.target.value }))} />
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {["admin", "manager"].includes(currentUser.role) && (
+                  <button className="button compact" onClick={handleCreateHtmlReport}>Create report</button>
+                )}
+                <button className="button compact secondary" onClick={refreshHtmlReports}>Refresh reports</button>
+                {activeHtmlReport && (
+                  <button className="button compact secondary" onClick={() => handleOpenHtmlReportContent(activeHtmlReport.id)}>Open HTML</button>
+                )}
+              </div>
+              {activeHtmlReport && (
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    <Badge>{activeHtmlReport.report_type}</Badge>
+                    <Badge>source: {activeHtmlReport.source_id || "none"}</Badge>
+                    <Badge>created by: {activeHtmlReport.created_by_username}</Badge>
+                  </div>
+                  <p className="font-semibold">{activeHtmlReport.title}</p>
+                  <p className="text-sm text-slate-600">{activeHtmlReport.summary_text}</p>
+                  <Notes notes={activeHtmlReport.report_notes} />
+                </div>
+              )}
+              <div className="overflow-x-auto">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Type</th>
+                      <th>Title</th>
+                      <th>Source</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {htmlReports.length === 0 && (
+                      <tr><td colSpan="5">No HTML reports.</td></tr>
+                    )}
+                    {htmlReports.slice(0, 8).map((report) => (
+                      <tr key={report.id}>
+                        <td>{report.id}</td>
+                        <td>{report.report_type}</td>
+                        <td>{report.title}</td>
+                        <td>{report.source_id || "-"}</td>
+                        <td>
+                          <div className="flex flex-wrap gap-2">
+                            <button className="button compact secondary" onClick={() => handleViewHtmlReport(report.id)}>View</button>
+                            <button className="button compact secondary" onClick={() => handleOpenHtmlReportContent(report.id)}>Open</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </Panel>
           )}
         </section>
