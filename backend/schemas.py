@@ -766,3 +766,65 @@ class WorkflowJobResponse(OrmModel):
     started_at: datetime | None = None
     completed_at: datetime | None = None
     workflow_notes: list[str]
+
+
+class ScenarioComparisonScenarioInput(BaseModel):
+    label: str | None = Field(default=None, max_length=120)
+    quantity: int
+    margin_rate: float
+
+
+class ScenarioComparisonCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=140)
+    description: str | None = None
+    product_id: int
+    scenarios: list[ScenarioComparisonScenarioInput]
+    include_competitor_context: bool = False
+
+
+class ScenarioComparisonSummary(BaseModel):
+    highest_margin_label: str | None = None
+    highest_profit_label: str | None = None
+    lowest_risk_label: str | None = None
+    lowest_unit_price_label: str | None = None
+    highest_unit_price_label: str | None = None
+    highest_total_price_label: str | None = None
+    unit_price_range: float
+    gross_profit_range: float
+    risk_distribution: dict[str, int]
+
+
+class ScenarioComparisonItemResponse(OrmModel):
+    id: int
+    comparison_id: int
+    label: str
+    source_type: str
+    source_id: str | None = None
+    quantity: int
+    margin_rate: float
+    unit_cost: float
+    unit_price: float
+    total_cost: float
+    total_price: float
+    estimated_gross_profit: float
+    estimated_margin_rate: float
+    validation_status: Literal["passed", "warning", "failed"]
+    risk_level: Literal["low", "medium", "high"]
+    notes: list[str]
+    created_at: datetime
+
+
+class ScenarioComparisonResponse(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    product_id: int
+    product_name: str
+    scenario_count: int
+    summary: ScenarioComparisonSummary
+    scenarios: list[ScenarioComparisonItemResponse]
+    competitor_context: CompetitorContextResponse | None = None
+    comparison_notes: list[str]
+    created_by_username: str
+    created_at: datetime
+    updated_at: datetime

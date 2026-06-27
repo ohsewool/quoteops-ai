@@ -156,6 +156,21 @@ export async function getStrategyTemplates() {
   return data
 }
 
+export async function getScenarioComparisons() {
+  const { data } = await api.get("/api/scenario-comparisons")
+  return data
+}
+
+export async function getScenarioComparison(id) {
+  const { data } = await api.get(`/api/scenario-comparisons/${id}`)
+  return data
+}
+
+export async function createScenarioComparison(payload) {
+  const { data } = await api.post("/api/scenario-comparisons", payload)
+  return data
+}
+
 export async function createStrategyTemplate(payload) {
   const { data } = await api.post("/api/strategy-templates", payload)
   return data

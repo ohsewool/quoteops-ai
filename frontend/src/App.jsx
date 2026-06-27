@@ -13,6 +13,7 @@ import {
   createQuoteExplanation,
   createQuotePreview,
   createPriceTableSnapshot,
+  createScenarioComparison,
   createWorkflowJob,
   createStrategyTemplate,
   createStrategyTemplateCandidates,
@@ -31,6 +32,8 @@ import {
   getPriceTableSnapshots,
   getPriceTableSummary,
   getPricingSimulations,
+  getScenarioComparison,
+  getScenarioComparisons,
   getStrategyTemplates,
   getSystemStatus,
   getWorkflowJobs,
@@ -134,6 +137,14 @@ function App() {
   })
   const [strategyTemplateCandidates, setStrategyTemplateCandidates] = useState(null)
   const [strategyTemplateSimulation, setStrategyTemplateSimulation] = useState(null)
+  const [scenarioComparisons, setScenarioComparisons] = useState([])
+  const [activeScenarioComparison, setActiveScenarioComparison] = useState(null)
+  const [scenarioComparisonForm, setScenarioComparisonForm] = useState({
+    name: "Bulk order pricing comparison",
+    description: "Compare conservative, standard, and premium pricing.",
+    scenarios: "Conservative,50,0.25\nStandard,50,0.35\nPremium,50,0.45",
+    include_competitor_context: true,
+  })
   const [customerQuoteForm, setCustomerQuoteForm] = useState({
     customer_name: "Demo Customer",
     customer_email: "customer@example.com",
@@ -188,6 +199,7 @@ function App() {
             setStrategyTemplates(templates)
             if (templates.length > 0) setSelectedStrategyTemplateId(String(templates[0].id))
           }).catch(() => {})
+          getScenarioComparisons().then(setScenarioComparisons).catch(() => {})
           getCustomerQuoteRequests().then(setCustomerQuoteRequests).catch(() => {})
           getWorkflowJobs().then(setWorkflowJobs).catch(() => {})
         })
@@ -247,6 +259,7 @@ function App() {
       const templates = await getStrategyTemplates()
       setStrategyTemplates(templates)
       if (templates.length > 0) setSelectedStrategyTemplateId(String(templates[0].id))
+      setScenarioComparisons(await getScenarioComparisons())
       setCustomerQuoteRequests(await getCustomerQuoteRequests())
       setWorkflowJobs(await getWorkflowJobs())
     })
@@ -264,6 +277,8 @@ function App() {
     setSelectedStrategyTemplateId("")
     setStrategyTemplateCandidates(null)
     setStrategyTemplateSimulation(null)
+    setScenarioComparisons([])
+    setActiveScenarioComparison(null)
     setCustomerQuoteRequests([])
     setWorkflowJobs([])
     setActiveWorkflowJob(null)
@@ -396,6 +411,49 @@ function App() {
       setStrategyTemplateSimulation(data)
       setActiveSimulation(data)
       setPricingSimulations(await getPricingSimulations())
+      await refreshAuditLogs()
+    })
+  }
+
+  function parseScenarioRows(value) {
+    return value
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line, index) => {
+        const [label, quantity, marginRate] = line.split(",").map((item) => item.trim())
+        return {
+          label: label || `Scenario ${index + 1}`,
+          quantity: Number(quantity),
+          margin_rate: Number(marginRate),
+        }
+      })
+  }
+
+  async function refreshScenarioComparisons() {
+    if (!currentUser) return
+    setScenarioComparisons(await getScenarioComparisons())
+  }
+
+  async function handleCreateScenarioComparison() {
+    await runAction("Creating scenario comparison", async () => {
+      const comparison = await createScenarioComparison({
+        name: scenarioComparisonForm.name,
+        description: scenarioComparisonForm.description,
+        product_id: Number(selectedProductId),
+        scenarios: parseScenarioRows(scenarioComparisonForm.scenarios),
+        include_competitor_context: scenarioComparisonForm.include_competitor_context,
+      })
+      setActiveScenarioComparison(comparison)
+      setScenarioComparisons(await getScenarioComparisons())
+      await refreshAuditLogs()
+    })
+  }
+
+  async function handleViewScenarioComparison(id) {
+    await runAction("Loading scenario comparison", async () => {
+      const comparison = await getScenarioComparison(id)
+      setActiveScenarioComparison(comparison)
       await refreshAuditLogs()
     })
   }
@@ -1063,6 +1121,108 @@ function App() {
                     </div>
                   </div>
                 )}
+              </Panel>
+            )}
+
+            {currentUser && (
+              <Panel title="Scenario comparison">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="field">
+                    <span>Comparison name</span>
+                    <input value={scenarioComparisonForm.name} onChange={(event) => setScenarioComparisonForm((current) => ({ ...current, name: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>Description</span>
+                    <input value={scenarioComparisonForm.description} onChange={(event) => setScenarioComparisonForm((current) => ({ ...current, description: event.target.value }))} />
+                  </label>
+                </div>
+                <label className="field">
+                  <span>Scenarios</span>
+                  <textarea rows="4" value={scenarioComparisonForm.scenarios} onChange={(event) => setScenarioComparisonForm((current) => ({ ...current, scenarios: event.target.value }))} />
+                </label>
+                <label className="checkbox">
+                  <input
+                    checked={scenarioComparisonForm.include_competitor_context}
+                    type="checkbox"
+                    onChange={(event) => setScenarioComparisonForm((current) => ({ ...current, include_competitor_context: event.target.checked }))}
+                  />
+                  Include competitor context
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {["admin", "manager"].includes(currentUser.role) && (
+                    <button className="button compact" onClick={handleCreateScenarioComparison}>Create comparison</button>
+                  )}
+                  <button className="button compact secondary" onClick={refreshScenarioComparisons}>Refresh comparisons</button>
+                </div>
+                {activeScenarioComparison && (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge>{activeScenarioComparison.name}</Badge>
+                      <Badge>highest margin: {activeScenarioComparison.summary.highest_margin_label}</Badge>
+                      <Badge>highest profit: {activeScenarioComparison.summary.highest_profit_label}</Badge>
+                      <Badge>lowest risk: {activeScenarioComparison.summary.lowest_risk_label}</Badge>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Label</th>
+                            <th>Qty</th>
+                            <th>Margin</th>
+                            <th>Unit price</th>
+                            <th>Total price</th>
+                            <th>Gross profit</th>
+                            <th>Status</th>
+                            <th>Risk</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeScenarioComparison.scenarios.map((scenario) => (
+                            <tr key={scenario.id}>
+                              <td>{scenario.label}</td>
+                              <td>{scenario.quantity}</td>
+                              <td>{scenario.margin_rate}</td>
+                              <td>{formatMoney(scenario.unit_price)}</td>
+                              <td>{formatMoney(scenario.total_price)}</td>
+                              <td>{formatMoney(scenario.estimated_gross_profit)}</td>
+                              <td>{scenario.validation_status}</td>
+                              <td>{scenario.risk_level}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <Notes notes={activeScenarioComparison.comparison_notes} />
+                    <CompetitorContext context={activeScenarioComparison.competitor_context} />
+                  </div>
+                )}
+                <div className="overflow-x-auto">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Product</th>
+                        <th>Scenarios</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scenarioComparisons.length === 0 && (
+                        <tr><td colSpan="5">No scenario comparisons.</td></tr>
+                      )}
+                      {scenarioComparisons.slice(0, 8).map((comparison) => (
+                        <tr key={comparison.id}>
+                          <td>{comparison.id}</td>
+                          <td>{comparison.name}</td>
+                          <td>{comparison.product_name}</td>
+                          <td>{comparison.scenario_count}</td>
+                          <td><button className="button compact secondary" onClick={() => handleViewScenarioComparison(comparison.id)}>View</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </Panel>
             )}
 

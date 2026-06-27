@@ -30,6 +30,7 @@ class Product(Base):
     price_table_items = relationship("PriceTableItem", back_populates="product")
     pricing_simulations = relationship("PricingSimulation", back_populates="product")
     customer_quote_requests = relationship("CustomerQuoteRequest", back_populates="product")
+    scenario_comparisons = relationship("ScenarioComparison", back_populates="product")
 
 
 class Competitor(Base):
@@ -327,3 +328,54 @@ class WorkflowJob(Base):
     )
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class ScenarioComparison(Base):
+    __tablename__ = "scenario_comparisons"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(140), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    product_id: Mapped[int] = mapped_column(
+        ForeignKey("products.id"), nullable=False, index=True
+    )
+    created_by_username: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    summary_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
+    competitor_context_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    product = relationship("Product", back_populates="scenario_comparisons")
+    items = relationship(
+        "ScenarioComparisonItem",
+        back_populates="comparison",
+        cascade="all, delete-orphan",
+    )
+
+
+class ScenarioComparisonItem(Base):
+    __tablename__ = "scenario_comparison_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    comparison_id: Mapped[int] = mapped_column(
+        ForeignKey("scenario_comparisons.id"), nullable=False, index=True
+    )
+    label: Mapped[str] = mapped_column(String(120), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(40), default="direct", nullable=False)
+    source_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    margin_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    unit_cost: Mapped[float] = mapped_column(Float, nullable=False)
+    unit_price: Mapped[float] = mapped_column(Float, nullable=False)
+    total_cost: Mapped[float] = mapped_column(Float, nullable=False)
+    total_price: Mapped[float] = mapped_column(Float, nullable=False)
+    estimated_gross_profit: Mapped[float] = mapped_column(Float, nullable=False)
+    estimated_margin_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    validation_status: Mapped[str] = mapped_column(String(20), nullable=False)
+    risk_level: Mapped[str] = mapped_column(String(20), nullable=False)
+    notes_json: Mapped[str] = mapped_column(Text, default="[]", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    comparison = relationship("ScenarioComparison", back_populates="items")
