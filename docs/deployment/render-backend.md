@@ -21,11 +21,24 @@ Required production values:
 - `QUOTEOPS_AUTH_SECRET`: set a secret value in Render.
 - `QUOTEOPS_ENV`: set to `production`.
 - `QUOTEOPS_DEMO_TOOLS_ENABLED`: set to `false` for production-like deployments.
+- `QUOTEOPS_CORS_ORIGINS`: set to the deployed frontend origin when frontend deployment is available.
 
 Optional values:
 
-- `ALLOWED_ORIGINS`: comma-separated frontend origins when the frontend is deployed later.
 - `OPENAI_API_KEY`: only if explanation features are configured to use an external provider.
+
+## CORS and frontend API URL
+
+Local development defaults allow Vite and React dev server origins:
+
+- `http://localhost:5173`
+- `http://127.0.0.1:5173`
+- `http://localhost:3000`
+- `http://127.0.0.1:3000`
+
+For Render, configure `QUOTEOPS_CORS_ORIGINS` on the backend with the frontend URL, for example `https://YOUR-FRONTEND-URL.onrender.com`. Do not use wildcard CORS in production.
+
+When frontend deployment is configured, set `VITE_API_BASE_URL` on the frontend to the backend URL, for example `https://YOUR-BACKEND-URL.onrender.com`. Keep these as Render dashboard environment variables; do not commit `.env` files or real Render credentials.
 
 ## PostgreSQL
 
