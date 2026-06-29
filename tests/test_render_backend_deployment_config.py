@@ -69,7 +69,8 @@ def test_env_example_does_not_contain_real_credentials():
     assert "# database_url=postgresql://user:password@host:5432/dbname" in text
     assert "gho_" not in text
     assert "sk-" not in text
-    assert "render.com" not in text
+    assert "https://your-backend-url.onrender.com" in text
+    assert "https://your-frontend-url.onrender.com" in text
 
 
 def test_gitignore_ignores_env_and_sqlite_files():
@@ -96,7 +97,6 @@ def test_system_status_does_not_expose_raw_database_password(monkeypatch):
         lambda: SimpleNamespace(
             database_url="postgresql://demo:raw-password@example.com:5432/quoteops",
             database_type="postgresql",
-            database_url_safe="postgresql://***:***@example.com:5432/quoteops",
             database_connection_ok=True,
             environment="production",
             openai_configured=False,
@@ -111,6 +111,7 @@ def test_system_status_does_not_expose_raw_database_password(monkeypatch):
     text = response.text.lower()
     assert "raw-password" not in text
     assert "demo:raw-password" not in text
+    assert "database_url" not in text
     assert response.json()["environment"] == "production"
 
 

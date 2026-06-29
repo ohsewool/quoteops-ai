@@ -20,9 +20,10 @@ class SystemStatusResponse(BaseModel):
     service: str
     database_configured: bool
     database_type: str
-    database_url_safe: str
     database_connection_ok: bool
     environment: str
+    cors_origins_configured: bool
+    cors_origin_count: int
     openai_configured: bool
     demo_tools_enabled: bool
 

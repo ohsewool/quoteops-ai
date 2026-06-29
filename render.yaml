@@ -12,6 +12,8 @@ services:
         value: production
       - key: QUOTEOPS_DEMO_TOOLS_ENABLED
         value: "false"
+      - key: QUOTEOPS_CORS_ORIGINS
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: QUOTEOPS_AUTH_SECRET
