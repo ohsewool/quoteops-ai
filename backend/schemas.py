@@ -11,21 +11,57 @@ class OrmModel(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     service: str
+    environment: str
     timestamp: str
-    database_type: str
+
+
+class HealthLiveResponse(BaseModel):
+    status: str
+    service: str
+    timestamp: str
+
+
+class HealthReadyResponse(BaseModel):
+    status: str
+    service: str
     database_connection_ok: bool
+    database_type: str
+    config_ok: bool
+    timestamp: str
+
+
+class SystemDatabaseStatus(BaseModel):
+    configured: bool
+    type: str
+    connection_ok: bool
+
+
+class SystemCorsStatus(BaseModel):
+    configured: bool
+    origin_count: int
+    wildcard_enabled: bool
+
+
+class SystemFeatureStatus(BaseModel):
+    demo_tools_enabled: bool
+    openapi_available: bool
+    openai_configured: bool
+
+
+class SystemSecurityStatus(BaseModel):
+    secrets_exposed: bool
+    raw_db_url_exposed: bool
 
 
 class SystemStatusResponse(BaseModel):
     service: str
-    database_configured: bool
-    database_type: str
-    database_connection_ok: bool
+    status: str
     environment: str
-    cors_origins_configured: bool
-    cors_origin_count: int
-    openai_configured: bool
-    demo_tools_enabled: bool
+    database: SystemDatabaseStatus
+    cors: SystemCorsStatus
+    features: SystemFeatureStatus
+    security: SystemSecurityStatus
+    timestamp: str
 
 
 class ProductBase(BaseModel):
