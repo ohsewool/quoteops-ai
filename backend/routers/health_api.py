@@ -31,6 +31,7 @@ def system_status() -> SystemStatusResponse:
         database_type=settings.database_type,
         database_url_safe=settings.database_url_safe,
         database_connection_ok=database_connection_ok(),
+        environment=getattr(settings, "environment", "local"),
         openai_configured=settings.openai_configured,
         demo_tools_enabled=settings.demo_tools_enabled,
     )

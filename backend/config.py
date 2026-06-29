@@ -15,6 +15,7 @@ POSTGRESQL_SCHEMES = {
 class Settings:
     database_url: str
     allowed_origins: list[str]
+    environment: str
     openai_configured: bool
     demo_tools_enabled: bool
 
@@ -36,9 +37,16 @@ def get_settings() -> Settings:
         allowed_origins=[
             origin.strip() for origin in allowed_origins.split(",") if origin.strip()
         ],
+        environment=os.getenv("QUOTEOPS_ENV", "local"),
         openai_configured=bool(os.getenv("OPENAI_API_KEY")),
-        demo_tools_enabled=os.getenv("DEMO_TOOLS_ENABLED", "false").lower() == "true",
+        demo_tools_enabled=_bool_env(
+            os.getenv("QUOTEOPS_DEMO_TOOLS_ENABLED", os.getenv("DEMO_TOOLS_ENABLED", "false"))
+        ),
     )
+
+
+def _bool_env(value: str) -> bool:
+    return value.lower() in {"1", "true", "yes", "on"}
 
 
 def get_database_url(raw_url: str | None = None) -> str:
