@@ -22,6 +22,7 @@ class SystemStatusResponse(BaseModel):
     database_type: str
     database_url_safe: str
     database_connection_ok: bool
+    environment: str
     openai_configured: bool
     demo_tools_enabled: bool
 
