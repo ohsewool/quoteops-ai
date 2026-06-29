@@ -113,6 +113,7 @@ def test_system_status_does_not_expose_raw_database_password(monkeypatch):
     assert "demo:raw-password" not in text
     assert "database_url" not in text
     assert response.json()["environment"] == "production"
+    assert response.json()["database"]["type"] == "postgresql"
 
 
 def test_openapi_still_loads():

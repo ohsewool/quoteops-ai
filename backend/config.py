@@ -45,6 +45,10 @@ class Settings:
     def cors_origin_count(self) -> int:
         return len(self.cors_origins)
 
+    @property
+    def cors_wildcard_enabled(self) -> bool:
+        return "*" in self.cors_origins
+
 
 def get_settings() -> Settings:
     environment = get_environment()
@@ -115,6 +119,7 @@ def get_safe_config_summary() -> dict[str, int | str | bool]:
         "database_type": settings.database_type,
         "cors_origins_configured": settings.cors_origins_configured,
         "cors_origin_count": settings.cors_origin_count,
+        "cors_wildcard_enabled": settings.cors_wildcard_enabled,
         "demo_tools_enabled": settings.demo_tools_enabled,
         "openai_configured": settings.openai_configured,
     }

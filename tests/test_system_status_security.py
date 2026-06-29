@@ -29,8 +29,8 @@ def test_system_status_does_not_return_raw_database_password(monkeypatch):
     assert response.status_code == 200
     body = response.text
     data = response.json()
-    assert data["database_type"] == "postgresql"
-    assert data["database_connection_ok"] is True
+    assert data["database"]["type"] == "postgresql"
+    assert data["database"]["connection_ok"] is True
     assert "database_url_safe" not in data
     assert "raw-password" not in body
     assert "demo:raw-password" not in body
@@ -54,7 +54,7 @@ def test_health_does_not_return_raw_database_password(monkeypatch):
     assert response.status_code == 200
     body = response.text
     data = response.json()
-    assert data["database_type"] == "postgresql"
-    assert data["database_connection_ok"] is True
+    assert data["status"] == "ok"
+    assert data["environment"] == "local"
     assert "raw-password" not in body
     assert "postgresql://demo" not in body

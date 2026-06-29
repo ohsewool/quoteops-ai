@@ -32,6 +32,7 @@ import {
   getDemoStatus,
   getDemoUsers,
   getHealth,
+  getHealthReady,
   getHtmlReport,
   getHtmlReportContent,
   getHtmlReports,
@@ -96,6 +97,7 @@ function parseIntegerList(value) {
 
 function App() {
   const [health, setHealth] = useState(null)
+  const [readiness, setReadiness] = useState(null)
   const [systemStatus, setSystemStatus] = useState(null)
   const [products, setProducts] = useState([])
   const [selectedProductId, setSelectedProductId] = useState("")
@@ -249,8 +251,9 @@ function App() {
 
   async function loadInitialData() {
     await runAction("Loading initial data", async () => {
-      const [healthData, statusData, productData, approvalData, demoUserData, priceTableData] = await Promise.all([
+      const [healthData, readinessData, statusData, productData, approvalData, demoUserData, priceTableData] = await Promise.all([
         getHealth(),
+        getHealthReady(),
         getSystemStatus(),
         getProducts(),
         getApprovalRequests(),
@@ -258,6 +261,7 @@ function App() {
         getPriceTables(),
       ])
       setHealth(healthData)
+      setReadiness(readinessData)
       setSystemStatus(statusData)
       setProducts(productData)
       setApprovalRequests(approvalData)
@@ -871,12 +875,14 @@ function App() {
             <p className="text-sm text-slate-500">Demo credentials are for local MVP testing only.</p>
           </Panel>
 
-          <section className="grid gap-4 lg:grid-cols-5">
+          <section className="grid gap-4 lg:grid-cols-7">
             <StatusCard label="Health" value={health?.status || "-"} />
-            <StatusCard label="Database" value={systemStatus?.database_configured ? "configured" : "-"} />
-            <StatusCard label="DB type" value={systemStatus?.database_type || "-"} />
-            <StatusCard label="DB connection" value={systemStatus?.database_connection_ok ? "ok" : "check"} />
-            <StatusCard label="OpenAI" value={systemStatus?.openai_configured ? "configured" : "not configured"} />
+            <StatusCard label="Ready" value={readiness?.status || "-"} />
+            <StatusCard label="Database" value={systemStatus?.database?.configured ? "configured" : "-"} />
+            <StatusCard label="DB type" value={systemStatus?.database?.type || readiness?.database_type || "-"} />
+            <StatusCard label="DB connection" value={systemStatus?.database?.connection_ok ? "ok" : "check"} />
+            <StatusCard label="CORS" value={systemStatus?.cors?.configured ? `${systemStatus.cors.origin_count} origins` : "-"} />
+            <StatusCard label="OpenAPI" value={systemStatus?.features?.openapi_available ? "available" : "check"} />
           </section>
 
           {currentUser && dashboardSummary && (

@@ -77,8 +77,8 @@ def test_system_status_returns_safe_config_fields(monkeypatch):
     data = response.json()
     assert data["service"] == "quoteops-ai"
     assert "environment" in data
-    assert data["cors_origins_configured"] is True
-    assert data["cors_origin_count"] >= 1
+    assert data["cors"]["configured"] is True
+    assert data["cors"]["origin_count"] >= 1
     assert "raw-password" not in body
     assert "super-secret-auth-value" not in body
     assert "database_url" not in body
@@ -111,3 +111,5 @@ def test_openapi_still_loads():
 
     assert response.status_code == 200
     assert "/api/health" in response.json()["paths"]
+    assert "/api/health/live" in response.json()["paths"]
+    assert "/api/health/ready" in response.json()["paths"]

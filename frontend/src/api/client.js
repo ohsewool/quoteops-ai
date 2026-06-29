@@ -116,6 +116,18 @@ export async function getHealth() {
   return data
 }
 
+export async function getHealthReady() {
+  try {
+    const { data } = await api.get("/api/health/ready")
+    return data
+  } catch (error) {
+    if (error.response?.data) {
+      return error.response.data
+    }
+    throw error
+  }
+}
+
 export async function getSystemStatus() {
   const { data } = await api.get("/api/system/status")
   return data
