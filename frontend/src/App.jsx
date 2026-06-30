@@ -95,10 +95,59 @@ function parseIntegerList(value) {
     .filter((item) => !Number.isNaN(item))
 }
 
+const NAV_SECTIONS = [
+  {
+    key: "overview",
+    label: "Overview",
+    description: "Portfolio-ready snapshot of health, readiness, dashboard metrics, and key workflows.",
+  },
+  {
+    key: "quote-operations",
+    label: "Quote Operations",
+    description: "Create quote previews, generate safe explanations, and manage customer quote requests.",
+  },
+  {
+    key: "pricing-tools",
+    label: "Pricing Tools",
+    description: "Run candidate prices, validation, strategy templates, and price table comparisons.",
+  },
+  {
+    key: "approvals",
+    label: "Approvals",
+    description: "Review approval requests and inspect audit logs for human-in-the-loop decisions.",
+  },
+  {
+    key: "customer-requests",
+    label: "Customer Requests",
+    description: "Submit, review, preview, and update customer quote requests.",
+  },
+  {
+    key: "simulations",
+    label: "Simulations",
+    description: "Compare pricing simulations, workflow jobs, and scenario comparisons.",
+  },
+  {
+    key: "reports",
+    label: "Reports",
+    description: "Create and open HTML reports for dashboard, pricing, validation, and scenario work.",
+  },
+  {
+    key: "admin-system",
+    label: "Admin / System",
+    description: "Check system status, CSV import/export, audit logs, and operational controls.",
+  },
+  {
+    key: "demo-tools",
+    label: "Demo Tools",
+    description: "Seed, reset, and inspect local demo scenarios for MVP walkthroughs.",
+  },
+]
+
 function App() {
   const [health, setHealth] = useState(null)
   const [readiness, setReadiness] = useState(null)
   const [systemStatus, setSystemStatus] = useState(null)
+  const [activeSection, setActiveSection] = useState("overview")
   const [products, setProducts] = useState([])
   const [selectedProductId, setSelectedProductId] = useState("")
   const [quantity, setQuantity] = useState(10)
@@ -826,13 +875,19 @@ function App() {
     })
   }
 
+  const activeSectionMeta = NAV_SECTIONS.find((section) => section.key === activeSection) || NAV_SECTIONS[0]
+  const showSection = (...sectionKeys) => sectionKeys.includes(activeSection)
+
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
       <div className="mx-auto max-w-7xl px-5 py-6">
         <header className="mb-6 flex flex-col gap-3 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-500">QuoteOps AI</p>
-            <h1 className="text-3xl font-semibold tracking-tight">Admin API workspace</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">Pricing operations workspace</h1>
+            <p className="mt-2 max-w-3xl text-sm text-slate-600">
+              Deterministic quoting, pricing validation, approvals, reporting, and demo operations in one guided MVP workspace.
+            </p>
           </div>
           <button className="button secondary" onClick={loadInitialData} disabled={!!loading}>
             Refresh
@@ -841,6 +896,50 @@ function App() {
 
         {error && <div className="mb-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
         {loading && <div className="mb-5 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">{loading}...</div>}
+
+        <nav className="mb-5 rounded-md border border-slate-200 bg-white p-3 shadow-sm" aria-label="Workspace sections">
+          <div className="flex flex-wrap gap-2">
+            {NAV_SECTIONS.map((section) => (
+              <button
+                className={`nav-pill ${activeSection === section.key ? "active" : ""}`}
+                key={section.key}
+                onClick={() => setActiveSection(section.key)}
+                type="button"
+              >
+                {section.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+
+        <section className="mb-5 rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-slate-500">{activeSectionMeta.label}</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight">{activeSectionMeta.label === "Overview" ? "QuoteOps AI" : activeSectionMeta.label}</h2>
+          <p className="mt-2 max-w-4xl text-sm text-slate-600">{activeSectionMeta.description}</p>
+          {activeSection === "overview" && (
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+                <p className="font-semibold">Safe pricing decision boundary</p>
+                <p className="mt-2 text-sm text-slate-600">
+                  QuoteOps AI supports deterministic pricing operations, but it does not automatically approve, activate, or send prices without human review.
+                </p>
+              </div>
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+                <p className="font-semibold">Quick links</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {["quote-operations", "pricing-tools", "approvals", "simulations", "reports"].map((key) => {
+                    const section = NAV_SECTIONS.find((item) => item.key === key)
+                    return (
+                      <button className="button compact secondary" key={key} onClick={() => setActiveSection(key)} type="button">
+                        {section?.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
 
         <section className="mb-5 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
           <Panel title="Admin login">
@@ -875,7 +974,8 @@ function App() {
             <p className="text-sm text-slate-500">Demo credentials are for local MVP testing only.</p>
           </Panel>
 
-          <section className="grid gap-4 lg:grid-cols-7">
+          <section className="grid gap-4 lg:grid-cols-7" aria-label="System Status">
+            <h2 className="sr-only">System Status</h2>
             <StatusCard label="Health" value={health?.status || "-"} />
             <StatusCard label="Ready" value={readiness?.status || "-"} />
             <StatusCard label="Database" value={systemStatus?.database?.configured ? "configured" : "-"} />
@@ -885,8 +985,8 @@ function App() {
             <StatusCard label="OpenAPI" value={systemStatus?.features?.openapi_available ? "available" : "check"} />
           </section>
 
-          {currentUser && dashboardSummary && (
-            <Panel title="KPI dashboard">
+          {showSection("overview") && currentUser && dashboardSummary && (
+            <Panel title="KPI Dashboard">
               <div className="flex flex-wrap gap-2">
                 <button className="button compact" onClick={refreshDashboardSummary}>Refresh dashboard</button>
                 <Badge>generated: {new Date(dashboardSummary.generated_at).toLocaleString()}</Badge>
@@ -966,8 +1066,8 @@ function App() {
             </Panel>
           )}
 
-          {currentUser && dashboardInsights && (
-            <Panel title="Dashboard insights">
+          {showSection("overview") && currentUser && dashboardInsights && (
+            <Panel title="Dashboard Insights">
               <div className="flex flex-wrap gap-2">
                 <button className="button compact" onClick={refreshDashboardInsights}>Refresh insights</button>
                 <Badge>insights: {dashboardInsights.insight_count}</Badge>
@@ -992,8 +1092,8 @@ function App() {
             </Panel>
           )}
 
-          {currentUser && (
-            <Panel title="Demo tools">
+          {showSection("demo-tools") && currentUser && (
+            <Panel title="Demo Tools">
               <div className="flex flex-wrap gap-2">
                 <button className="button compact secondary" onClick={refreshDemoStatusAndGuide}>Refresh demo status</button>
                 {currentUser.role === "admin" && (
@@ -1082,8 +1182,8 @@ function App() {
             </Panel>
           )}
 
-          {currentUser && (
-            <Panel title="HTML reports">
+          {showSection("reports") && currentUser && (
+            <Panel title="HTML Reports">
               <div className="grid gap-3 md:grid-cols-3">
                 <label className="field">
                   <span>Report type</span>
@@ -1159,8 +1259,9 @@ function App() {
           )}
         </section>
 
+        {!showSection("overview", "demo-tools", "reports") && (
         <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
-          <Panel title="Product and inputs">
+          <Panel title="Product Inputs">
             <label className="field">
               <span>Product</span>
               <select value={selectedProductId} onChange={(event) => setSelectedProductId(event.target.value)}>
@@ -1197,13 +1298,16 @@ function App() {
           </Panel>
 
           <div className="grid gap-5">
-            <Panel title="Quote preview">
+            {showSection("quote-operations") && (
+            <Panel title="Quote Preview">
               <ActionButton onClick={handleQuotePreview}>Create quote preview</ActionButton>
               <MetricGrid data={results.quotePreview} fields={["unit_cost", "total_cost", "suggested_unit_price", "suggested_total_price", "estimated_gross_profit", "estimated_margin_rate"]} />
               <Notes notes={results.quotePreview?.calculation_notes} />
             </Panel>
+            )}
 
-            <Panel title="Candidate prices">
+            {showSection("pricing-tools") && (
+            <Panel title="Candidate Prices">
               <ActionButton onClick={handleCandidates}>Generate candidate prices</ActionButton>
               <div className="grid gap-3 md:grid-cols-3">
                 {results.candidates?.candidates?.map((candidate) => (
@@ -1218,8 +1322,10 @@ function App() {
               </div>
               <CompetitorContext context={results.candidates?.competitor_context} />
             </Panel>
+            )}
 
-            <Panel title="Price validation">
+            {showSection("pricing-tools") && (
+            <Panel title="Price Validation">
               <ActionButton onClick={handleValidation}>Validate proposed price</ActionButton>
               {results.validation && (
                 <div className="space-y-3">
@@ -1240,9 +1346,10 @@ function App() {
                 </div>
               )}
             </Panel>
+            )}
 
-            {currentUser && (
-              <Panel title="Pricing simulation">
+            {showSection("simulations") && currentUser && (
+              <Panel title="Pricing Simulation">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
                     <span>Simulation name</span>
@@ -1314,8 +1421,8 @@ function App() {
               </Panel>
             )}
 
-            {currentUser && (
-              <Panel title="Strategy templates">
+            {showSection("pricing-tools", "simulations") && currentUser && (
+              <Panel title="Strategy Templates">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
                     <span>Template</span>
@@ -1452,8 +1559,8 @@ function App() {
               </Panel>
             )}
 
-            {currentUser && (
-              <Panel title="Scenario comparison">
+            {showSection("simulations") && currentUser && (
+              <Panel title="Scenario Comparison">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
                     <span>Comparison name</span>
@@ -1554,8 +1661,8 @@ function App() {
               </Panel>
             )}
 
-            {currentUser && (
-              <Panel title="Price table history and comparison">
+            {showSection("pricing-tools", "simulations") && currentUser && (
+              <Panel title="Price Table History and Comparison">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
                     <span>Base price table</span>
@@ -1654,7 +1761,8 @@ function App() {
               </Panel>
             )}
 
-            <Panel title="Approval workflow">
+            {showSection("approvals") && (
+            <Panel title="Approval Requests">
               <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
                 <label className="field">
                   <span>Reviewer</span>
@@ -1705,8 +1813,10 @@ function App() {
                 </table>
               </div>
             </Panel>
+            )}
 
-            <Panel title="Explanation">
+            {showSection("quote-operations", "pricing-tools") && (
+            <Panel title="Safe Explanation">
               <ActionButton onClick={handleExplanation}>Generate explanation</ActionButton>
               {results.explanation && (
                 <div className="space-y-3">
@@ -1717,9 +1827,10 @@ function App() {
                 </div>
               )}
             </Panel>
+            )}
 
-            {currentUser && (
-              <Panel title="Customer quote requests">
+            {showSection("quote-operations", "customer-requests") && currentUser && (
+              <Panel title="Customer Quote Requests">
                 <div className="grid gap-3 md:grid-cols-2">
                   {["customer_name", "customer_email", "customer_company", "quantity", "request_note"].map((field) => (
                     <label className="field" key={field}>
@@ -1782,8 +1893,8 @@ function App() {
               </Panel>
             )}
 
-            {currentUser && (
-              <Panel title="CSV import and export">
+            {showSection("admin-system") && currentUser && (
+              <Panel title="CSV Import and Export">
                 <div className="grid gap-3 md:grid-cols-3">
                   {[
                     ["products", "Products"],
@@ -1824,8 +1935,8 @@ function App() {
               </Panel>
             )}
 
-            {currentUser && (
-              <Panel title="Workflow jobs">
+            {showSection("simulations", "admin-system") && currentUser && (
+              <Panel title="Workflow Jobs">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
                     <span>Job type</span>
@@ -1897,8 +2008,8 @@ function App() {
               </Panel>
             )}
 
-            {currentUser && ["admin", "manager"].includes(currentUser.role) && (
-              <Panel title="Audit logs">
+            {showSection("approvals", "admin-system") && currentUser && ["admin", "manager"].includes(currentUser.role) && (
+              <Panel title="Audit Logs">
                 <ActionButton onClick={() => refreshAuditLogs()}>Refresh audit logs</ActionButton>
                 <div className="overflow-x-auto">
                   <table>
@@ -1931,6 +2042,7 @@ function App() {
             )}
           </div>
         </section>
+        )}
       </div>
     </main>
   )
