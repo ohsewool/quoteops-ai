@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import {
+  API_BASE_URL,
   approveApprovalRequest,
   comparePriceTableSnapshots,
   comparePriceTables,
@@ -17,6 +18,7 @@ import {
   createPriceTableSnapshot,
   createScenarioComparison,
   createWorkflowJob,
+  formatApiError,
   createStrategyTemplate,
   createStrategyTemplateCandidates,
   createStrategyTemplateSimulation,
@@ -95,6 +97,43 @@ function parseIntegerList(value) {
     .filter((item) => !Number.isNaN(item))
 }
 
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim())
+}
+
+function sanitizeApiUrl(value) {
+  try {
+    const url = new URL(value)
+    url.username = ""
+    url.password = ""
+    return url.toString().replace(/\/$/, "")
+  } catch {
+    return "the configured API URL"
+  }
+}
+
+function validateCommonPricingInputs({ selectedProductId, quantity, marginRates, proposedUnitPrice }) {
+  if (!selectedProductId) return "Choose a product before running this pricing workflow."
+  if (Number(quantity) <= 0) return "Quantity must be greater than 0."
+  if (proposedUnitPrice !== undefined && Number(proposedUnitPrice) <= 0) {
+    return "Proposed unit price must be greater than 0."
+  }
+  const rates = parseMarginRates(marginRates || "")
+  if (marginRates && (!rates?.length || rates.some((rate) => rate < 0 || rate >= 1))) {
+    return "Margin rates must be numbers greater than or equal to 0 and less than 1."
+  }
+  return ""
+}
+
+function validateJson(value) {
+  try {
+    JSON.parse(value)
+    return ""
+  } catch {
+    return "Input JSON must be valid JSON before creating a workflow job."
+  }
+}
+
 const NAV_SECTIONS = [
   {
     key: "overview",
@@ -166,6 +205,9 @@ function App() {
   const [results, setResults] = useState(emptyResult)
   const [loading, setLoading] = useState("")
   const [error, setError] = useState("")
+  const [errorInfo, setErrorInfo] = useState(null)
+  const [formError, setFormError] = useState("")
+  const [lastAction, setLastAction] = useState(null)
   const [demoUsers, setDemoUsers] = useState([])
   const [demoStatus, setDemoStatus] = useState(null)
   const [demoGuide, setDemoGuide] = useState(null)
@@ -289,13 +331,34 @@ function App() {
   async function runAction(label, action) {
     setLoading(label)
     setError("")
+    setErrorInfo(null)
+    setFormError("")
+    setLastAction(() => () => runAction(label, action))
     try {
       await action()
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || "API request failed")
+      const safeError = formatApiError(err)
+      setError(safeError.message)
+      setErrorInfo(safeError)
     } finally {
       setLoading("")
     }
+  }
+
+  function stopForFormError(message) {
+    setFormError(message)
+    setError("")
+    setErrorInfo(null)
+    return true
+  }
+
+  function validatePricingForm({ requirePrice = false } = {}) {
+    return validateCommonPricingInputs({
+      selectedProductId,
+      quantity,
+      marginRates,
+      proposedUnitPrice: requirePrice ? proposedUnitPrice : undefined,
+    })
   }
 
   async function loadInitialData() {
@@ -447,6 +510,9 @@ function App() {
   }
 
   async function handleCreateHtmlReport() {
+    if (!htmlReportForm.title.trim()) {
+      if (stopForFormError("Report title cannot be empty.")) return
+    }
     await runAction("Creating HTML report", async () => {
       const payload = {
         report_type: htmlReportForm.report_type,
@@ -482,7 +548,7 @@ function App() {
 
   async function handleCsvImport(entity) {
     if (!csvFiles[entity]) {
-      setError("Choose a CSV file first.")
+      stopForFormError("Choose a CSV file before importing.")
       return
     }
     await runAction(`Importing ${entity} CSV`, async () => {
@@ -514,6 +580,14 @@ function App() {
   }
 
   async function handlePricingSimulation() {
+    const pricingError = validatePricingForm()
+    if (pricingError && stopForFormError(pricingError)) return
+    if (!simulationInputs.name.trim()) {
+      if (stopForFormError("Simulation name cannot be empty.")) return
+    }
+    if (parseIntegerList(simulationInputs.quantities).some((item) => item <= 0)) {
+      if (stopForFormError("Simulation quantities must be greater than 0.")) return
+    }
     await runAction("Running pricing simulation", async () => {
       const data = await createPricingSimulation({
         name: simulationInputs.name,
@@ -544,6 +618,9 @@ function App() {
   }
 
   async function handleCreateStrategyTemplate() {
+    if (!strategyTemplateForm.name.trim()) {
+      if (stopForFormError("Strategy template name cannot be empty.")) return
+    }
     await runAction("Creating strategy template", async () => {
       const template = await createStrategyTemplate(strategyTemplatePayload())
       await refreshStrategyTemplates()
@@ -553,6 +630,9 @@ function App() {
   }
 
   async function handleUpdateStrategyTemplate() {
+    if (!selectedStrategyTemplateId) {
+      if (stopForFormError("Choose a strategy template before updating.")) return
+    }
     await runAction("Updating strategy template", async () => {
       const template = await updateStrategyTemplate(selectedStrategyTemplateId, strategyTemplatePayload())
       await refreshStrategyTemplates()
@@ -562,6 +642,9 @@ function App() {
   }
 
   async function handleDisableStrategyTemplate() {
+    if (!selectedStrategyTemplateId) {
+      if (stopForFormError("Choose a strategy template before disabling.")) return
+    }
     await runAction("Disabling strategy template", async () => {
       await disableStrategyTemplate(selectedStrategyTemplateId)
       await refreshStrategyTemplates()
@@ -570,6 +653,11 @@ function App() {
   }
 
   async function handleStrategyTemplateCandidates() {
+    const pricingError = validatePricingForm()
+    if (pricingError && stopForFormError(pricingError)) return
+    if (!selectedStrategyTemplateId) {
+      if (stopForFormError("Choose a strategy template before applying it.")) return
+    }
     await runAction("Generating strategy template candidates", async () => {
       const data = await createStrategyTemplateCandidates(selectedStrategyTemplateId, {
         product_id: Number(selectedProductId),
@@ -583,6 +671,12 @@ function App() {
   }
 
   async function handleStrategyTemplateSimulation() {
+    if (!selectedProductId) {
+      if (stopForFormError("Choose a product before running a template simulation.")) return
+    }
+    if (!selectedStrategyTemplateId) {
+      if (stopForFormError("Choose a strategy template before running a simulation.")) return
+    }
     await runAction("Running strategy template simulation", async () => {
       const data = await createStrategyTemplateSimulation(selectedStrategyTemplateId, {
         name: `${strategyTemplateForm.name} simulation`,
@@ -618,12 +712,24 @@ function App() {
   }
 
   async function handleCreateScenarioComparison() {
+    const pricingError = validatePricingForm()
+    if (pricingError && stopForFormError(pricingError)) return
+    if (!scenarioComparisonForm.name.trim()) {
+      if (stopForFormError("Scenario comparison name cannot be empty.")) return
+    }
+    const scenarioRows = parseScenarioRows(scenarioComparisonForm.scenarios)
+    if (!scenarioRows.length) {
+      if (stopForFormError("Add at least one scenario row before creating a comparison.")) return
+    }
+    if (scenarioRows.some((row) => row.quantity <= 0 || row.margin_rate < 0 || row.margin_rate >= 1 || Number.isNaN(row.quantity) || Number.isNaN(row.margin_rate))) {
+      if (stopForFormError("Each scenario needs a quantity greater than 0 and a margin rate between 0 and 1.")) return
+    }
     await runAction("Creating scenario comparison", async () => {
       const comparison = await createScenarioComparison({
         name: scenarioComparisonForm.name,
         description: scenarioComparisonForm.description,
         product_id: Number(selectedProductId),
-        scenarios: parseScenarioRows(scenarioComparisonForm.scenarios),
+        scenarios: scenarioRows,
         include_competitor_context: scenarioComparisonForm.include_competitor_context,
       })
       setActiveScenarioComparison(comparison)
@@ -646,6 +752,18 @@ function App() {
   }
 
   async function handleCreateCustomerQuoteRequest() {
+    if (!selectedProductId) {
+      if (stopForFormError("Choose a product before submitting a quote request.")) return
+    }
+    if (!customerQuoteForm.customer_name.trim()) {
+      if (stopForFormError("Customer name cannot be empty.")) return
+    }
+    if (!isValidEmail(customerQuoteForm.customer_email)) {
+      if (stopForFormError("Customer email should look like an email address.")) return
+    }
+    if (Number(customerQuoteForm.quantity) <= 0) {
+      if (stopForFormError("Customer quote quantity must be greater than 0.")) return
+    }
     await runAction("Creating customer quote request", async () => {
       await createCustomerQuoteRequest({
         ...customerQuoteForm,
@@ -689,6 +807,9 @@ function App() {
   }
 
   async function handlePriceTableSummary() {
+    if (!selectedPriceTableId) {
+      if (stopForFormError("Choose a price table before loading its summary.")) return
+    }
     await runAction("Loading price table summary", async () => {
       const summary = await getPriceTableSummary(selectedPriceTableId)
       setPriceTableSummary(summary)
@@ -698,6 +819,12 @@ function App() {
   }
 
   async function handleCreateSnapshot() {
+    if (!selectedPriceTableId) {
+      if (stopForFormError("Choose a price table before creating a snapshot.")) return
+    }
+    if (!snapshotForm.label.trim()) {
+      if (stopForFormError("Snapshot label cannot be empty.")) return
+    }
     await runAction("Creating price table snapshot", async () => {
       await createPriceTableSnapshot(selectedPriceTableId, snapshotForm)
       const snapshots = await getPriceTableSnapshots(selectedPriceTableId)
@@ -711,6 +838,9 @@ function App() {
   }
 
   async function handleComparePriceTables() {
+    if (!selectedPriceTableId || !targetPriceTableId) {
+      if (stopForFormError("Choose both base and target price tables before comparing.")) return
+    }
     await runAction("Comparing price tables", async () => {
       const comparison = await comparePriceTables({
         base_price_table_id: Number(selectedPriceTableId),
@@ -722,6 +852,9 @@ function App() {
   }
 
   async function handleCompareSnapshots() {
+    if (!baseSnapshotId || !targetSnapshotId) {
+      if (stopForFormError("Choose both snapshots before comparing.")) return
+    }
     await runAction("Comparing price table snapshots", async () => {
       const comparison = await comparePriceTableSnapshots({
         base_snapshot_id: Number(baseSnapshotId),
@@ -738,6 +871,11 @@ function App() {
   }
 
   async function handleCreateWorkflowJob() {
+    if (!workflowJobForm.title.trim()) {
+      if (stopForFormError("Workflow job title cannot be empty.")) return
+    }
+    const jsonError = validateJson(workflowJobForm.input)
+    if (jsonError && stopForFormError(jsonError)) return
     await runAction("Creating workflow job", async () => {
       const job = await createWorkflowJob({
         job_type: workflowJobForm.job_type,
@@ -784,6 +922,8 @@ function App() {
   }
 
   async function handleQuotePreview() {
+    const pricingError = validatePricingForm()
+    if (pricingError && stopForFormError(pricingError)) return
     await runAction("Creating quote preview", async () => {
       const data = await createQuotePreview({
         ...basePayload(),
@@ -799,6 +939,8 @@ function App() {
   }
 
   async function handleCandidates() {
+    const pricingError = validatePricingForm()
+    if (pricingError && stopForFormError(pricingError)) return
     await runAction("Generating candidate prices", async () => {
       const data = await createCandidatePrices({
         ...basePayload(),
@@ -814,6 +956,8 @@ function App() {
   }
 
   async function handleValidation() {
+    const pricingError = validatePricingForm({ requirePrice: true })
+    if (pricingError && stopForFormError(pricingError)) return
     await runAction("Validating proposed price", async () => {
       const data = await validatePrice({
         ...basePayload(),
@@ -826,6 +970,8 @@ function App() {
   }
 
   async function handleCreateApproval() {
+    const pricingError = validatePricingForm({ requirePrice: true })
+    if (pricingError && stopForFormError(pricingError)) return
     await runAction("Creating approval request", async () => {
       await createApprovalRequest({
         ...basePayload(),
@@ -856,6 +1002,8 @@ function App() {
   }
 
   async function handleExplanation() {
+    const pricingError = validatePricingForm({ requirePrice: true })
+    if (pricingError && stopForFormError(pricingError)) return
     await runAction("Generating explanation", async () => {
       const validation = results.validation
       const quote = results.quotePreview
@@ -877,6 +1025,9 @@ function App() {
 
   const activeSectionMeta = NAV_SECTIONS.find((section) => section.key === activeSection) || NAV_SECTIONS[0]
   const showSection = (...sectionKeys) => sectionKeys.includes(activeSection)
+  const backendUnavailable = !loading && (!health || readiness?.status === "not_ready")
+  const sectionNeedsSignIn = !currentUser && !["overview"].includes(activeSection)
+  const safeApiBaseUrl = sanitizeApiUrl(API_BASE_URL)
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
@@ -894,8 +1045,23 @@ function App() {
           </button>
         </header>
 
-        {error && <div className="mb-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
-        {loading && <div className="mb-5 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">{loading}...</div>}
+        {loading && <LoadingState message={`${loading}...`} />}
+        {errorInfo && (
+          <ErrorState
+            title={errorInfo.title}
+            message={errorInfo.message}
+            status={errorInfo.status}
+            onRetry={lastAction}
+          />
+        )}
+        {!errorInfo && error && (
+          <ErrorState
+            title="Could not complete request"
+            message={error}
+            onRetry={lastAction}
+          />
+        )}
+        {formError && <FormErrorMessage message={formError} />}
 
         <nav className="mb-5 rounded-md border border-slate-200 bg-white p-3 shadow-sm" aria-label="Workspace sections">
           <div className="flex flex-wrap gap-2">
@@ -937,6 +1103,24 @@ function App() {
                   })}
                 </div>
               </div>
+            </div>
+          )}
+          {backendUnavailable && (
+            <div className="mt-4">
+              <ErrorState
+                title="Backend is not reachable"
+                message={`Start the backend locally or check the deployed API URL: ${safeApiBaseUrl}.`}
+                onRetry={loadInitialData}
+              />
+            </div>
+          )}
+          {sectionNeedsSignIn && (
+            <div className="mt-4">
+              <EmptyState
+                title="Sign in to use this section"
+                message="You need to sign in with a role that can access this section."
+                action="Use a local demo account or your configured user credentials."
+              />
             </div>
           )}
         </section>
@@ -1050,7 +1234,7 @@ function App() {
                   </thead>
                   <tbody>
                     {dashboardSummary.audit_metrics.latest_actions.length === 0 && (
-                      <tr><td colSpan="3">No recent audit actions.</td></tr>
+                      <tr><td colSpan="3"><EmptyState title="No recent audit actions" message="Run a workflow or approval action to populate the latest activity feed." /></td></tr>
                     )}
                     {dashboardSummary.audit_metrics.latest_actions.map((action) => (
                       <tr key={`${action.action}-${action.created_at}`}>
@@ -1236,7 +1420,7 @@ function App() {
                   </thead>
                   <tbody>
                     {htmlReports.length === 0 && (
-                      <tr><td colSpan="5">No HTML reports.</td></tr>
+                      <tr><td colSpan="5"><EmptyState title="No HTML reports yet" message="Generate a report from a dashboard, approval request, simulation, or scenario comparison." /></td></tr>
                     )}
                     {htmlReports.slice(0, 8).map((report) => (
                       <tr key={report.id}>
@@ -1512,7 +1696,7 @@ function App() {
                     </thead>
                     <tbody>
                       {strategyTemplates.length === 0 && (
-                        <tr><td colSpan="7">No strategy templates.</td></tr>
+                        <tr><td colSpan="7"><EmptyState title="No strategy templates yet" message="Create a reusable deterministic strategy template before applying it to candidates or simulations." /></td></tr>
                       )}
                       {strategyTemplates.map((template) => (
                         <tr key={template.id}>
@@ -1644,7 +1828,7 @@ function App() {
                     </thead>
                     <tbody>
                       {scenarioComparisons.length === 0 && (
-                        <tr><td colSpan="5">No scenario comparisons.</td></tr>
+                        <tr><td colSpan="5"><EmptyState title="No scenario comparisons yet" message="Create a comparison to review pricing options side by side." /></td></tr>
                       )}
                       {scenarioComparisons.slice(0, 8).map((comparison) => (
                         <tr key={comparison.id}>
@@ -1789,7 +1973,7 @@ function App() {
                   </thead>
                   <tbody>
                     {approvalRequests.length === 0 && (
-                      <tr><td colSpan="7">No approval requests.</td></tr>
+                      <tr><td colSpan="7"><EmptyState title="No approval requests yet" message="Create a quote validation and submit it for human approval." /></td></tr>
                     )}
                     {approvalRequests.map((request) => (
                       <tr key={request.id}>
@@ -1865,7 +2049,7 @@ function App() {
                     </thead>
                     <tbody>
                       {customerQuoteRequests.length === 0 && (
-                        <tr><td colSpan="6">No customer quote requests.</td></tr>
+                        <tr><td colSpan="6"><EmptyState title="No customer quote requests yet" message="Submit a customer quote request to start the review workflow." /></td></tr>
                       )}
                       {customerQuoteRequests.map((request) => (
                         <tr key={request.id}>
@@ -1978,7 +2162,7 @@ function App() {
                     </thead>
                     <tbody>
                       {workflowJobs.length === 0 && (
-                        <tr><td colSpan="5">No workflow jobs.</td></tr>
+                        <tr><td colSpan="5"><EmptyState title="No workflow jobs yet" message="Create a job to run repeatable pricing, validation, or quote review work." /></td></tr>
                       )}
                       {workflowJobs.map((job) => (
                         <tr key={job.id}>
@@ -2024,7 +2208,7 @@ function App() {
                     </thead>
                     <tbody>
                       {auditLogs.length === 0 && (
-                        <tr><td colSpan="5">No audit logs loaded.</td></tr>
+                        <tr><td colSpan="5"><EmptyState title="No audit logs loaded" message="Refresh audit logs after running an authenticated workflow." /></td></tr>
                       )}
                       {auditLogs.map((log) => (
                         <tr key={log.id}>
@@ -2057,6 +2241,64 @@ function StatusCard({ label, value }) {
   )
 }
 
+function LoadingState({ message = "Loading workspace data..." }) {
+  return (
+    <div className="mb-5 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">
+      <p className="font-semibold text-slate-800">Loading</p>
+      <p className="mt-1">{message}</p>
+    </div>
+  )
+}
+
+function RetryButton({ onRetry }) {
+  if (!onRetry) return null
+  return <button className="button compact secondary" onClick={onRetry}>Retry</button>
+}
+
+function ErrorState({ title = "Could not load data", message, status, onRetry }) {
+  return (
+    <div className="mb-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold">{title}</p>
+          <p className="mt-1">{message || "Check whether the backend is running and try again."}</p>
+          {status && <p className="mt-1 text-xs text-red-600">Status: {status}</p>}
+          <p className="mt-2 text-xs text-red-600">Troubleshooting: refresh this section or verify the backend process is available.</p>
+        </div>
+        <RetryButton onRetry={onRetry} />
+      </div>
+    </div>
+  )
+}
+
+function EmptyState({ title = "Nothing here yet", message, action }) {
+  return (
+    <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+      <p className="font-semibold text-slate-800">{title}</p>
+      {message && <p className="mt-1">{message}</p>}
+      {action && <p className="mt-2 text-xs text-slate-500">{action}</p>}
+    </div>
+  )
+}
+
+function FormErrorMessage({ message }) {
+  if (!message) return null
+  return (
+    <div className="mb-5 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+      <p className="font-semibold">Check the form</p>
+      <p className="mt-1">{message}</p>
+    </div>
+  )
+}
+
+function StatusBadge({ children }) {
+  return <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">{children}</span>
+}
+
+function ResultPanel({ children }) {
+  return <div className="rounded-md border border-slate-200 bg-slate-50 p-4">{children}</div>
+}
+
 function Panel({ title, children }) {
   return (
     <section className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
@@ -2071,20 +2313,29 @@ function ActionButton({ children, onClick }) {
 }
 
 function Badge({ children }) {
-  return <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">{children}</span>
+  return <StatusBadge>{children}</StatusBadge>
 }
 
 function MetricGrid({ data, fields }) {
-  if (!data) return <p className="empty">No result yet.</p>
+  if (!data) {
+    return (
+      <EmptyState
+        title="No result yet"
+        message="Run this workflow to see deterministic pricing results here."
+      />
+    )
+  }
   return (
-    <div className="grid gap-3 md:grid-cols-3">
-      {fields.map((field) => (
-        <div className="rounded-md bg-slate-50 p-3" key={field}>
-          <p className="text-xs text-slate-500">{field}</p>
-          <p className="font-semibold">{formatMoney(data[field])}</p>
-        </div>
-      ))}
-    </div>
+    <ResultPanel>
+      <div className="grid gap-3 md:grid-cols-3">
+        {fields.map((field) => (
+          <div className="rounded-md bg-white p-3" key={field}>
+            <p className="text-xs text-slate-500">{field}</p>
+            <p className="font-semibold">{formatMoney(data[field])}</p>
+          </div>
+        ))}
+      </div>
+    </ResultPanel>
   )
 }
 
