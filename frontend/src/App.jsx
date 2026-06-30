@@ -1278,6 +1278,12 @@ function App() {
 
           {showSection("demo-tools") && currentUser && (
             <Panel title="Demo Tools">
+              <p className="max-w-3xl text-sm text-slate-600">
+                Recommended walkthrough: check status, seed demo data if needed, create the full scenario, then open quote preview,
+                candidate prices, validation, approvals, audit logs, scenario comparison, dashboard insights, and reports. Demo tools
+                are local/demo helpers only; they do not approve prices, activate price tables, send quotes, scrape competitors, process
+                payments, or send email.
+              </p>
               <div className="flex flex-wrap gap-2">
                 <button className="button compact secondary" onClick={refreshDemoStatusAndGuide}>Refresh demo status</button>
                 {currentUser.role === "admin" && (

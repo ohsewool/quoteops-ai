@@ -158,6 +158,13 @@ For a portfolio walkthrough, show the operator workflow rather than a generic st
 
 See [Demo flow](docs/demo-flow.md) for the longer walkthrough.
 
+Demo support docs:
+
+- [Demo flow](docs/demo-flow.md)
+- [Demo presenter script](docs/demo-presenter-script.md)
+- [Demo checklist](docs/demo-checklist.md)
+- [Demo troubleshooting](docs/demo-troubleshooting.md)
+
 ## Portfolio Notes
 
 This project is useful as a portfolio example because it shows REST API design, role-based access control, audit logging, deterministic pricing logic, safe reporting, frontend UX organization, deployment preparation, security regression checks, and broad test coverage.
@@ -166,6 +173,9 @@ This project is useful as a portfolio example because it shows REST API design, 
 
 - [API overview](docs/api-overview.md)
 - [Demo flow](docs/demo-flow.md)
+- [Demo presenter script](docs/demo-presenter-script.md)
+- [Demo checklist](docs/demo-checklist.md)
+- [Demo troubleshooting](docs/demo-troubleshooting.md)
 - [Safety boundaries](docs/safety-boundaries.md)
 - [Security checklist](docs/security-checklist.md)
 - [Final regression checklist](docs/final-regression-checklist.md)
