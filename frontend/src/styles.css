@@ -76,6 +76,23 @@ select {
   opacity: 0.6;
 }
 
+.nav-pill {
+  min-height: 2.25rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  background: #fff;
+  padding: 0.45rem 0.75rem;
+  color: #334155;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.nav-pill.active {
+  border-color: #0f172a;
+  background: #0f172a;
+  color: #fff;
+}
+
 .empty {
   border: 1px dashed #cbd5e1;
   border-radius: 0.375rem;
