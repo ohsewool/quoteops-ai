@@ -1,6 +1,6 @@
 # Render Backend Deployment
 
-This guide covers backend deployment preparation only. Frontend deployment is handled in a later PR.
+This guide covers backend deployment preparation. Frontend deployment preparation is documented in `docs/deployment/render-frontend.md`.
 
 ## Backend service
 
@@ -21,7 +21,7 @@ Required production values:
 - `QUOTEOPS_AUTH_SECRET`: set a secret value in Render.
 - `QUOTEOPS_ENV`: set to `production`.
 - `QUOTEOPS_DEMO_TOOLS_ENABLED`: set to `false` for production-like deployments.
-- `QUOTEOPS_CORS_ORIGINS`: set to the deployed frontend origin when frontend deployment is available.
+- `QUOTEOPS_CORS_ORIGINS`: set to the deployed frontend origin, such as `https://YOUR-FRONTEND-URL.onrender.com`.
 
 Optional values:
 
@@ -38,7 +38,7 @@ Local development defaults allow Vite and React dev server origins:
 
 For Render, configure `QUOTEOPS_CORS_ORIGINS` on the backend with the frontend URL, for example `https://YOUR-FRONTEND-URL.onrender.com`. Do not use wildcard CORS in production.
 
-When frontend deployment is configured, set `VITE_API_BASE_URL` on the frontend to the backend URL, for example `https://YOUR-BACKEND-URL.onrender.com`. Keep these as Render dashboard environment variables; do not commit `.env` files or real Render credentials.
+Set `VITE_API_BASE_URL` on the frontend to the backend URL, for example `https://YOUR-BACKEND-URL.onrender.com`. Keep these as Render dashboard environment variables; do not commit `.env` files or real Render credentials.
 
 ## PostgreSQL
 
@@ -49,7 +49,6 @@ Do not commit real PostgreSQL URLs, passwords, API keys, auth secrets, local SQL
 ## Safety notes
 
 - This PR does not deploy anything manually.
-- This PR does not configure frontend deployment.
 - This PR does not add migrations, custom domains, release tags, schedulers, emails, or production monitoring.
 - `/api/health` is unauthenticated and safe for Render health checks.
 - `/api/system/status` must not expose raw database passwords or secrets.
