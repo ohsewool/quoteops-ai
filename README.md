@@ -65,6 +65,16 @@ cd frontend
 npm run build
 ```
 
+## Render Deployed QA
+
+After Render backend/frontend services are configured, run optional deployed smoke checks:
+
+```bash
+python scripts/render_deployed_qa.py
+```
+
+Set `QUOTEOPS_DEPLOYED_BACKEND_URL` and `QUOTEOPS_DEPLOYED_FRONTEND_URL` to check deployed services. See [Render deployed QA](docs/deployment/render-deployed-qa.md).
+
 ## Environment Variables
 
 Use `.env.example` as a template. Do not commit `.env` files.
@@ -84,6 +94,7 @@ See:
 
 - [Render backend deployment](docs/deployment/render-backend.md)
 - [Render frontend deployment](docs/deployment/render-frontend.md)
+- [Render deployed QA](docs/deployment/render-deployed-qa.md)
 - [API overview](docs/api-overview.md)
 - [Demo flow](docs/demo-flow.md)
 - [Safety boundaries](docs/safety-boundaries.md)
