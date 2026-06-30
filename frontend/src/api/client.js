@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -8,6 +8,37 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
 })
+
+export function formatApiError(error) {
+  const status = error?.response?.status
+  const detail = error?.response?.data?.detail
+  if (status === 401) {
+    return {
+      title: "Sign in required",
+      message: "You need to sign in with a role that can access this section.",
+      status,
+    }
+  }
+  if (status === 403) {
+    return {
+      title: "Role access required",
+      message: "Your current role cannot perform this action.",
+      status,
+    }
+  }
+  if (!error?.response) {
+    return {
+      title: "Backend is not reachable",
+      message: "Start the backend locally or check the configured API URL.",
+      status: "network",
+    }
+  }
+  return {
+    title: "Request failed",
+    message: typeof detail === "string" ? detail : "The backend could not complete this request. Check the inputs and try again.",
+    status,
+  }
+}
 
 export function setAccessToken(token) {
   if (token) {
