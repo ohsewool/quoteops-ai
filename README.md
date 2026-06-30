@@ -165,6 +165,15 @@ Demo support docs:
 - [Demo checklist](docs/demo-checklist.md)
 - [Demo troubleshooting](docs/demo-troubleshooting.md)
 
+## Release Status
+
+Current prepared release package: v0.1.0
+
+This repository contains a portfolio-ready MVP release package. The actual git tag and GitHub Release are handled separately after final verification.
+
+- [v0.1.0 release notes](docs/release/v0.1.0.md)
+- [Release checklist](docs/release/release-checklist.md)
+
 ## Portfolio Notes
 
 This project is useful as a portfolio example because it shows REST API design, role-based access control, audit logging, deterministic pricing logic, safe reporting, frontend UX organization, deployment preparation, security regression checks, and broad test coverage.
@@ -176,6 +185,8 @@ This project is useful as a portfolio example because it shows REST API design, 
 - [Demo presenter script](docs/demo-presenter-script.md)
 - [Demo checklist](docs/demo-checklist.md)
 - [Demo troubleshooting](docs/demo-troubleshooting.md)
+- [v0.1.0 release notes](docs/release/v0.1.0.md)
+- [Release checklist](docs/release/release-checklist.md)
 - [Safety boundaries](docs/safety-boundaries.md)
 - [Security checklist](docs/security-checklist.md)
 - [Final regression checklist](docs/final-regression-checklist.md)
