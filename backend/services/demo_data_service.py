@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from backend.models import (
@@ -157,10 +156,10 @@ def reset_demo_data(db: Session) -> DemoResetResponse:
     deleted_or_disabled: dict[str, int] = {}
 
     deleted_or_disabled["html_reports"] = _delete_query(
-        db, db.query(HtmlReport).filter(HtmlReport.title.like("QuoteOps Demo%"))
+        db, db.query(HtmlReport).filter(HtmlReport.title == DEMO_REPORT_TITLE)
     )
     demo_comparisons = db.query(ScenarioComparison).filter(
-        ScenarioComparison.name.like("QuoteOps Demo%")
+        ScenarioComparison.name == DEMO_COMPARISON_NAME
     )
     comparison_ids = [row.id for row in demo_comparisons.all()]
     if comparison_ids:
@@ -175,7 +174,7 @@ def reset_demo_data(db: Session) -> DemoResetResponse:
     )
 
     demo_simulations = db.query(PricingSimulation).filter(
-        PricingSimulation.name.like("QuoteOps Demo%")
+        PricingSimulation.name == DEMO_SIMULATION_NAME
     )
     simulation_ids = [row.id for row in demo_simulations.all()]
     if simulation_ids:
@@ -189,7 +188,7 @@ def reset_demo_data(db: Session) -> DemoResetResponse:
         db, db.query(PricingSimulation).filter(PricingSimulation.id.in_(simulation_ids))
     )
     deleted_or_disabled["workflow_jobs"] = _delete_query(
-        db, db.query(WorkflowJob).filter(WorkflowJob.title.like("QuoteOps Demo%"))
+        db, db.query(WorkflowJob).filter(WorkflowJob.title == DEMO_WORKFLOW_TITLE)
     )
     deleted_or_disabled["customer_quote_requests"] = _delete_query(
         db,
@@ -207,7 +206,7 @@ def reset_demo_data(db: Session) -> DemoResetResponse:
     demo_table_ids = [
         row.id
         for row in db.query(PriceTable)
-        .filter(PriceTable.name.like("QuoteOps Demo%"))
+        .filter(PriceTable.name == DEMO_PRICE_TABLE_NAME)
         .all()
     ]
     if demo_table_ids:
@@ -645,19 +644,19 @@ def _demo_counts(db: Session) -> dict[str, int]:
     demo_product_ids = [
         row.id
         for row in db.query(Product.id)
-        .filter(or_(Product.sku.in_(DEMO_PRODUCT_SKUS), Product.sku.like("DEMO-%")))
+        .filter(Product.sku.in_(DEMO_PRODUCT_SKUS))
         .all()
     ]
     demo_competitor_ids = [
         row.id
         for row in db.query(Competitor.id)
-        .filter(or_(Competitor.name.like("QuoteOps Demo%"), Competitor.name.like("Demo%")))
+        .filter(Competitor.name.in_(_demo_competitor_names()))
         .all()
     ]
     demo_table_ids = [
         row.id
         for row in db.query(PriceTable.id)
-        .filter(or_(PriceTable.name.like("QuoteOps Demo%"), PriceTable.name.like("Demo%")))
+        .filter(PriceTable.name == DEMO_PRICE_TABLE_NAME)
         .all()
     ]
     return {
@@ -686,7 +685,16 @@ def _count_for_ids(db: Session, model: Any, column: Any, ids: list[int]) -> int:
 
 
 def _count_named(db: Session, model: Any, column: Any) -> int:
-    return db.query(model).filter(column.like("QuoteOps Demo%")).count()
+    known_names = {
+        PricingSimulation: DEMO_SIMULATION_NAME,
+        ScenarioComparison: DEMO_COMPARISON_NAME,
+        HtmlReport: DEMO_REPORT_TITLE,
+        WorkflowJob: DEMO_WORKFLOW_TITLE,
+    }
+    known_name = known_names.get(model)
+    if known_name is None:
+        return 0
+    return db.query(model).filter(column == known_name).count()
 
 
 def _count_demo_competitor_prices(
@@ -717,7 +725,7 @@ def _soft_disable_products(db: Session) -> int:
 
 
 def _soft_disable_competitors(db: Session) -> int:
-    rows = db.query(Competitor).filter(Competitor.name.like("QuoteOps Demo%")).all()
+    rows = db.query(Competitor).filter(Competitor.name.in_(_demo_competitor_names())).all()
     for row in rows:
         row.active = False
     return len(rows)
@@ -734,10 +742,14 @@ def _soft_disable_cost_profiles(db: Session) -> int:
 
 
 def _soft_disable_price_tables(db: Session) -> int:
-    rows = db.query(PriceTable).filter(PriceTable.name.like("QuoteOps Demo%")).all()
+    rows = db.query(PriceTable).filter(PriceTable.name == DEMO_PRICE_TABLE_NAME).all()
     for row in rows:
         row.status = "disabled"
     return len(rows)
+
+
+def _demo_competitor_names() -> list[str]:
+    return [name for name, _channel in DEMO_COMPETITORS]
 
 
 def _soft_disable_strategy_templates(db: Session) -> int:
