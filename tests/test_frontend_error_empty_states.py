@@ -35,17 +35,17 @@ def test_frontend_contains_retry_and_backend_unavailable_copy():
 def test_frontend_contains_friendly_empty_state_copy_for_major_sections():
     source = APP_SOURCE.read_text(encoding="utf-8")
 
-    for text in [
-        "No approval requests yet",
-        "No scenario comparisons yet",
-        "No HTML reports yet",
-        "No customer quote requests yet",
-        "No workflow jobs yet",
-        "No strategy templates yet",
-        "No audit logs loaded",
-        "No result yet",
+    for text_options in [
+        ("No approval requests yet", "승인 대기 건이 없습니다."),
+        ("No scenario comparisons yet",),
+        ("No HTML reports yet",),
+        ("No customer quote requests yet", "들어온 요청이 없습니다."),
+        ("No workflow jobs yet",),
+        ("No strategy templates yet",),
+        ("No audit logs loaded",),
+        ("No result yet", "아직 견적이 없습니다."),
     ]:
-        assert text in source
+        assert any(text in source for text in text_options)
 
 
 def test_frontend_contains_client_side_form_validation_copy():

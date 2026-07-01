@@ -33,15 +33,15 @@ def test_frontend_keeps_main_navigation_and_regression_ux_copy():
         ("HTML Reports",),
     ]:
         assert any(label in source for label in label_options)
-    for text in [
-        "Backend is not reachable",
-        "Retry",
-        "No approval requests yet",
-        "No scenario comparisons yet",
-        "No HTML reports yet",
-        "No result yet",
+    for text_options in [
+        ("Backend is not reachable", "데이터를 불러오지 못했습니다"),
+        ("Retry", "다시 불러오기"),
+        ("No approval requests yet", "승인 대기 건이 없습니다."),
+        ("No scenario comparisons yet",),
+        ("No HTML reports yet",),
+        ("No result yet", "아직 견적이 없습니다."),
     ]:
-        assert text in source
+        assert any(text in source for text in text_options)
 
 
 def test_frontend_source_does_not_expose_backend_secret_names_or_keys():

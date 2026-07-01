@@ -33,27 +33,27 @@ def test_frontend_contains_main_navigation_labels():
 def test_frontend_keeps_existing_feature_sections_accessible():
     source = APP_SOURCE.read_text(encoding="utf-8")
 
-    for label in [
-        "System Status",
-        "Quote Preview",
-        "Candidate Prices",
-        "Price Validation",
-        "Approval Requests",
-        "Safe Explanation",
-        "Audit Logs",
-        "CSV Import and Export",
-        "Pricing Simulation",
-        "Customer Quote Requests",
-        "Price Table History and Comparison",
-        "Workflow Jobs",
-        "Strategy Templates",
-        "KPI Dashboard",
-        "Dashboard Insights",
-        "Scenario Comparison",
-        "HTML Reports",
-        "Demo Tools",
+    for label_options in [
+        ("System Status",),
+        ("Quote Preview", "견적 미리보기"),
+        ("Candidate Prices", "가격안"),
+        ("Price Validation", "가격 평가"),
+        ("Approval Requests", "승인 관리"),
+        ("Safe Explanation", "안전 설명"),
+        ("Audit Logs",),
+        ("CSV Import and Export",),
+        ("Pricing Simulation",),
+        ("Customer Quote Requests", "고객 요청"),
+        ("Price Table History and Comparison",),
+        ("Workflow Jobs",),
+        ("Strategy Templates",),
+        ("KPI Dashboard",),
+        ("Dashboard Insights",),
+        ("Scenario Comparison",),
+        ("HTML Reports",),
+        ("Demo Tools",),
     ]:
-        assert label in source
+        assert any(label in source for label in label_options)
 
 
 def test_frontend_overview_includes_safe_decision_boundary_and_quick_links():

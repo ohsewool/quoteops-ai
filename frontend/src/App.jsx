@@ -209,6 +209,23 @@ const OVERVIEW_WORKFLOW_CARDS = [
   },
 ]
 
+const CORE_WORKFLOW_STEPS = [
+  "고객 요청",
+  "견적 생성",
+  "가격 계산",
+  "가격 평가",
+  "승인 요청",
+  "리포트",
+]
+
+const WORKFLOW_ERROR_COPY = {
+  quote: "견적 정보를 불러오지 못했습니다.",
+  pricing: "가격 계산에 실패했습니다.",
+  approval: "승인 목록을 불러오지 못했습니다.",
+  retry: "다시 시도",
+  reload: "다시 불러오기",
+}
+
 function App() {
   const [health, setHealth] = useState(null)
   const [readiness, setReadiness] = useState(null)
@@ -1080,6 +1097,55 @@ function App() {
   const latestActions = dashboardSummary?.audit_metrics?.latest_actions || []
   const pendingApprovalCount = dashboardSummary?.approval_metrics?.pending_approval_requests ?? approvalRequests.length
   const openRequestCount = dashboardSummary?.quote_metrics?.new_quote_requests ?? customerQuoteRequests.length
+  const workflowPageMeta = {
+    "quote-operations": {
+      eyebrow: "견적",
+      title: "견적 흐름",
+      helper: "고객 요청부터 견적 미리보기까지 한 흐름으로 확인하세요.",
+      primary: "새 견적",
+      primarySection: "quote-operations",
+      secondary: "요청 가져오기",
+      secondarySection: "customer-requests",
+      inputTitle: "견적 입력",
+    },
+    "customer-requests": {
+      eyebrow: "고객 요청",
+      title: "고객 요청",
+      helper: "들어온 요청을 확인하고 견적으로 연결하세요.",
+      primary: "견적 생성",
+      primarySection: "quote-operations",
+      secondary: "다시 불러오기",
+      secondaryAction: refreshCustomerQuoteRequests,
+      inputTitle: "요청 기준",
+    },
+    "pricing-tools": {
+      eyebrow: "가격",
+      title: "가격 도구",
+      helper: "가격안을 계산하고 기준에 맞는지 평가하세요.",
+      primary: "가격 계산",
+      primaryAction: handleCandidates,
+      secondary: "가격 평가",
+      secondaryAction: handleValidation,
+      inputTitle: "가격 기준",
+    },
+    approvals: {
+      eyebrow: "승인",
+      title: "승인 관리",
+      helper: "승인 대기 건을 검토하고 처리하세요.",
+      primary: "승인 요청",
+      primaryAction: handleCreateApproval,
+      secondary: "다시 불러오기",
+      secondaryAction: loadInitialData,
+      inputTitle: "승인 기준",
+    },
+  }[activeSection] || {
+    eyebrow: activeSectionMeta.label,
+    title: activeSectionMeta.label,
+    helper: activeSectionMeta.description,
+    primary: "다시 불러오기",
+    primaryAction: loadInitialData,
+    inputTitle: "작업 기준",
+  }
 
   return (
     <main className="app-shell min-h-screen bg-slate-100 text-slate-950">
@@ -1582,10 +1648,14 @@ function App() {
         </section>
 
         {!showSection("overview", "demo-tools", "reports") && (
-        <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
-          <Panel title="Product Inputs">
+        <section className="workflow-page section">
+          <WorkflowPageHeader meta={workflowPageMeta} setActiveSection={setActiveSection} />
+          <WorkflowStepStrip steps={CORE_WORKFLOW_STEPS} />
+          {showSection("quote-operations", "pricing-tools", "approvals", "customer-requests") && <SafetyBoundaryCard />}
+          <div className="workflow-layout grid gap-5 lg:grid-cols-[360px_1fr]">
+          <Panel title={workflowPageMeta.inputTitle}>
             <label className="field">
-              <span>Product</span>
+              <span>상품</span>
               <select value={selectedProductId} onChange={(event) => setSelectedProductId(event.target.value)}>
                 {products.map((product) => (
                   <option key={product.id} value={product.id}>{product.name}</option>
@@ -1593,11 +1663,11 @@ function App() {
               </select>
             </label>
             <label className="field">
-              <span>Quantity</span>
+              <span>수량</span>
               <input type="number" min="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
             </label>
             <label className="field">
-              <span>Proposed unit price</span>
+              <span>제안 단가</span>
               <input type="number" min="1" value={proposedUnitPrice} onChange={(event) => setProposedUnitPrice(event.target.value)} />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1609,28 +1679,36 @@ function App() {
               ))}
             </div>
             <label className="field">
-              <span>Candidate margin rates</span>
+              <span>후보 마진율</span>
               <input value={marginRates} onChange={(event) => setMarginRates(event.target.value)} />
             </label>
             <label className="checkbox">
               <input type="checkbox" checked={includeCompetitors} onChange={(event) => setIncludeCompetitors(event.target.checked)} />
-              Include competitor context
+              경쟁사 참고 포함
             </label>
-            <p className="text-sm text-slate-500">Selected: {selectedProduct?.name || "No product"}</p>
+            <p className="text-sm text-slate-500">선택: {selectedProduct?.name || "상품 없음"}</p>
           </Panel>
 
           <div className="grid gap-5">
             {showSection("quote-operations") && (
-            <Panel title="Quote Preview">
-              <ActionButton onClick={handleQuotePreview}>Create quote preview</ActionButton>
+            <Panel title="견적 미리보기">
+              <div className="workflow-panel-intro">
+                <Badge>새 견적</Badge>
+                <p>상품과 수량을 기준으로 견적 미리보기를 만듭니다.</p>
+              </div>
+              <ActionButton onClick={handleQuotePreview}>새 견적</ActionButton>
               <MetricGrid data={results.quotePreview} fields={["unit_cost", "total_cost", "suggested_unit_price", "suggested_total_price", "estimated_gross_profit", "estimated_margin_rate"]} />
               <Notes notes={results.quotePreview?.calculation_notes} />
             </Panel>
             )}
 
             {showSection("pricing-tools") && (
-            <Panel title="Candidate Prices">
-              <ActionButton onClick={handleCandidates}>Generate candidate prices</ActionButton>
+            <Panel title="가격안">
+              <div className="workflow-panel-intro">
+                <Badge>가격 계산</Badge>
+                <p>원가와 마진 기준으로 가격 후보를 계산합니다.</p>
+              </div>
+              <ActionButton onClick={handleCandidates}>가격 계산</ActionButton>
               <div className="grid gap-3 md:grid-cols-3">
                 {results.candidates?.candidates?.map((candidate) => (
                   <div className="rounded-md border border-slate-200 bg-slate-50 p-4" key={candidate.strategy}>
@@ -1647,8 +1725,12 @@ function App() {
             )}
 
             {showSection("pricing-tools") && (
-            <Panel title="Price Validation">
-              <ActionButton onClick={handleValidation}>Validate proposed price</ActionButton>
+            <Panel title="가격 평가">
+              <div className="workflow-panel-intro">
+                <Badge>가격 평가</Badge>
+                <p>제안 단가가 기준과 조건에 맞는지 확인합니다.</p>
+              </div>
+              <ActionButton onClick={handleValidation}>가격 평가</ActionButton>
               {results.validation && (
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-2">
@@ -2084,34 +2166,38 @@ function App() {
             )}
 
             {showSection("approvals") && (
-            <Panel title="Approval Requests">
+            <Panel title="승인 관리">
+              <div className="workflow-panel-intro">
+                <Badge>승인 대기</Badge>
+                <p>승인 대기 건을 검토하고 승인 또는 반려합니다.</p>
+              </div>
               <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
                 <label className="field">
-                  <span>Reviewer</span>
+                  <span>검토자</span>
                   <input value={reviewerName} onChange={(event) => setReviewerName(event.target.value)} />
                 </label>
                 <label className="field">
-                  <span>Review note</span>
+                  <span>검토 메모</span>
                   <input value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} />
                 </label>
-                <ActionButton onClick={handleCreateApproval}>Create approval request</ActionButton>
+                <ActionButton onClick={handleCreateApproval}>승인 요청</ActionButton>
               </div>
-              <div className="overflow-x-auto">
+              <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Product</th>
-                      <th>Unit price</th>
-                      <th>Validation</th>
-                      <th>Risk</th>
-                      <th>Status</th>
-                      <th>Action</th>
+                      <th>상품</th>
+                      <th>단가</th>
+                      <th>검증</th>
+                      <th>위험</th>
+                      <th>상태</th>
+                      <th>처리</th>
                     </tr>
                   </thead>
                   <tbody>
                     {approvalRequests.length === 0 && (
-                      <tr><td colSpan="7"><EmptyState title="No approval requests yet" message="Create a quote validation and submit it for human approval." /></td></tr>
+                      <tr><td colSpan="7"><EmptyState title="승인 대기 건이 없습니다." message="가격 검증 후 승인 요청을 만들 수 있습니다." /></td></tr>
                     )}
                     {approvalRequests.map((request) => (
                       <tr key={request.id}>
@@ -2124,8 +2210,8 @@ function App() {
                         <td>
                           {request.status === "pending" ? (
                             <div className="flex gap-2">
-                              <button className="button compact" onClick={() => handleReviewApproval(request.id, "approve")}>Approve</button>
-                              <button className="button compact secondary" onClick={() => handleReviewApproval(request.id, "reject")}>Reject</button>
+                              <button className="button compact" onClick={() => handleReviewApproval(request.id, "approve")}>승인</button>
+                              <button className="button compact secondary" onClick={() => handleReviewApproval(request.id, "reject")}>반려</button>
                             </div>
                           ) : request.review_note || "-"}
                         </td>
@@ -2138,8 +2224,8 @@ function App() {
             )}
 
             {showSection("quote-operations", "pricing-tools") && (
-            <Panel title="Safe Explanation">
-              <ActionButton onClick={handleExplanation}>Generate explanation</ActionButton>
+            <Panel title="안전 설명">
+              <ActionButton onClick={handleExplanation}>설명 만들기</ActionButton>
               {results.explanation && (
                 <div className="space-y-3">
                   <p className="rounded-md bg-slate-950 p-4 text-white">{results.explanation.explanation_summary}</p>
@@ -2152,7 +2238,11 @@ function App() {
             )}
 
             {showSection("quote-operations", "customer-requests") && currentUser && (
-              <Panel title="Customer Quote Requests">
+              <Panel title="고객 요청">
+                <div className="workflow-panel-intro">
+                  <Badge>고객 요청</Badge>
+                  <p>들어온 요청을 확인하고 견적으로 연결하세요.</p>
+                </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   {["customer_name", "customer_email", "customer_company", "quantity", "request_note"].map((field) => (
                     <label className="field" key={field}>
@@ -2161,33 +2251,33 @@ function App() {
                     </label>
                   ))}
                 </div>
-                <ActionButton onClick={handleCreateCustomerQuoteRequest}>Submit quote request</ActionButton>
+                <ActionButton onClick={handleCreateCustomerQuoteRequest}>요청 등록</ActionButton>
                 <div className="grid gap-3 md:grid-cols-[1fr_auto]">
                   <label className="field">
-                    <span>Status update</span>
+                    <span>상태 변경</span>
                     <select value={quoteRequestStatus} onChange={(event) => setQuoteRequestStatus(event.target.value)}>
                       {["new", "reviewing", "quoted", "closed"].map((status) => (
                         <option key={status} value={status}>{status}</option>
                       ))}
                     </select>
                   </label>
-                  <ActionButton onClick={refreshCustomerQuoteRequests}>Refresh requests</ActionButton>
+                  <ActionButton onClick={refreshCustomerQuoteRequests}>다시 불러오기</ActionButton>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="table-wrap">
                   <table>
                     <thead>
                       <tr>
                         <th>ID</th>
-                        <th>Customer</th>
-                        <th>Product</th>
-                        <th>Qty</th>
-                        <th>Status</th>
-                        <th>Action</th>
+                        <th>고객</th>
+                        <th>상품</th>
+                        <th>수량</th>
+                        <th>상태</th>
+                        <th>처리</th>
                       </tr>
                     </thead>
                     <tbody>
                       {customerQuoteRequests.length === 0 && (
-                        <tr><td colSpan="6"><EmptyState title="No customer quote requests yet" message="Submit a customer quote request to start the review workflow." /></td></tr>
+                        <tr><td colSpan="6"><EmptyState title="들어온 요청이 없습니다." message="고객 요청을 등록하면 견적 흐름을 시작할 수 있습니다." /></td></tr>
                       )}
                       {customerQuoteRequests.map((request) => (
                         <tr key={request.id}>
@@ -2200,9 +2290,9 @@ function App() {
                             <div className="flex flex-wrap gap-2">
                               {["admin", "manager"].includes(currentUser.role) && (
                                 <>
-                                  <button className="button compact" onClick={() => handleCustomerQuoteStatus(request.id)}>Set status</button>
-                                  <button className="button compact secondary" onClick={() => handleCustomerQuotePreview(request.id)}>Preview</button>
-                                  <button className="button compact secondary" onClick={() => handleCustomerQuoteCandidates(request.id)}>Candidates</button>
+                                  <button className="button compact" onClick={() => handleCustomerQuoteStatus(request.id)}>상태 변경</button>
+                                  <button className="button compact secondary" onClick={() => handleCustomerQuotePreview(request.id)}>견적 미리보기</button>
+                                  <button className="button compact secondary" onClick={() => handleCustomerQuoteCandidates(request.id)}>가격 계산</button>
                                 </>
                               )}
                             </div>
@@ -2363,10 +2453,67 @@ function App() {
               </Panel>
             )}
           </div>
+          </div>
         </section>
         )}
       </div>
     </main>
+  )
+}
+
+function WorkflowPageHeader({ meta, setActiveSection }) {
+  const runPrimary = () => {
+    if (meta.primaryAction) {
+      meta.primaryAction()
+      return
+    }
+    if (meta.primarySection) setActiveSection(meta.primarySection)
+  }
+  const runSecondary = () => {
+    if (meta.secondaryAction) {
+      meta.secondaryAction()
+      return
+    }
+    if (meta.secondarySection) setActiveSection(meta.secondarySection)
+  }
+
+  return (
+    <section className="workflow-header card">
+      <div>
+        <p className="overview-eyebrow">{meta.eyebrow}</p>
+        <h2>{meta.title}</h2>
+        <p>{meta.helper}</p>
+      </div>
+      <div className="overview-actions">
+        {meta.primary && <button className="button button-primary" type="button" onClick={runPrimary}>{meta.primary}</button>}
+        {meta.secondary && <button className="button button-secondary" type="button" onClick={runSecondary}>{meta.secondary}</button>}
+      </div>
+    </section>
+  )
+}
+
+function WorkflowStepStrip({ steps }) {
+  return (
+    <ol className="workflow-step-strip card" aria-label="견적 흐름">
+      {steps.map((step, index) => (
+        <li key={step}>
+          <span>{index + 1}</span>
+          <strong>{step}</strong>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function SafetyBoundaryCard() {
+  return (
+    <section className="workflow-safety card">
+      <span className="badge badge-warning">자동 반영 없음</span>
+      <div>
+        <h3>승인 전 자동 반영 없음</h3>
+        <p>승인 없이 가격을 확정하거나 전송하지 않습니다.</p>
+      </div>
+    </section>
   )
 }
 
@@ -2458,8 +2605,8 @@ function MetricGrid({ data, fields }) {
   if (!data) {
     return (
       <EmptyState
-        title="No result yet"
-        message="Run this workflow to see deterministic pricing results here."
+        title="아직 견적이 없습니다."
+        message="첫 견적을 만들어 보세요."
       />
     )
   }
