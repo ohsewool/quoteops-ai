@@ -28,7 +28,7 @@ def test_responsive_qa_checklist_exists_with_required_topics():
         "forms",
         "buttons",
         "table-wrap",
-        "가로 넘침",
+        "가로 스크롤",
         "render",
     ]:
         assert keyword in text
@@ -69,18 +69,18 @@ def test_frontend_source_still_exposes_all_major_navigation_labels():
 
     for section_key in [
         "overview",
+        "customer-requests",
         "quote-operations",
         "pricing-tools",
         "approvals",
-        "customer-requests",
-        "simulations",
         "reports",
         "admin-system",
         "demo-tools",
     ]:
         assert f'key: "{section_key}"' in source
 
-    assert source.count("label:") >= 9
+    assert 'key: "simulations"' not in source
+    assert source.count("label:") >= 8
 
 
 def test_frontend_api_client_keeps_environment_base_url_contract():

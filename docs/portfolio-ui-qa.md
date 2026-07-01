@@ -20,6 +20,19 @@ PR-47 removes the remaining visible English/internal artifacts from normal authe
 - Demo step names and safety notes render as Korean business workflow copy.
 - Technical diagnostics remain under 운영 or collapsed 기술 정보 sections.
 
+## PR-48 Authenticated App Shell Restructure
+
+PR-48 restructures the authenticated app around a lightweight CPQ/pricing workflow shell.
+
+- The main authenticated flow is 고객 요청 → 견적 → 가격 평가 → 승인함 → 리포트.
+- Logged-in home is now a compact work dashboard, not a repeat of the public landing.
+- 시뮬레이션 is no longer a top-level menu and lives under 가격 평가 as an advanced section.
+- 운영 is the isolated technical/admin area for system status, data management, audit logs, and API/developer details.
+- 데모 is a guided portfolio flow rather than a developer playground.
+- Backend/API behavior remains unchanged.
+- The attached research PDF was used as product-structure reference only and was not committed.
+- This PR is intended to remain open for manual visual review before merge.
+
 ## PR-42 목적
 
 QuoteOps AI를 포트폴리오용 SaaS MVP로 보여주기 전에 최종 화면 흐름, 반응형 상태, 안전 문구, Render 재배포 확인 절차를 정리한다. 이 단계는 기능 추가가 아니라 최종 QA와 데모 준비 문서화다.

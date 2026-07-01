@@ -35,29 +35,29 @@ def test_frontend_contains_retry_and_backend_unavailable_copy():
 def test_frontend_contains_friendly_empty_state_copy_for_major_sections():
     source = APP_SOURCE.read_text(encoding="utf-8")
 
-    for text_options in [
-        ("승인 대기 건이 없습니다.",),
-        ("아직 실행한 시나리오가 없습니다.",),
-        ("생성된 리포트가 없습니다.",),
-        ("들어온 요청이 없습니다.",),
-        ("시스템 운영 정보가 없습니다.",),
-        ("아직 전략 템플릿이 없습니다.",),
-        ("감사 로그가 없습니다.",),
-        ("아직 견적이 없습니다.",),
+    for text in [
+        "현재 처리할 승인 항목이 없습니다.",
+        "아직 실행한 시나리오가 없습니다.",
+        "아직 생성된 문서가 없습니다.",
+        "등록된 고객 요청이 없습니다.",
+        "표시할 요약 정보가 없습니다.",
+        "아직 전략 템플릿이 없습니다.",
+        "감사 로그가 없습니다.",
+        "아직 견적이 없습니다.",
     ]:
-        assert any(text in source for text in text_options)
+        assert text in source
 
 
 def test_frontend_contains_client_side_form_validation_copy():
     source = APP_SOURCE.read_text(encoding="utf-8")
 
     for text in [
-        "상품을 선택한 뒤",
-        "수량은 0보다 커야 합니다.",
+        "상품을 선택한 뒤 가격 작업을 실행하세요.",
+        "수량은 0보다 커야 합니다",
         "마진율은 0 이상 1 미만",
-        "이메일 형식으로 입력하세요.",
-        "작업 입력값은 올바른 JSON이어야 합니다.",
-        "제목을 입력하세요.",
+        "이메일 형식으로 입력하세요",
+        "작업 입력값은 올바른 JSON이어야 합니다",
+        "작업 제목을 입력하세요.",
     ]:
         assert text in source
 

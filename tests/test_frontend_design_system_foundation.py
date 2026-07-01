@@ -69,18 +69,20 @@ def test_design_system_exposes_reusable_layout_classes():
 def test_frontend_keeps_major_workspace_sections_available():
     source = _read(APP_SOURCE)
 
-    for label_options in [
-        ("Overview", "홈"),
-        ("Quote Operations", "견적"),
-        ("Pricing Tools", "가격"),
-        ("Approvals", "승인"),
-        ("Customer Requests", "고객 요청"),
-        ("Simulations", "시뮬레이션"),
-        ("Reports", "리포트"),
-        ("Admin / System", "운영"),
-        ("Demo Tools", "데모"),
+    for label in [
+        "대시보드",
+        "고객 요청",
+        "견적",
+        "가격 평가",
+        "승인함",
+        "리포트",
+        "운영",
+        "데모",
     ]:
-        assert any(label in source for label in label_options)
+        assert label in source
+
+    assert 'label: "시뮬레이션"' not in source
+    assert '<summary>시뮬레이션</summary>' in source
 
 
 def test_frontend_api_client_uses_vite_base_url_and_local_fallback():

@@ -39,8 +39,7 @@ def test_frontend_includes_support_screen_empty_and_error_copy():
     for text in [
         "표시할 요약 정보가 없습니다.",
         "아직 실행한 시나리오가 없습니다.",
-        "생성된 리포트가 없습니다.",
-        "시스템 운영 정보가 없습니다.",
+        "아직 생성된 문서가 없습니다.",
         "데모 상태",
         "다시 불러오기",
     ]:
@@ -50,18 +49,19 @@ def test_frontend_includes_support_screen_empty_and_error_copy():
 def test_frontend_keeps_all_major_navigation_labels_available():
     source = _read(APP_SOURCE)
 
-    for label_options in [
-        ("Overview", "홈"),
-        ("Quote Operations", "견적"),
-        ("Pricing Tools", "가격"),
-        ("Approvals", "승인"),
-        ("Customer Requests", "고객 요청"),
-        ("Simulations", "시뮬레이션"),
-        ("Reports", "리포트"),
-        ("Admin / System", "운영"),
-        ("Demo Tools", "데모"),
+    for label in [
+        "대시보드",
+        "고객 요청",
+        "견적",
+        "가격 평가",
+        "승인함",
+        "리포트",
+        "운영",
+        "데모",
     ]:
-        assert any(label in source for label in label_options)
+        assert label in source
+
+    assert 'label: "시뮬레이션"' not in source
 
 
 def test_frontend_api_client_keeps_base_url_contract():

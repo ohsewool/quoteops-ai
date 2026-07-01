@@ -18,7 +18,8 @@ def test_frontend_includes_final_korean_copy_and_labels():
     for text in [
         "견적부터 승인까지 한 흐름으로",
         "견적 생성, 가격 평가, 승인, 리포트까지 한 번에 관리하세요.",
-        "계산, 원가, 승인, 리포트까지 한 흐름으로",
+        "오늘 처리할 견적과 승인",
+        "고객 요청 → 견적 생성 → 가격 평가 → 승인 → 리포트",
         "재료비",
         "인건비",
         "간접비",
@@ -63,7 +64,7 @@ def test_home_status_hierarchy_keeps_only_high_value_status_cards():
 
     assert 'label="DB 유형"' not in source
     assert 'label="CORS"' not in source
-    assert 'lg:grid-cols-4' in source
+    assert "lg:grid-cols-4" in source
 
 
 def test_secondary_refresh_actions_use_secondary_button_style():
