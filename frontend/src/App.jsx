@@ -226,6 +226,21 @@ const WORKFLOW_ERROR_COPY = {
   reload: "다시 불러오기",
 }
 
+const OPTIONAL_COST_LABELS = {
+  material_cost: "재료비",
+  labor_cost: "인건비",
+  overhead_cost: "간접비",
+  target_margin_rate: "목표 마진율",
+}
+
+const CUSTOMER_QUOTE_FIELD_LABELS = {
+  customer_name: "고객명",
+  customer_email: "이메일",
+  customer_company: "회사명",
+  quantity: "수량",
+  request_note: "요청 메모",
+}
+
 function App() {
   const [health, setHealth] = useState(null)
   const [readiness, setReadiness] = useState(null)
@@ -1074,22 +1089,22 @@ function App() {
   const safeApiBaseUrl = sanitizeApiUrl(API_BASE_URL)
   const overviewStatusItems = [
     {
-      label: "서비스",
+      label: "서비스 정상",
       value: health?.status === "ok" ? "정상" : "확인 필요",
       tone: health?.status === "ok" ? "success" : "warning",
     },
     {
-      label: "DB 연결",
+      label: "DB 연결 정상",
       value: systemStatus?.database?.connection_ok || readiness?.status === "ready" ? "정상" : "확인 필요",
       tone: systemStatus?.database?.connection_ok || readiness?.status === "ready" ? "success" : "warning",
     },
     {
-      label: "OpenAPI",
+      label: "OpenAPI 확인",
       value: systemStatus?.features?.openapi_available ? "확인" : "대기",
       tone: systemStatus?.features?.openapi_available ? "success" : "warning",
     },
     {
-      label: "배포",
+      label: "배포 연결",
       value: systemStatus?.cors?.configured ? "연결됨" : "로컬",
       tone: systemStatus?.cors?.configured ? "success" : "info",
     },
@@ -1153,6 +1168,7 @@ function App() {
       title: "운영",
       helper: "데이터 작업, 시스템 상태, 작업 상태를 확인하세요.",
       primary: "상태 새로고침",
+      primaryVariant: "secondary",
       primaryAction: loadInitialData,
       secondary: "작업 새로고침",
       secondaryAction: refreshWorkflowJobs,
@@ -1163,6 +1179,7 @@ function App() {
     title: activeSectionMeta.label,
     helper: activeSectionMeta.description,
     primary: "다시 불러오기",
+    primaryVariant: "secondary",
     primaryAction: loadInitialData,
     inputTitle: "작업 기준",
   }
@@ -1173,12 +1190,12 @@ function App() {
         <header className="app-header mb-6 flex flex-col gap-3 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-500">QuoteOps AI</p>
-            <h1 className="text-3xl font-semibold tracking-tight">가격 운영 워크스페이스</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">견적 가격 운영</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-600">
               견적, 가격 검증, 승인, 리포트를 한 흐름으로 관리합니다.
             </p>
           </div>
-          <button className="button secondary" onClick={loadInitialData} disabled={!!loading}>
+          <button className="button compact secondary" onClick={loadInitialData} disabled={!!loading}>
             새로고침
           </button>
         </header>
@@ -1376,15 +1393,12 @@ function App() {
             <p className="text-sm text-slate-500">포트폴리오 데모용 계정입니다.</p>
           </Panel>
 
-          <section className="status-grid grid gap-4 lg:grid-cols-7" aria-label="System Status">
+          <section className="status-grid grid gap-4 lg:grid-cols-4" aria-label="System Status">
             <h2 className="sr-only">System Status</h2>
-            <StatusCard label="서비스" value={health?.status === "ok" ? "정상" : health?.status || "-"} />
-            <StatusCard label="준비 상태" value={readiness?.status === "ready" ? "정상" : readiness?.status || "-"} />
-            <StatusCard label="DB 연결" value={systemStatus?.database?.connection_ok ? "정상" : "확인"} />
-            <StatusCard label="DB 유형" value={systemStatus?.database?.type || readiness?.database_type || "-"} />
-            <StatusCard label="CORS" value={systemStatus?.cors?.configured ? "설정됨" : "-"} />
-            <StatusCard label="OpenAPI" value={systemStatus?.features?.openapi_available ? "확인" : "대기"} />
-            <StatusCard label="배포" value={systemStatus?.cors?.configured ? "연결됨" : "로컬"} />
+            <StatusCard label="서비스 정상" value={health?.status === "ok" ? "정상" : health?.status || "-"} />
+            <StatusCard label="DB 연결 정상" value={systemStatus?.database?.connection_ok || readiness?.status === "ready" ? "정상" : "확인"} />
+            <StatusCard label="OpenAPI 확인" value={systemStatus?.features?.openapi_available ? "확인" : "대기"} />
+            <StatusCard label="배포 연결" value={systemStatus?.cors?.configured ? "연결됨" : "로컬"} />
           </section>
 
           {showSection("overview") && currentUser && dashboardSummary && (
@@ -1712,7 +1726,7 @@ function App() {
             <div className="grid gap-3 sm:grid-cols-2">
               {Object.keys(optionalCosts).map((key) => (
                 <label className="field" key={key}>
-                  <span>{key}</span>
+                  <span>{OPTIONAL_COST_LABELS[key]}</span>
                   <input value={optionalCosts[key]} onChange={(event) => setOptionalCosts((current) => ({ ...current, [key]: event.target.value }))} />
                 </label>
               ))}
@@ -2285,7 +2299,7 @@ function App() {
                 <div className="grid gap-3 md:grid-cols-2">
                   {["customer_name", "customer_email", "customer_company", "quantity", "request_note"].map((field) => (
                     <label className="field" key={field}>
-                      <span>{field}</span>
+                      <span>{CUSTOMER_QUOTE_FIELD_LABELS[field]}</span>
                       <input value={customerQuoteForm[field]} onChange={(event) => setCustomerQuoteForm((current) => ({ ...current, [field]: event.target.value }))} />
                     </label>
                   ))}
@@ -2300,7 +2314,7 @@ function App() {
                       ))}
                     </select>
                   </label>
-                  <ActionButton onClick={refreshCustomerQuoteRequests}>다시 불러오기</ActionButton>
+                  <button className="button compact secondary" onClick={refreshCustomerQuoteRequests}>다시 불러오기</button>
                 </div>
                 <div className="table-wrap">
                   <table>
@@ -2524,7 +2538,7 @@ function WorkflowPageHeader({ meta, setActiveSection }) {
         <p>{meta.helper}</p>
       </div>
       <div className="overview-actions">
-        {meta.primary && <button className="button button-primary" type="button" onClick={runPrimary}>{meta.primary}</button>}
+        {meta.primary && <button className={`button ${meta.primaryVariant === "secondary" ? "button-secondary" : "button-primary"}`} type="button" onClick={runPrimary}>{meta.primary}</button>}
         {meta.secondary && <button className="button button-secondary" type="button" onClick={runSecondary}>{meta.secondary}</button>}
       </div>
     </section>
