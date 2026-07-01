@@ -17,22 +17,22 @@ def test_frontend_api_client_keeps_env_base_url_contract():
 def test_frontend_keeps_main_navigation_and_regression_ux_copy():
     source = APP_SOURCE.read_text(encoding="utf-8")
 
-    for label in [
-        "Overview",
-        "Quote Operations",
-        "Pricing Tools",
-        "Approvals",
-        "Customer Requests",
-        "Simulations",
-        "Reports",
-        "Admin / System",
-        "Demo Tools",
-        "System Status",
-        "Dashboard Insights",
-        "Scenario Comparison",
-        "HTML Reports",
+    for label_options in [
+        ("Overview", "홈"),
+        ("Quote Operations", "견적"),
+        ("Pricing Tools", "가격"),
+        ("Approvals", "승인"),
+        ("Customer Requests", "고객 요청"),
+        ("Simulations", "시뮬레이션"),
+        ("Reports", "리포트"),
+        ("Admin / System", "운영"),
+        ("Demo Tools", "데모"),
+        ("System Status",),
+        ("Dashboard Insights",),
+        ("Scenario Comparison",),
+        ("HTML Reports",),
     ]:
-        assert label in source
+        assert any(label in source for label in label_options)
     for text in [
         "Backend is not reachable",
         "Retry",

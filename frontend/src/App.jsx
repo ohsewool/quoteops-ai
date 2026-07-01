@@ -137,47 +137,47 @@ function validateJson(value) {
 const NAV_SECTIONS = [
   {
     key: "overview",
-    label: "Overview",
+    label: "홈",
     description: "Portfolio-ready snapshot of health, readiness, dashboard metrics, and key workflows.",
   },
   {
     key: "quote-operations",
-    label: "Quote Operations",
+    label: "견적",
     description: "Create quote previews, generate safe explanations, and manage customer quote requests.",
   },
   {
     key: "pricing-tools",
-    label: "Pricing Tools",
+    label: "가격",
     description: "Run candidate prices, validation, strategy templates, and price table comparisons.",
   },
   {
     key: "approvals",
-    label: "Approvals",
+    label: "승인",
     description: "Review approval requests and inspect audit logs for human-in-the-loop decisions.",
   },
   {
     key: "customer-requests",
-    label: "Customer Requests",
+    label: "고객 요청",
     description: "Submit, review, preview, and update customer quote requests.",
   },
   {
     key: "simulations",
-    label: "Simulations",
+    label: "시뮬레이션",
     description: "Compare pricing simulations, workflow jobs, and scenario comparisons.",
   },
   {
     key: "reports",
-    label: "Reports",
+    label: "리포트",
     description: "Create and open HTML reports for dashboard, pricing, validation, and scenario work.",
   },
   {
     key: "admin-system",
-    label: "Admin / System",
+    label: "운영",
     description: "Check system status, CSV import/export, audit logs, and operational controls.",
   },
   {
     key: "demo-tools",
-    label: "Demo Tools",
+    label: "데모",
     description: "Seed, reset, and inspect local demo scenarios for MVP walkthroughs.",
   },
 ]
@@ -1030,9 +1030,9 @@ function App() {
   const safeApiBaseUrl = sanitizeApiUrl(API_BASE_URL)
 
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-950">
-      <div className="mx-auto max-w-7xl px-5 py-6">
-        <header className="mb-6 flex flex-col gap-3 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
+    <main className="app-shell min-h-screen bg-slate-100 text-slate-950">
+      <div className="app-main page-container mx-auto max-w-7xl px-5 py-6">
+        <header className="app-header mb-6 flex flex-col gap-3 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-500">QuoteOps AI</p>
             <h1 className="text-3xl font-semibold tracking-tight">Pricing operations workspace</h1>
@@ -1041,7 +1041,7 @@ function App() {
             </p>
           </div>
           <button className="button secondary" onClick={loadInitialData} disabled={!!loading}>
-            Refresh
+            새로고침
           </button>
         </header>
 
@@ -1063,7 +1063,7 @@ function App() {
         )}
         {formError && <FormErrorMessage message={formError} />}
 
-        <nav className="mb-5 rounded-md border border-slate-200 bg-white p-3 shadow-sm" aria-label="Workspace sections">
+        <nav className="app-nav mb-5 rounded-md border border-slate-200 bg-white p-3 shadow-sm" aria-label="Workspace sections">
           <div className="flex flex-wrap gap-2">
             {NAV_SECTIONS.map((section) => (
               <button
@@ -1078,16 +1078,18 @@ function App() {
           </div>
         </nav>
 
-        <section className="mb-5 rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">{activeSectionMeta.label}</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">{activeSectionMeta.label === "Overview" ? "QuoteOps AI" : activeSectionMeta.label}</h2>
+        <section className="section card mb-5 rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="section-header">
+            <p className="text-sm font-semibold text-slate-500">{activeSectionMeta.label}</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-tight">{activeSectionMeta.key === "overview" ? "QuoteOps AI" : activeSectionMeta.label}</h2>
+          </div>
           <p className="mt-2 max-w-4xl text-sm text-slate-600">{activeSectionMeta.description}</p>
           {activeSection === "overview" && (
-            <div className="mt-4 grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+            <div className="card-grid mt-4 grid gap-4 lg:grid-cols-[1.3fr_1fr]">
               <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
-                <p className="font-semibold">Safe pricing decision boundary</p>
+                <p className="font-semibold">승인 전 자동 반영 없음</p>
                 <p className="mt-2 text-sm text-slate-600">
-                  QuoteOps AI supports deterministic pricing operations, but it does not automatically approve, activate, or send prices without human review.
+                  가격 계산과 원가 검증을 지원하지만, 승인 없이 가격을 확정하거나 전송하지 않습니다.
                 </p>
               </div>
               <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
@@ -1125,7 +1127,7 @@ function App() {
           )}
         </section>
 
-        <section className="mb-5 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+        <section className="section card-grid mb-5 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
           <Panel title="Admin login">
             {currentUser ? (
               <div className="space-y-3">
@@ -1136,7 +1138,7 @@ function App() {
                 <button className="button secondary" onClick={handleLogout}>Log out</button>
               </div>
             ) : (
-              <form className="grid gap-3 md:grid-cols-[1fr_1fr_auto]" onSubmit={handleLogin}>
+              <form className="form-grid grid gap-3 md:grid-cols-[1fr_1fr_auto]" onSubmit={handleLogin}>
                 <label className="field">
                   <span>Username</span>
                   <input value={loginForm.username} onChange={(event) => setLoginForm((current) => ({ ...current, username: event.target.value }))} />
@@ -1145,20 +1147,20 @@ function App() {
                   <span>Password</span>
                   <input type="password" value={loginForm.password} onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))} />
                 </label>
-                <button className="button" type="submit">Log in</button>
+                <button className="button" type="submit">로그인</button>
               </form>
             )}
             <div className="flex flex-wrap gap-2">
               {demoUsers.map((user) => (
                 <button className="button compact secondary" key={user.username} onClick={() => useDemoUser(user.username)}>
-                  Use {user.username}
+                  {user.username === "admin" ? "관리자" : user.username === "manager" ? "매니저" : user.username === "viewer" ? "조회자" : user.username}
                 </button>
               ))}
             </div>
             <p className="text-sm text-slate-500">Demo credentials are for local MVP testing only.</p>
           </Panel>
 
-          <section className="grid gap-4 lg:grid-cols-7" aria-label="System Status">
+          <section className="status-grid grid gap-4 lg:grid-cols-7" aria-label="System Status">
             <h2 className="sr-only">System Status</h2>
             <StatusCard label="Health" value={health?.status || "-"} />
             <StatusCard label="Ready" value={readiness?.status || "-"} />
@@ -2240,7 +2242,7 @@ function App() {
 
 function StatusCard({ label, value }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4">
+    <div className="card status-card rounded-md border border-slate-200 bg-white p-4">
       <p className="text-sm text-slate-500">{label}</p>
       <p className="mt-1 font-semibold">{value}</p>
     </div>
@@ -2249,7 +2251,7 @@ function StatusCard({ label, value }) {
 
 function LoadingState({ message = "Loading workspace data..." }) {
   return (
-    <div className="mb-5 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">
+    <div className="card mb-5 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">
       <p className="font-semibold text-slate-800">Loading</p>
       <p className="mt-1">{message}</p>
     </div>
@@ -2263,7 +2265,7 @@ function RetryButton({ onRetry }) {
 
 function ErrorState({ title = "Could not load data", message, status, onRetry }) {
   return (
-    <div className="mb-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+    <div className="error-state mb-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-semibold">{title}</p>
@@ -2279,7 +2281,7 @@ function ErrorState({ title = "Could not load data", message, status, onRetry })
 
 function EmptyState({ title = "Nothing here yet", message, action }) {
   return (
-    <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+    <div className="empty-state rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
       <p className="font-semibold text-slate-800">{title}</p>
       {message && <p className="mt-1">{message}</p>}
       {action && <p className="mt-2 text-xs text-slate-500">{action}</p>}
@@ -2298,16 +2300,16 @@ function FormErrorMessage({ message }) {
 }
 
 function StatusBadge({ children }) {
-  return <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">{children}</span>
+  return <span className="badge rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">{children}</span>
 }
 
 function ResultPanel({ children }) {
-  return <div className="rounded-md border border-slate-200 bg-slate-50 p-4">{children}</div>
+  return <div className="card rounded-md border border-slate-200 bg-slate-50 p-4">{children}</div>
 }
 
 function Panel({ title, children }) {
   return (
-    <section className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="card rounded-md border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="mb-4 text-lg font-semibold">{title}</h2>
       <div className="space-y-4">{children}</div>
     </section>
@@ -2347,7 +2349,7 @@ function MetricGrid({ data, fields }) {
 
 function DashboardMetricTable({ title, rows }) {
   return (
-    <div className="overflow-x-auto rounded-md border border-slate-200">
+    <div className="table-wrap overflow-x-auto rounded-md border border-slate-200">
       <table>
         <thead>
           <tr>
