@@ -34,19 +34,19 @@ def test_frontend_keeps_existing_feature_sections_accessible():
     source = APP_SOURCE.read_text(encoding="utf-8")
 
     for label_options in [
-        ("System Status",),
+        ("시스템 상태",),
         ("Quote Preview", "견적 미리보기"),
         ("Candidate Prices", "가격안"),
         ("Price Validation", "가격 평가"),
         ("Approval Requests", "승인 관리"),
         ("Safe Explanation", "안전 설명"),
-        ("Audit Logs",),
+        ("감사 로그",),
         ("CSV Import and Export", "데이터 관리"),
         ("Pricing Simulation", "시뮬레이션"),
         ("Customer Quote Requests", "고객 요청"),
-        ("Price Table History and Comparison",),
+        ("가격표 이력과 비교",),
         ("Workflow Jobs", "작업 상태"),
-        ("Strategy Templates",),
+        ("전략 템플릿",),
         ("KPI Dashboard", "운영 요약"),
         ("Dashboard Insights", "분석 인사이트"),
         ("Scenario Comparison", "시나리오 비교"),

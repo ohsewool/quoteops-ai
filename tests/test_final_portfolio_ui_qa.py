@@ -56,7 +56,8 @@ def test_frontend_source_keeps_final_portfolio_ui_contract():
     source = _read(APP_SOURCE)
 
     for keyword in [
-        "견적 가격 운영의 시작점에서",
+        "견적부터 승인까지 한 흐름으로",
+        "견적 생성, 가격 평가, 승인, 리포트까지 한 번에 관리하세요.",
         "승인 전 자동 반영 없음",
         "overview",
         "quote-operations",

@@ -113,14 +113,14 @@ function sanitizeApiUrl(value) {
 }
 
 function validateCommonPricingInputs({ selectedProductId, quantity, marginRates, proposedUnitPrice }) {
-  if (!selectedProductId) return "Choose a product before running this pricing workflow."
-  if (Number(quantity) <= 0) return "Quantity must be greater than 0."
+  if (!selectedProductId) return "상품을 선택한 뒤 가격 작업을 실행하세요."
+  if (Number(quantity) <= 0) return "수량은 0보다 커야 합니다."
   if (proposedUnitPrice !== undefined && Number(proposedUnitPrice) <= 0) {
-    return "Proposed unit price must be greater than 0."
+    return "제안 단가는 0보다 커야 합니다."
   }
   const rates = parseMarginRates(marginRates || "")
   if (marginRates && (!rates?.length || rates.some((rate) => rate < 0 || rate >= 1))) {
-    return "Margin rates must be numbers greater than or equal to 0 and less than 1."
+    return "마진율은 0 이상 1 미만의 숫자로 입력하세요."
   }
   return ""
 }
@@ -130,7 +130,7 @@ function validateJson(value) {
     JSON.parse(value)
     return ""
   } catch {
-    return "Input JSON must be valid JSON before creating a workflow job."
+    return "작업 입력값은 올바른 JSON이어야 합니다."
   }
 }
 
@@ -241,6 +241,97 @@ const CUSTOMER_QUOTE_FIELD_LABELS = {
   request_note: "요청 메모",
 }
 
+const DISPLAY_LABELS = {
+  product_id: "상품 ID",
+  product_name: "상품명",
+  customer_name: "고객명",
+  customer_email: "이메일",
+  customer_company: "회사명",
+  request_note: "요청 메모",
+  quantity: "수량",
+  unit_price: "단가",
+  proposed_unit_price: "제안 단가",
+  candidate_price: "가격안",
+  candidate_prices: "추천 가격안",
+  material_cost: "재료비",
+  labor_cost: "인건비",
+  overhead_cost: "간접비",
+  target_margin_rate: "목표 마진율",
+  margin_rate: "마진율",
+  approval_request: "승인 요청",
+  approval_status: "승인 상태",
+  created_at: "생성일",
+  updated_at: "수정일",
+  status: "상태",
+  reason: "사유",
+  notes: "메모",
+  result: "결과",
+  score: "점수",
+  risk: "위험도",
+  warning: "경고",
+  error: "오류",
+}
+
+const STATUS_LABELS = {
+  pending: "대기",
+  reviewing: "검토 중",
+  approved: "승인됨",
+  rejected: "반려됨",
+  completed: "완료",
+  failed: "실패",
+  success: "성공",
+  warning: "주의",
+  error: "오류",
+  ready: "준비 완료",
+  ok: "정상",
+  connected: "연결됨",
+  configured: "설정됨",
+  available: "확인됨",
+  active: "활성",
+  inactive: "비활성",
+  draft: "임시 저장",
+  passed: "통과",
+  low: "낮음",
+  medium: "보통",
+  high: "높음",
+  new: "신규",
+  quoted: "견적 완료",
+  closed: "종료",
+  conservative: "보수적",
+  balanced: "균형",
+  aggressive: "공격적",
+}
+
+const JOB_TYPE_LABELS = {
+  pricing_simulation: "가격 시뮬레이션",
+  price_validation_batch: "가격 평가 일괄 작업",
+  quote_request_review: "견적 요청 검토",
+}
+
+const REPORT_TYPE_LABELS = {
+  dashboard_summary: "운영 요약 리포트",
+  approval_request: "승인 요청 리포트",
+  pricing_simulation: "가격 시뮬레이션 리포트",
+  price_validation: "가격 평가 리포트",
+  quote_preview: "견적 미리보기 리포트",
+  scenario_comparison: "시나리오 비교 리포트",
+}
+
+const CSV_ENTITY_LABELS = {
+  products: "상품",
+  "cost-profiles": "원가 프로필",
+  "competitor-prices": "경쟁사 가격",
+}
+
+function displayLabel(value) {
+  return DISPLAY_LABELS[value] || value
+}
+
+function displayStatus(value) {
+  if (value === null || value === undefined || value === "") return "-"
+  return STATUS_LABELS[String(value)] || value
+}
+
 function App() {
   const [health, setHealth] = useState(null)
   const [readiness, setReadiness] = useState(null)
@@ -259,7 +350,7 @@ function App() {
   const [marginRates, setMarginRates] = useState("0.25,0.35,0.45")
   const [includeCompetitors, setIncludeCompetitors] = useState(true)
   const [approvalRequests, setApprovalRequests] = useState([])
-  const [reviewerName, setReviewerName] = useState("Demo Manager")
+  const [reviewerName, setReviewerName] = useState("데모 매니저")
   const [reviewNote, setReviewNote] = useState("")
   const [results, setResults] = useState(emptyResult)
   const [loading, setLoading] = useState("")
@@ -280,7 +371,7 @@ function App() {
   const [activeHtmlReport, setActiveHtmlReport] = useState(null)
   const [htmlReportForm, setHtmlReportForm] = useState({
     report_type: "dashboard_summary",
-    title: "Current KPI dashboard report",
+    title: "현재 운영 리포트",
     source_id: "",
   })
   const [csvFiles, setCsvFiles] = useState({
@@ -290,42 +381,42 @@ function App() {
   })
   const [csvImportResult, setCsvImportResult] = useState(null)
   const [simulationInputs, setSimulationInputs] = useState({
-    name: "Demo simulation for bulk order",
+    name: "대량 주문 시뮬레이션",
     quantities: "1,10,50",
     margin_rates: "0.25,0.35,0.45",
-    notes: "Compare small and bulk order scenarios.",
+    notes: "소량과 대량 주문 조건을 비교합니다.",
   })
   const [pricingSimulations, setPricingSimulations] = useState([])
   const [activeSimulation, setActiveSimulation] = useState(null)
   const [strategyTemplates, setStrategyTemplates] = useState([])
   const [selectedStrategyTemplateId, setSelectedStrategyTemplateId] = useState("")
   const [strategyTemplateForm, setStrategyTemplateForm] = useState({
-    name: "Standard Margin Strategy",
+    name: "기본 마진 전략",
     strategy_code: "standard_margin_custom",
-    description: "Balanced margin strategy for normal quote operations.",
+    description: "일반 견적 운영에 맞춘 균형형 마진 전략입니다.",
     margin_rates: "0.25,0.35,0.45",
     default_quantities: "1,10,50",
     include_competitor_context_default: true,
     risk_preference: "balanced",
     active: true,
-    notes: "Human-defined deterministic strategy template.",
+    notes: "사람이 정한 기준으로 사용하는 전략 템플릿입니다.",
   })
   const [strategyTemplateCandidates, setStrategyTemplateCandidates] = useState(null)
   const [strategyTemplateSimulation, setStrategyTemplateSimulation] = useState(null)
   const [scenarioComparisons, setScenarioComparisons] = useState([])
   const [activeScenarioComparison, setActiveScenarioComparison] = useState(null)
   const [scenarioComparisonForm, setScenarioComparisonForm] = useState({
-    name: "Bulk order pricing comparison",
-    description: "Compare conservative, standard, and premium pricing.",
-    scenarios: "Conservative,50,0.25\nStandard,50,0.35\nPremium,50,0.45",
+    name: "대량 주문 가격 비교",
+    description: "보수형, 표준형, 프리미엄 가격안을 비교합니다.",
+    scenarios: "보수형,50,0.25\n표준형,50,0.35\n프리미엄,50,0.45",
     include_competitor_context: true,
   })
   const [customerQuoteForm, setCustomerQuoteForm] = useState({
-    customer_name: "Demo Customer",
+    customer_name: "데모 고객",
     customer_email: "customer@example.com",
-    customer_company: "Demo Company",
+    customer_company: "데모 회사",
     quantity: 25,
-    request_note: "Please provide a quote for 25 units.",
+    request_note: "25개 기준 견적을 요청합니다.",
   })
   const [customerQuoteRequests, setCustomerQuoteRequests] = useState([])
   const [quoteRequestStatus, setQuoteRequestStatus] = useState("reviewing")
@@ -335,16 +426,16 @@ function App() {
   const [priceTableSummary, setPriceTableSummary] = useState(null)
   const [priceTableSnapshots, setPriceTableSnapshots] = useState([])
   const [snapshotForm, setSnapshotForm] = useState({
-    label: "Before price review",
-    note: "Snapshot before deterministic comparison.",
+    label: "가격 검토 전",
+    note: "가격 비교 전 기준 스냅샷입니다.",
   })
   const [baseSnapshotId, setBaseSnapshotId] = useState("")
   const [targetSnapshotId, setTargetSnapshotId] = useState("")
   const [priceTableComparison, setPriceTableComparison] = useState(null)
   const [workflowJobForm, setWorkflowJobForm] = useState({
     job_type: "pricing_simulation",
-    title: "Bulk pricing simulation",
-    description: "Compare 1, 10, and 50 unit pricing.",
+    title: "대량 가격 시뮬레이션",
+    description: "1개, 10개, 50개 기준 가격을 비교합니다.",
     input: '{\n  "product_id": 1,\n  "quantities": [1, 10, 50],\n  "margin_rates": [0.25, 0.35, 0.45],\n  "include_competitor_context": true\n}',
   })
   const [workflowJobs, setWorkflowJobs] = useState([])
@@ -422,7 +513,7 @@ function App() {
   }
 
   async function loadInitialData() {
-    await runAction("Loading initial data", async () => {
+    await runAction("초기 데이터를 불러오는 중", async () => {
       const [healthData, readinessData, statusData, productData, approvalData, demoUserData, priceTableData] = await Promise.all([
         getHealth(),
         getHealthReady(),
@@ -472,7 +563,7 @@ function App() {
 
   async function handleLogin(event) {
     event.preventDefault()
-    await runAction("Logging in", async () => completeLogin(loginForm))
+    await runAction("로그인 중", async () => completeLogin(loginForm))
   }
 
   function handleLogout() {
@@ -510,7 +601,7 @@ function App() {
   }
 
   async function handleSeedDemoData() {
-    await runAction("Seeding demo data", async () => {
+    await runAction("데모 데이터 준비 중", async () => {
       const result = await seedDemoData()
       setDemoSeedResult(result)
       setProducts(await getProducts())
@@ -523,7 +614,7 @@ function App() {
   }
 
   async function handleCreateFullDemoScenario() {
-    await runAction("Creating full demo scenario", async () => {
+    await runAction("데모 흐름 생성 중", async () => {
       const result = await createFullDemoScenario()
       setDemoScenario(result)
       setDemoStatus(await getDemoStatus())
@@ -536,7 +627,7 @@ function App() {
   }
 
   async function handleResetDemoData() {
-    await runAction("Resetting known demo data", async () => {
+    await runAction("데모 데이터 초기화 중", async () => {
       const result = await resetDemoData()
       setDemoResetResult(result)
       setDemoStatus(await getDemoStatus())
@@ -574,9 +665,9 @@ function App() {
 
   async function handleCreateHtmlReport() {
     if (!htmlReportForm.title.trim()) {
-      if (stopForFormError("Report title cannot be empty.")) return
+      if (stopForFormError("리포트 제목을 입력하세요.")) return
     }
-    await runAction("Creating HTML report", async () => {
+    await runAction("리포트 생성 중", async () => {
       const payload = {
         report_type: htmlReportForm.report_type,
         title: htmlReportForm.title,
@@ -592,7 +683,7 @@ function App() {
   }
 
   async function handleViewHtmlReport(id) {
-    await runAction("Loading HTML report", async () => {
+    await runAction("리포트를 불러오는 중", async () => {
       const report = await getHtmlReport(id)
       setActiveHtmlReport(report)
       await refreshAuditLogs()
@@ -600,7 +691,7 @@ function App() {
   }
 
   async function handleOpenHtmlReportContent(id) {
-    await runAction("Opening HTML report", async () => {
+    await runAction("리포트를 여는 중", async () => {
       const content = await getHtmlReportContent(id)
       const url = window.URL.createObjectURL(new Blob([content], { type: "text/html" }))
       window.open(url, "_blank", "noopener,noreferrer")
@@ -611,10 +702,10 @@ function App() {
 
   async function handleCsvImport(entity) {
     if (!csvFiles[entity]) {
-      stopForFormError("Choose a CSV file before importing.")
+      stopForFormError("가져올 CSV 파일을 선택하세요.")
       return
     }
-    await runAction(`Importing ${entity} CSV`, async () => {
+    await runAction(`${CSV_ENTITY_LABELS[entity] || entity} CSV 가져오는 중`, async () => {
       const result = await importCsv(entity, csvFiles[entity])
       setCsvImportResult(result)
       await refreshAuditLogs()
@@ -622,7 +713,7 @@ function App() {
   }
 
   async function handleCsvExport(entity, filename) {
-    await runAction(`Exporting ${entity} CSV`, async () => {
+    await runAction(`${CSV_ENTITY_LABELS[entity] || entity} CSV 내보내는 중`, async () => {
       await downloadCsv(entity, filename)
       await refreshAuditLogs()
     })
@@ -646,12 +737,12 @@ function App() {
     const pricingError = validatePricingForm()
     if (pricingError && stopForFormError(pricingError)) return
     if (!simulationInputs.name.trim()) {
-      if (stopForFormError("Simulation name cannot be empty.")) return
+      if (stopForFormError("시뮬레이션 이름을 입력하세요.")) return
     }
     if (parseIntegerList(simulationInputs.quantities).some((item) => item <= 0)) {
-      if (stopForFormError("Simulation quantities must be greater than 0.")) return
+      if (stopForFormError("시뮬레이션 수량은 0보다 커야 합니다.")) return
     }
-    await runAction("Running pricing simulation", async () => {
+    await runAction("가격 시뮬레이션 실행 중", async () => {
       const data = await createPricingSimulation({
         name: simulationInputs.name,
         product_id: Number(selectedProductId),
@@ -682,9 +773,9 @@ function App() {
 
   async function handleCreateStrategyTemplate() {
     if (!strategyTemplateForm.name.trim()) {
-      if (stopForFormError("Strategy template name cannot be empty.")) return
+      if (stopForFormError("전략 템플릿 이름을 입력하세요.")) return
     }
-    await runAction("Creating strategy template", async () => {
+    await runAction("전략 템플릿 생성 중", async () => {
       const template = await createStrategyTemplate(strategyTemplatePayload())
       await refreshStrategyTemplates()
       setSelectedStrategyTemplateId(String(template.id))
@@ -694,9 +785,9 @@ function App() {
 
   async function handleUpdateStrategyTemplate() {
     if (!selectedStrategyTemplateId) {
-      if (stopForFormError("Choose a strategy template before updating.")) return
+      if (stopForFormError("수정할 전략 템플릿을 선택하세요.")) return
     }
-    await runAction("Updating strategy template", async () => {
+    await runAction("전략 템플릿 수정 중", async () => {
       const template = await updateStrategyTemplate(selectedStrategyTemplateId, strategyTemplatePayload())
       await refreshStrategyTemplates()
       setSelectedStrategyTemplateId(String(template.id))
@@ -706,9 +797,9 @@ function App() {
 
   async function handleDisableStrategyTemplate() {
     if (!selectedStrategyTemplateId) {
-      if (stopForFormError("Choose a strategy template before disabling.")) return
+      if (stopForFormError("비활성화할 전략 템플릿을 선택하세요.")) return
     }
-    await runAction("Disabling strategy template", async () => {
+    await runAction("전략 템플릿 비활성화 중", async () => {
       await disableStrategyTemplate(selectedStrategyTemplateId)
       await refreshStrategyTemplates()
       await refreshAuditLogs()
@@ -719,9 +810,9 @@ function App() {
     const pricingError = validatePricingForm()
     if (pricingError && stopForFormError(pricingError)) return
     if (!selectedStrategyTemplateId) {
-      if (stopForFormError("Choose a strategy template before applying it.")) return
+      if (stopForFormError("적용할 전략 템플릿을 선택하세요.")) return
     }
-    await runAction("Generating strategy template candidates", async () => {
+    await runAction("전략 기반 가격안 생성 중", async () => {
       const data = await createStrategyTemplateCandidates(selectedStrategyTemplateId, {
         product_id: Number(selectedProductId),
         quantity: Number(quantity),
@@ -735,12 +826,12 @@ function App() {
 
   async function handleStrategyTemplateSimulation() {
     if (!selectedProductId) {
-      if (stopForFormError("Choose a product before running a template simulation.")) return
+      if (stopForFormError("상품을 선택한 뒤 템플릿 시뮬레이션을 실행하세요.")) return
     }
     if (!selectedStrategyTemplateId) {
-      if (stopForFormError("Choose a strategy template before running a simulation.")) return
+      if (stopForFormError("시뮬레이션에 사용할 전략 템플릿을 선택하세요.")) return
     }
-    await runAction("Running strategy template simulation", async () => {
+    await runAction("전략 템플릿 시뮬레이션 실행 중", async () => {
       const data = await createStrategyTemplateSimulation(selectedStrategyTemplateId, {
         name: `${strategyTemplateForm.name} simulation`,
         product_id: Number(selectedProductId),
@@ -762,7 +853,7 @@ function App() {
       .map((line, index) => {
         const [label, quantity, marginRate] = line.split(",").map((item) => item.trim())
         return {
-          label: label || `Scenario ${index + 1}`,
+          label: label || `시나리오 ${index + 1}`,
           quantity: Number(quantity),
           margin_rate: Number(marginRate),
         }
@@ -778,16 +869,16 @@ function App() {
     const pricingError = validatePricingForm()
     if (pricingError && stopForFormError(pricingError)) return
     if (!scenarioComparisonForm.name.trim()) {
-      if (stopForFormError("Scenario comparison name cannot be empty.")) return
+      if (stopForFormError("시나리오 비교 이름을 입력하세요.")) return
     }
     const scenarioRows = parseScenarioRows(scenarioComparisonForm.scenarios)
     if (!scenarioRows.length) {
-      if (stopForFormError("Add at least one scenario row before creating a comparison.")) return
+      if (stopForFormError("비교할 시나리오를 하나 이상 입력하세요.")) return
     }
     if (scenarioRows.some((row) => row.quantity <= 0 || row.margin_rate < 0 || row.margin_rate >= 1 || Number.isNaN(row.quantity) || Number.isNaN(row.margin_rate))) {
-      if (stopForFormError("Each scenario needs a quantity greater than 0 and a margin rate between 0 and 1.")) return
+      if (stopForFormError("각 시나리오는 0보다 큰 수량과 0 이상 1 미만의 마진율이 필요합니다.")) return
     }
-    await runAction("Creating scenario comparison", async () => {
+    await runAction("시나리오 비교 생성 중", async () => {
       const comparison = await createScenarioComparison({
         name: scenarioComparisonForm.name,
         description: scenarioComparisonForm.description,
@@ -802,7 +893,7 @@ function App() {
   }
 
   async function handleViewScenarioComparison(id) {
-    await runAction("Loading scenario comparison", async () => {
+    await runAction("시나리오 비교 불러오는 중", async () => {
       const comparison = await getScenarioComparison(id)
       setActiveScenarioComparison(comparison)
       await refreshAuditLogs()
@@ -816,18 +907,18 @@ function App() {
 
   async function handleCreateCustomerQuoteRequest() {
     if (!selectedProductId) {
-      if (stopForFormError("Choose a product before submitting a quote request.")) return
+      if (stopForFormError("상품을 선택한 뒤 견적 요청을 등록하세요.")) return
     }
     if (!customerQuoteForm.customer_name.trim()) {
-      if (stopForFormError("Customer name cannot be empty.")) return
+      if (stopForFormError("고객명을 입력하세요.")) return
     }
     if (!isValidEmail(customerQuoteForm.customer_email)) {
-      if (stopForFormError("Customer email should look like an email address.")) return
+      if (stopForFormError("이메일 형식으로 입력하세요.")) return
     }
     if (Number(customerQuoteForm.quantity) <= 0) {
-      if (stopForFormError("Customer quote quantity must be greater than 0.")) return
+      if (stopForFormError("견적 수량은 0보다 커야 합니다.")) return
     }
-    await runAction("Creating customer quote request", async () => {
+    await runAction("고객 견적 요청 등록 중", async () => {
       await createCustomerQuoteRequest({
         ...customerQuoteForm,
         product_id: Number(selectedProductId),
@@ -839,11 +930,11 @@ function App() {
   }
 
   async function handleCustomerQuoteStatus(id) {
-    await runAction("Updating customer quote request status", async () => {
+    await runAction("고객 견적 상태 변경 중", async () => {
       await updateCustomerQuoteRequestStatus(id, {
         status: quoteRequestStatus,
         assigned_to_username: currentUser?.username || "manager",
-        internal_note: "Reviewed in frontend MVP.",
+        internal_note: "프론트엔드에서 검토했습니다.",
       })
       await refreshCustomerQuoteRequests()
       await refreshAuditLogs()
@@ -851,7 +942,7 @@ function App() {
   }
 
   async function handleCustomerQuotePreview(id) {
-    await runAction("Creating quote preview from request", async () => {
+    await runAction("요청 기반 견적 미리보기 생성 중", async () => {
       const data = await createCustomerQuotePreview(id)
       setResults((current) => ({ ...current, quotePreview: data }))
       await refreshAuditLogs()
@@ -859,7 +950,7 @@ function App() {
   }
 
   async function handleCustomerQuoteCandidates(id) {
-    await runAction("Generating candidate prices from request", async () => {
+    await runAction("요청 기반 가격안 생성 중", async () => {
       const data = await createCustomerQuoteCandidates(id, {
         margin_rates: parseMarginRates(marginRates),
         include_competitor_context: includeCompetitors,
@@ -871,9 +962,9 @@ function App() {
 
   async function handlePriceTableSummary() {
     if (!selectedPriceTableId) {
-      if (stopForFormError("Choose a price table before loading its summary.")) return
+      if (stopForFormError("요약을 볼 가격표를 선택하세요.")) return
     }
-    await runAction("Loading price table summary", async () => {
+    await runAction("가격표 요약 불러오는 중", async () => {
       const summary = await getPriceTableSummary(selectedPriceTableId)
       setPriceTableSummary(summary)
       setPriceTableSnapshots(await getPriceTableSnapshots(selectedPriceTableId))
@@ -883,12 +974,12 @@ function App() {
 
   async function handleCreateSnapshot() {
     if (!selectedPriceTableId) {
-      if (stopForFormError("Choose a price table before creating a snapshot.")) return
+      if (stopForFormError("스냅샷을 만들 가격표를 선택하세요.")) return
     }
     if (!snapshotForm.label.trim()) {
-      if (stopForFormError("Snapshot label cannot be empty.")) return
+      if (stopForFormError("스냅샷 이름을 입력하세요.")) return
     }
-    await runAction("Creating price table snapshot", async () => {
+    await runAction("가격표 스냅샷 생성 중", async () => {
       await createPriceTableSnapshot(selectedPriceTableId, snapshotForm)
       const snapshots = await getPriceTableSnapshots(selectedPriceTableId)
       setPriceTableSnapshots(snapshots)
@@ -902,9 +993,9 @@ function App() {
 
   async function handleComparePriceTables() {
     if (!selectedPriceTableId || !targetPriceTableId) {
-      if (stopForFormError("Choose both base and target price tables before comparing.")) return
+      if (stopForFormError("비교할 기준 가격표와 대상 가격표를 선택하세요.")) return
     }
-    await runAction("Comparing price tables", async () => {
+    await runAction("가격표 비교 중", async () => {
       const comparison = await comparePriceTables({
         base_price_table_id: Number(selectedPriceTableId),
         target_price_table_id: Number(targetPriceTableId),
@@ -916,9 +1007,9 @@ function App() {
 
   async function handleCompareSnapshots() {
     if (!baseSnapshotId || !targetSnapshotId) {
-      if (stopForFormError("Choose both snapshots before comparing.")) return
+      if (stopForFormError("비교할 기준 스냅샷과 대상 스냅샷을 선택하세요.")) return
     }
-    await runAction("Comparing price table snapshots", async () => {
+    await runAction("가격표 스냅샷 비교 중", async () => {
       const comparison = await comparePriceTableSnapshots({
         base_snapshot_id: Number(baseSnapshotId),
         target_snapshot_id: Number(targetSnapshotId),
@@ -935,11 +1026,11 @@ function App() {
 
   async function handleCreateWorkflowJob() {
     if (!workflowJobForm.title.trim()) {
-      if (stopForFormError("Workflow job title cannot be empty.")) return
+      if (stopForFormError("작업 제목을 입력하세요.")) return
     }
     const jsonError = validateJson(workflowJobForm.input)
     if (jsonError && stopForFormError(jsonError)) return
-    await runAction("Creating workflow job", async () => {
+    await runAction("작업 생성 중", async () => {
       const job = await createWorkflowJob({
         job_type: workflowJobForm.job_type,
         title: workflowJobForm.title,
@@ -953,7 +1044,7 @@ function App() {
   }
 
   async function handleRunWorkflowJob(id) {
-    await runAction("Running workflow job", async () => {
+    await runAction("작업 실행 중", async () => {
       const job = await runWorkflowJob(id)
       setActiveWorkflowJob(job)
       await refreshWorkflowJobs()
@@ -962,7 +1053,7 @@ function App() {
   }
 
   async function handleCancelWorkflowJob(id) {
-    await runAction("Cancelling workflow job", async () => {
+    await runAction("작업 취소 중", async () => {
       const job = await cancelWorkflowJob(id)
       setActiveWorkflowJob(job)
       await refreshWorkflowJobs()
@@ -976,7 +1067,7 @@ function App() {
       password: `${username}-demo-password`,
     }
     setLoginForm(credentials)
-    await runAction("Logging in", async () => completeLogin(credentials))
+    await runAction("로그인 중", async () => completeLogin(credentials))
   }
 
   function basePayload() {
@@ -989,7 +1080,7 @@ function App() {
   async function handleQuotePreview() {
     const pricingError = validatePricingForm()
     if (pricingError && stopForFormError(pricingError)) return
-    await runAction("Creating quote preview", async () => {
+    await runAction("견적 미리보기 생성 중", async () => {
       const data = await createQuotePreview({
         ...basePayload(),
         material_cost: toNumber(optionalCosts.material_cost),
@@ -1006,7 +1097,7 @@ function App() {
   async function handleCandidates() {
     const pricingError = validatePricingForm()
     if (pricingError && stopForFormError(pricingError)) return
-    await runAction("Generating candidate prices", async () => {
+    await runAction("가격안 생성 중", async () => {
       const data = await createCandidatePrices({
         ...basePayload(),
         margin_rates: parseMarginRates(marginRates),
@@ -1023,7 +1114,7 @@ function App() {
   async function handleValidation() {
     const pricingError = validatePricingForm({ requirePrice: true })
     if (pricingError && stopForFormError(pricingError)) return
-    await runAction("Validating proposed price", async () => {
+    await runAction("제안 가격 평가 중", async () => {
       const data = await validatePrice({
         ...basePayload(),
         candidate_unit_price: Number(proposedUnitPrice),
@@ -1037,7 +1128,7 @@ function App() {
   async function handleCreateApproval() {
     const pricingError = validatePricingForm({ requirePrice: true })
     if (pricingError && stopForFormError(pricingError)) return
-    await runAction("Creating approval request", async () => {
+    await runAction("승인 요청 생성 중", async () => {
       await createApprovalRequest({
         ...basePayload(),
         proposed_unit_price: Number(proposedUnitPrice),
@@ -1049,7 +1140,7 @@ function App() {
   }
 
   async function handleReviewApproval(id, decision) {
-    await runAction(`Reviewing approval request`, async () => {
+    await runAction("승인 요청 검토 중", async () => {
       const payload = {
         reviewer_name: reviewerName,
         review_note:
@@ -1069,7 +1160,7 @@ function App() {
   async function handleExplanation() {
     const pricingError = validatePricingForm({ requirePrice: true })
     if (pricingError && stopForFormError(pricingError)) return
-    await runAction("Generating explanation", async () => {
+    await runAction("설명 생성 중", async () => {
       const validation = results.validation
       const quote = results.quotePreview
       const data = await createQuoteExplanation({
@@ -1226,8 +1317,8 @@ function App() {
           <section className="public-hero">
             <div className="public-hero-copy">
               <p className="public-eyebrow">QuoteOps AI</p>
-              <h1>견적 가격 운영의 시작점에서</h1>
-              <p className="public-hero-text">견적 생성, 가격 평가, 승인, 리포트까지 한 흐름으로 관리하세요.</p>
+              <h1>견적부터 승인까지 한 흐름으로</h1>
+              <p className="public-hero-text">견적 생성, 가격 평가, 승인, 리포트까지 한 번에 관리하세요.</p>
               <div className="public-cta-row">
                 <button className="button button-primary public-cta" type="button" onClick={() => setEntryPanel("login")}>서비스 시작하기</button>
                 <button className="button button-secondary public-cta" type="button" onClick={() => setEntryPanel("demo")}>데모 체험하기</button>
@@ -1280,8 +1371,8 @@ function App() {
           <section className="public-safety-card">
             <span className="badge badge-warning">자동 반영 없음</span>
             <div>
-              <h2>승인 전 자동 반영 없음</h2>
-              <p>가격 계산과 평가를 지원하지만, 승인 없이 가격을 확정하거나 전송하지 않습니다.</p>
+              <h2>최종 가격은 승인 후 확정</h2>
+              <p>계산과 평가는 돕고, 결정은 사람이 합니다.</p>
             </div>
           </section>
 
@@ -1318,7 +1409,7 @@ function App() {
         )}
         {!errorInfo && error && (
           <ErrorState
-            title="Could not complete request"
+            title="요청을 처리하지 못했습니다."
             message={error}
             onRetry={lastAction}
           />
@@ -1345,7 +1436,7 @@ function App() {
             <div className="overview-hero card">
               <div className="overview-hero-copy">
                 <span className="overview-eyebrow">QuoteOps AI</span>
-                <h2>견적 가격 운영의 시작점에서</h2>
+                <h2>견적부터 승인까지 한 흐름으로</h2>
                 <p>계산, 원가, 승인, 리포트까지 한 흐름으로</p>
                 <div className="overview-actions">
                   <button className="button button-primary" type="button" onClick={() => setActiveSection("quote-operations")}>
@@ -1356,7 +1447,7 @@ function App() {
                   </button>
                 </div>
               </div>
-              <div className="overview-hero-status" aria-label="Overview system status">
+              <div className="overview-hero-status" aria-label="운영 상태 요약">
                 {overviewStatusItems.map((item) => (
                   <div className="overview-status-item" key={item.label}>
                     <span>{item.label}</span>
@@ -1449,8 +1540,8 @@ function App() {
             {backendUnavailable && (
               <div className="mt-4">
                 <ErrorState
-                  title="Backend is not reachable"
-                  message={`Start the backend locally or check the deployed API URL: ${safeApiBaseUrl}.`}
+                  title="백엔드에 연결할 수 없습니다."
+                  message={`로컬 백엔드 실행 상태 또는 배포 API URL을 확인하세요: ${safeApiBaseUrl}.`}
                   onRetry={loadInitialData}
                 />
               </div>
@@ -1458,9 +1549,9 @@ function App() {
             {sectionNeedsSignIn && (
               <div className="mt-4">
                 <EmptyState
-                  title="Sign in to use this section"
-                  message="You need to sign in with a role that can access this section."
-                  action="Use a local demo account or your configured user credentials."
+                  title="로그인이 필요합니다."
+                  message="이 섹션에 접근할 수 있는 역할로 로그인하세요."
+                  action="로컬 데모 계정 또는 설정된 사용자 계정을 사용하세요."
                 />
               </div>
             )}
@@ -1500,8 +1591,8 @@ function App() {
             <p className="text-sm text-slate-500">포트폴리오 데모용 계정입니다.</p>
           </Panel>
 
-          <section className="status-grid grid gap-4 lg:grid-cols-4" aria-label="System Status">
-            <h2 className="sr-only">System Status</h2>
+          <section className="status-grid grid gap-4 lg:grid-cols-4" aria-label="시스템 상태">
+            <h2 className="sr-only">시스템 상태</h2>
             <StatusCard label="서비스 정상" value={health?.status === "ok" ? "정상" : health?.status || "-"} />
             <StatusCard label="DB 연결 정상" value={systemStatus?.database?.connection_ok || readiness?.status === "ready" ? "정상" : "확인"} />
             <StatusCard label="OpenAPI 확인" value={systemStatus?.features?.openapi_available ? "확인" : "대기"} />
@@ -1566,9 +1657,9 @@ function App() {
                 <table>
                   <thead>
                     <tr>
-                      <th>Recent action</th>
-                      <th>Actor</th>
-                      <th>Created</th>
+                      <th>최근 작업</th>
+                      <th>작업자</th>
+                      <th>생성일</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1600,12 +1691,12 @@ function App() {
                 {dashboardInsights.insights.map((insight) => (
                   <div className="rounded-md border border-slate-200 bg-slate-50 p-4" key={`${insight.category}-${insight.title}`}>
                     <div className="mb-2 flex flex-wrap gap-2">
-                      <Badge>{insight.severity}</Badge>
+                      <Badge>{displayStatus(insight.severity)}</Badge>
                       <Badge>{insight.category}</Badge>
                     </div>
                     <p className="font-semibold">{insight.title}</p>
                     <p className="mt-1 text-sm text-slate-600">{insight.message}</p>
-                    <p className="mt-3 text-sm font-semibold text-slate-700">Recommended action</p>
+                    <p className="mt-3 text-sm font-semibold text-slate-700">권장 작업</p>
                     <p className="text-sm text-slate-600">{insight.recommended_action}</p>
                     <p className="mt-3 text-xs text-slate-500">{insight.decision_boundary}</p>
                   </div>
@@ -1665,8 +1756,8 @@ function App() {
                     <table>
                       <thead>
                         <tr>
-                          <th>Step</th>
-                          <th>Title</th>
+                          <th>단계</th>
+                          <th>제목</th>
                           <th>API</th>
                         </tr>
                       </thead>
@@ -1681,8 +1772,8 @@ function App() {
                       </tbody>
                     </table>
                   </div>
-                  <Notes title="Decision boundaries" notes={demoScenario.decision_boundaries} />
-                  <Notes title="Scenario notes" notes={demoScenario.demo_notes} />
+                  <Notes title="결정 기준" notes={demoScenario.decision_boundaries} />
+                  <Notes title="시나리오 메모" notes={demoScenario.demo_notes} />
                 </div>
               )}
 
@@ -1736,7 +1827,7 @@ function App() {
                   <span>리포트 유형</span>
                   <select value={htmlReportForm.report_type} onChange={(event) => setHtmlReportForm((current) => ({ ...current, report_type: event.target.value }))}>
                     {["dashboard_summary", "approval_request", "pricing_simulation", "scenario_comparison", "quote_preview", "price_validation"].map((type) => (
-                      <option key={type} value={type}>{type}</option>
+                      <option key={type} value={type}>{REPORT_TYPE_LABELS[type] || type}</option>
                     ))}
                   </select>
                 </label>
@@ -1761,9 +1852,9 @@ function App() {
               {activeHtmlReport && (
                 <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
                   <div className="mb-2 flex flex-wrap gap-2">
-                    <Badge>{activeHtmlReport.report_type}</Badge>
-                    <Badge>source: {activeHtmlReport.source_id || "none"}</Badge>
-                    <Badge>created by: {activeHtmlReport.created_by_username}</Badge>
+                    <Badge>{REPORT_TYPE_LABELS[activeHtmlReport.report_type] || activeHtmlReport.report_type}</Badge>
+                    <Badge>출처: {activeHtmlReport.source_id || "없음"}</Badge>
+                    <Badge>생성자: {activeHtmlReport.created_by_username}</Badge>
                   </div>
                   <p className="font-semibold">{activeHtmlReport.title}</p>
                   <p className="text-sm text-slate-600">{activeHtmlReport.summary_text}</p>
@@ -1775,10 +1866,10 @@ function App() {
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Type</th>
-                      <th>Title</th>
-                      <th>Source</th>
-                      <th>Action</th>
+                      <th>유형</th>
+                      <th>제목</th>
+                      <th>출처</th>
+                      <th>처리</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1788,7 +1879,7 @@ function App() {
                     {htmlReports.slice(0, 8).map((report) => (
                       <tr key={report.id}>
                         <td>{report.id}</td>
-                        <td>{report.report_type}</td>
+                        <td>{REPORT_TYPE_LABELS[report.report_type] || report.report_type}</td>
                         <td>{report.title}</td>
                         <td>{report.source_id || "-"}</td>
                         <td>
@@ -1894,8 +1985,8 @@ function App() {
               {results.validation && (
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-2">
-                    <Badge>status: {results.validation.validation_status}</Badge>
-                    <Badge>risk: {results.validation.risk_level}</Badge>
+                    <Badge>상태: {displayStatus(results.validation.validation_status)}</Badge>
+                    <Badge>위험도: {displayStatus(results.validation.risk_level)}</Badge>
                     <Badge>margin: {results.validation.estimated_margin_rate}</Badge>
                   </div>
                   <ul className="space-y-2">
@@ -1916,19 +2007,19 @@ function App() {
               <Panel title="시뮬레이션">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
-                    <span>Simulation name</span>
+                    <span>시뮬레이션 이름</span>
                     <input value={simulationInputs.name} onChange={(event) => setSimulationInputs((current) => ({ ...current, name: event.target.value }))} />
                   </label>
                   <label className="field">
-                    <span>Quantities</span>
+                    <span>수량</span>
                     <input value={simulationInputs.quantities} onChange={(event) => setSimulationInputs((current) => ({ ...current, quantities: event.target.value }))} />
                   </label>
                   <label className="field">
-                    <span>Margin rates</span>
+                    <span>마진율</span>
                     <input value={simulationInputs.margin_rates} onChange={(event) => setSimulationInputs((current) => ({ ...current, margin_rates: event.target.value }))} />
                   </label>
                   <label className="field">
-                    <span>Notes</span>
+                    <span>메모</span>
                     <input value={simulationInputs.notes} onChange={(event) => setSimulationInputs((current) => ({ ...current, notes: event.target.value }))} />
                   </label>
                 </div>
@@ -1946,13 +2037,13 @@ function App() {
                       <table>
                         <thead>
                           <tr>
-                            <th>Qty</th>
-                            <th>Margin</th>
-                            <th>Unit price</th>
-                            <th>Total</th>
-                            <th>Profit</th>
-                            <th>Status</th>
-                            <th>Risk</th>
+                            <th>수량</th>
+                            <th>마진율</th>
+                            <th>단가</th>
+                            <th>합계</th>
+                            <th>이익</th>
+                            <th>상태</th>
+                            <th>위험도</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1963,8 +2054,8 @@ function App() {
                               <td>{formatMoney(scenario.unit_price)}</td>
                               <td>{formatMoney(scenario.total_price)}</td>
                               <td>{formatMoney(scenario.estimated_gross_profit)}</td>
-                              <td>{scenario.validation_status}</td>
-                              <td>{scenario.risk_level}</td>
+                              <td>{displayStatus(scenario.validation_status)}</td>
+                              <td>{displayStatus(scenario.risk_level)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1986,10 +2077,10 @@ function App() {
             )}
 
             {showSection("pricing-tools", "simulations") && currentUser && (
-              <Panel title="Strategy Templates">
+              <Panel title="전략 템플릿">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
-                    <span>Template</span>
+                    <span>템플릿</span>
                     <select value={selectedStrategyTemplateId} onChange={(event) => setSelectedStrategyTemplateId(event.target.value)}>
                       {strategyTemplates.map((template) => (
                         <option key={template.id} value={template.id}>
@@ -1999,35 +2090,35 @@ function App() {
                     </select>
                   </label>
                   <label className="field">
-                    <span>Name</span>
+                    <span>이름</span>
                     <input value={strategyTemplateForm.name} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, name: event.target.value }))} />
                   </label>
                   <label className="field">
-                    <span>Strategy code</span>
+                    <span>전략 코드</span>
                     <input value={strategyTemplateForm.strategy_code} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, strategy_code: event.target.value }))} />
                   </label>
                   <label className="field">
-                    <span>Risk preference</span>
+                    <span>위험 선호도</span>
                     <select value={strategyTemplateForm.risk_preference} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, risk_preference: event.target.value }))}>
                       {["conservative", "balanced", "aggressive"].map((risk) => (
-                        <option key={risk} value={risk}>{risk}</option>
+                        <option key={risk} value={risk}>{displayStatus(risk)}</option>
                       ))}
                     </select>
                   </label>
                   <label className="field">
-                    <span>Margin rates</span>
+                    <span>마진율</span>
                     <input value={strategyTemplateForm.margin_rates} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, margin_rates: event.target.value }))} />
                   </label>
                   <label className="field">
-                    <span>Default quantities</span>
+                    <span>기본 수량</span>
                     <input value={strategyTemplateForm.default_quantities} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, default_quantities: event.target.value }))} />
                   </label>
                   <label className="field">
-                    <span>Description</span>
+                    <span>설명</span>
                     <input value={strategyTemplateForm.description} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, description: event.target.value }))} />
                   </label>
                   <label className="field">
-                    <span>Notes</span>
+                    <span>메모</span>
                     <input value={strategyTemplateForm.notes} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, notes: event.target.value }))} />
                   </label>
                 </div>
@@ -2038,7 +2129,7 @@ function App() {
                       type="checkbox"
                       onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, include_competitor_context_default: event.target.checked }))}
                     />
-                    Include competitor context by default
+                    경쟁사 가격 맥락 기본 포함
                   </label>
                   <label className="inline-flex items-center gap-2 text-sm text-slate-600">
                     <input
@@ -2046,47 +2137,47 @@ function App() {
                       type="checkbox"
                       onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, active: event.target.checked }))}
                     />
-                    Active
+                    활성
                   </label>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {["admin", "manager"].includes(currentUser.role) && (
                     <>
-                      <button className="button compact" onClick={handleCreateStrategyTemplate}>Create template</button>
-                      <button className="button compact secondary" onClick={handleUpdateStrategyTemplate}>Update selected</button>
-                      <button className="button compact secondary" onClick={handleDisableStrategyTemplate}>Disable selected</button>
+                      <button className="button compact" onClick={handleCreateStrategyTemplate}>템플릿 생성</button>
+                      <button className="button compact secondary" onClick={handleUpdateStrategyTemplate}>선택 항목 수정</button>
+                      <button className="button compact secondary" onClick={handleDisableStrategyTemplate}>선택 항목 비활성화</button>
                     </>
                   )}
-                  <button className="button compact secondary" onClick={refreshStrategyTemplates}>Refresh templates</button>
-                  <button className="button compact" onClick={handleStrategyTemplateCandidates}>Apply to candidates</button>
-                  <button className="button compact" onClick={handleStrategyTemplateSimulation}>Apply to simulation</button>
+                  <button className="button compact secondary" onClick={refreshStrategyTemplates}>템플릿 새로고침</button>
+                  <button className="button compact" onClick={handleStrategyTemplateCandidates}>가격안에 적용</button>
+                  <button className="button compact" onClick={handleStrategyTemplateSimulation}>시뮬레이션에 적용</button>
                 </div>
                 <div className="overflow-x-auto">
                   <table>
                     <thead>
                       <tr>
                         <th>ID</th>
-                        <th>Name</th>
-                        <th>Code</th>
-                        <th>Risk</th>
-                        <th>Margins</th>
-                        <th>Quantities</th>
-                        <th>Active</th>
+                        <th>이름</th>
+                        <th>코드</th>
+                        <th>위험도</th>
+                        <th>마진율</th>
+                        <th>수량</th>
+                        <th>활성</th>
                       </tr>
                     </thead>
                     <tbody>
                       {strategyTemplates.length === 0 && (
-                        <tr><td colSpan="7"><EmptyState title="No strategy templates yet" message="Create a reusable deterministic strategy template before applying it to candidates or simulations." /></td></tr>
+                        <tr><td colSpan="7"><EmptyState title="아직 전략 템플릿이 없습니다." message="가격안이나 시뮬레이션에 적용할 템플릿을 먼저 만드세요." /></td></tr>
                       )}
                       {strategyTemplates.map((template) => (
                         <tr key={template.id}>
                           <td>{template.id}</td>
                           <td>{template.name}</td>
                           <td>{template.strategy_code}</td>
-                          <td>{template.risk_preference}</td>
+                          <td>{displayStatus(template.risk_preference)}</td>
                           <td>{template.margin_rates.join(", ")}</td>
                           <td>{template.default_quantities.join(", ")}</td>
-                          <td>{template.active ? "yes" : "no"}</td>
+                          <td>{template.active ? "예" : "아니오"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2095,17 +2186,17 @@ function App() {
                 {strategyTemplateCandidates && (
                   <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
                     <div className="mb-2 flex flex-wrap gap-2">
-                      <Badge>template candidates</Badge>
-                      <Badge>product: {strategyTemplateCandidates.product_name}</Badge>
-                      <Badge>quantity: {strategyTemplateCandidates.quantity}</Badge>
+                      <Badge>템플릿 가격안</Badge>
+                      <Badge>상품: {strategyTemplateCandidates.product_name}</Badge>
+                      <Badge>수량: {strategyTemplateCandidates.quantity}</Badge>
                     </div>
                     <div className="grid gap-3 md:grid-cols-3">
                       {strategyTemplateCandidates.candidates.map((candidate) => (
                         <div className="rounded-md bg-white p-3" key={candidate.strategy}>
                           <strong>{candidate.strategy}</strong>
-                          <p>Margin: {candidate.margin_rate}</p>
-                          <p>Unit: {formatMoney(candidate.unit_price)}</p>
-                          <p>Total: {formatMoney(candidate.total_price)}</p>
+                          <p>마진율: {candidate.margin_rate}</p>
+                          <p>단가: {formatMoney(candidate.unit_price)}</p>
+                          <p>합계: {formatMoney(candidate.total_price)}</p>
                         </div>
                       ))}
                     </div>
@@ -2115,8 +2206,8 @@ function App() {
                   <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
                     <div className="flex flex-wrap gap-2">
                       <Badge>{strategyTemplateSimulation.name}</Badge>
-                      <Badge>scenarios: {strategyTemplateSimulation.scenario_count}</Badge>
-                      <Badge>unit cost: {formatMoney(strategyTemplateSimulation.unit_cost)}</Badge>
+                      <Badge>시나리오: {strategyTemplateSimulation.scenario_count}</Badge>
+                      <Badge>단위 원가: {formatMoney(strategyTemplateSimulation.unit_cost)}</Badge>
                     </div>
                   </div>
                 )}
@@ -2127,16 +2218,16 @@ function App() {
               <Panel title="시나리오 비교">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
-                    <span>Comparison name</span>
+                    <span>비교 이름</span>
                     <input value={scenarioComparisonForm.name} onChange={(event) => setScenarioComparisonForm((current) => ({ ...current, name: event.target.value }))} />
                   </label>
                   <label className="field">
-                    <span>Description</span>
+                    <span>설명</span>
                     <input value={scenarioComparisonForm.description} onChange={(event) => setScenarioComparisonForm((current) => ({ ...current, description: event.target.value }))} />
                   </label>
                 </div>
                 <label className="field">
-                  <span>Scenarios</span>
+                  <span>시나리오</span>
                   <textarea rows="4" value={scenarioComparisonForm.scenarios} onChange={(event) => setScenarioComparisonForm((current) => ({ ...current, scenarios: event.target.value }))} />
                 </label>
                 <label className="checkbox">
@@ -2145,7 +2236,7 @@ function App() {
                     type="checkbox"
                     onChange={(event) => setScenarioComparisonForm((current) => ({ ...current, include_competitor_context: event.target.checked }))}
                   />
-                  Include competitor context
+                  경쟁사 가격 맥락 포함
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {["admin", "manager"].includes(currentUser.role) && (
@@ -2157,22 +2248,22 @@ function App() {
                   <div className="space-y-3">
                     <div className="flex flex-wrap gap-2">
                       <Badge>{activeScenarioComparison.name}</Badge>
-                      <Badge>highest margin: {activeScenarioComparison.summary.highest_margin_label}</Badge>
-                      <Badge>highest profit: {activeScenarioComparison.summary.highest_profit_label}</Badge>
-                      <Badge>lowest risk: {activeScenarioComparison.summary.lowest_risk_label}</Badge>
+                      <Badge>최고 마진: {activeScenarioComparison.summary.highest_margin_label}</Badge>
+                      <Badge>최고 이익: {activeScenarioComparison.summary.highest_profit_label}</Badge>
+                      <Badge>최저 위험: {activeScenarioComparison.summary.lowest_risk_label}</Badge>
                     </div>
                     <div className="table-wrap">
                       <table>
                         <thead>
                           <tr>
-                            <th>Label</th>
-                            <th>Qty</th>
-                            <th>Margin</th>
-                            <th>Unit price</th>
-                            <th>Total price</th>
-                            <th>Gross profit</th>
-                            <th>Status</th>
-                            <th>Risk</th>
+                            <th>라벨</th>
+                            <th>수량</th>
+                            <th>마진율</th>
+                            <th>단가</th>
+                            <th>총액</th>
+                            <th>예상 이익</th>
+                            <th>상태</th>
+                            <th>위험도</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2184,8 +2275,8 @@ function App() {
                               <td>{formatMoney(scenario.unit_price)}</td>
                               <td>{formatMoney(scenario.total_price)}</td>
                               <td>{formatMoney(scenario.estimated_gross_profit)}</td>
-                              <td>{scenario.validation_status}</td>
-                              <td>{scenario.risk_level}</td>
+                              <td>{displayStatus(scenario.validation_status)}</td>
+                              <td>{displayStatus(scenario.risk_level)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -2200,10 +2291,10 @@ function App() {
                     <thead>
                       <tr>
                         <th>ID</th>
-                        <th>Name</th>
-                        <th>Product</th>
-                        <th>Scenarios</th>
-                        <th>Action</th>
+                        <th>이름</th>
+                        <th>상품</th>
+                        <th>시나리오</th>
+                        <th>처리</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2226,10 +2317,10 @@ function App() {
             )}
 
             {showSection("pricing-tools", "simulations") && currentUser && (
-              <Panel title="Price Table History and Comparison">
+              <Panel title="가격표 이력과 비교">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
-                    <span>Base price table</span>
+                    <span>기준 가격표</span>
                     <select value={selectedPriceTableId} onChange={(event) => setSelectedPriceTableId(event.target.value)}>
                       {priceTables.map((table) => (
                         <option key={table.id} value={table.id}>{table.name}</option>
@@ -2237,7 +2328,7 @@ function App() {
                     </select>
                   </label>
                   <label className="field">
-                    <span>Target price table</span>
+                    <span>대상 가격표</span>
                     <select value={targetPriceTableId} onChange={(event) => setTargetPriceTableId(event.target.value)}>
                       {priceTables.map((table) => (
                         <option key={table.id} value={table.id}>{table.name}</option>
@@ -2245,33 +2336,33 @@ function App() {
                     </select>
                   </label>
                   <label className="field">
-                    <span>Snapshot label</span>
+                    <span>스냅샷 이름</span>
                     <input value={snapshotForm.label} onChange={(event) => setSnapshotForm((current) => ({ ...current, label: event.target.value }))} />
                   </label>
                   <label className="field">
-                    <span>Snapshot note</span>
+                    <span>스냅샷 메모</span>
                     <input value={snapshotForm.note} onChange={(event) => setSnapshotForm((current) => ({ ...current, note: event.target.value }))} />
                   </label>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button className="button compact" onClick={handlePriceTableSummary}>View summary</button>
+                  <button className="button compact" onClick={handlePriceTableSummary}>요약 보기</button>
                   {["admin", "manager"].includes(currentUser.role) && (
-                    <button className="button compact" onClick={handleCreateSnapshot}>Create snapshot</button>
+                    <button className="button compact" onClick={handleCreateSnapshot}>스냅샷 생성</button>
                   )}
-                  <button className="button compact secondary" onClick={handleComparePriceTables}>Compare tables</button>
+                  <button className="button compact secondary" onClick={handleComparePriceTables}>가격표 비교</button>
                 </div>
                 {priceTableSummary && (
                   <div className="grid gap-3 md:grid-cols-4">
-                    <StatusCard label="Items" value={priceTableSummary.item_count} />
-                    <StatusCard label="Average" value={formatMoney(priceTableSummary.average_price)} />
-                    <StatusCard label="Min" value={formatMoney(priceTableSummary.min_price)} />
-                    <StatusCard label="Max" value={formatMoney(priceTableSummary.max_price)} />
+                    <StatusCard label="항목 수" value={priceTableSummary.item_count} />
+                    <StatusCard label="평균" value={formatMoney(priceTableSummary.average_price)} />
+                    <StatusCard label="최소" value={formatMoney(priceTableSummary.min_price)} />
+                    <StatusCard label="최대" value={formatMoney(priceTableSummary.max_price)} />
                   </div>
                 )}
                 {priceTableSnapshots.length > 0 && (
                   <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
                     <label className="field">
-                      <span>Base snapshot</span>
+                      <span>기준 스냅샷</span>
                       <select value={baseSnapshotId} onChange={(event) => setBaseSnapshotId(event.target.value)}>
                         {priceTableSnapshots.map((snapshot) => (
                           <option key={snapshot.id} value={snapshot.id}>{snapshot.label}</option>
@@ -2279,14 +2370,14 @@ function App() {
                       </select>
                     </label>
                     <label className="field">
-                      <span>Target snapshot</span>
+                      <span>대상 스냅샷</span>
                       <select value={targetSnapshotId} onChange={(event) => setTargetSnapshotId(event.target.value)}>
                         {priceTableSnapshots.map((snapshot) => (
                           <option key={snapshot.id} value={snapshot.id}>{snapshot.label}</option>
                         ))}
                       </select>
                     </label>
-                    <button className="button compact secondary" onClick={handleCompareSnapshots}>Compare snapshots</button>
+                    <button className="button compact secondary" onClick={handleCompareSnapshots}>스냅샷 비교</button>
                   </div>
                 )}
                 {priceTableComparison && (
@@ -2294,14 +2385,14 @@ function App() {
                     <table>
                       <thead>
                         <tr>
-                          <th>Product</th>
+                          <th>상품</th>
                           <th>SKU</th>
-                          <th>Type</th>
-                          <th>Base</th>
-                          <th>Target</th>
-                          <th>Delta</th>
-                          <th>Delta rate</th>
-                          <th>Margin delta</th>
+                          <th>유형</th>
+                          <th>기준</th>
+                          <th>대상</th>
+                          <th>차이</th>
+                          <th>차이율</th>
+                          <th>마진 차이</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2364,9 +2455,9 @@ function App() {
                         <td>{request.id}</td>
                         <td>{request.product_name}</td>
                         <td>{formatMoney(request.proposed_unit_price)}</td>
-                        <td>{request.validation_status}</td>
-                        <td>{request.risk_level}</td>
-                        <td>{request.status}</td>
+                        <td>{displayStatus(request.validation_status)}</td>
+                        <td>{displayStatus(request.risk_level)}</td>
+                        <td>{displayStatus(request.status)}</td>
                         <td>
                           {request.status === "pending" ? (
                             <div className="flex gap-2">
@@ -2390,8 +2481,8 @@ function App() {
                 <div className="space-y-3">
                   <p className="rounded-md bg-slate-950 p-4 text-white">{results.explanation.explanation_summary}</p>
                   <Notes notes={results.explanation.explanation_bullets} />
-                  <Notes title="Decision boundaries" notes={results.explanation.decision_boundaries} />
-                  <Badge>source: {results.explanation.explanation_source}</Badge>
+                  <Notes title="결정 기준" notes={results.explanation.decision_boundaries} />
+                  <Badge>출처: {results.explanation.explanation_source}</Badge>
                 </div>
               )}
             </Panel>
@@ -2417,7 +2508,7 @@ function App() {
                     <span>상태 변경</span>
                     <select value={quoteRequestStatus} onChange={(event) => setQuoteRequestStatus(event.target.value)}>
                       {["new", "reviewing", "quoted", "closed"].map((status) => (
-                        <option key={status} value={status}>{status}</option>
+                        <option key={status} value={status}>{displayStatus(status)}</option>
                       ))}
                     </select>
                   </label>
@@ -2445,7 +2536,7 @@ function App() {
                           <td>{request.customer_name}</td>
                           <td>{request.product_name}</td>
                           <td>{request.quantity}</td>
-                          <td>{request.status}</td>
+                          <td>{displayStatus(request.status)}</td>
                           <td>
                             <div className="flex flex-wrap gap-2">
                               {["admin", "manager"].includes(currentUser.role) && (
@@ -2469,9 +2560,9 @@ function App() {
               <Panel title="데이터 관리">
                 <div className="grid gap-3 md:grid-cols-3">
                   {[
-                    ["products", "Products"],
-                    ["cost-profiles", "Cost profiles"],
-                    ["competitor-prices", "Competitor prices"],
+                    ["products", "상품"],
+                    ["cost-profiles", "원가 프로필"],
+                    ["competitor-prices", "경쟁사 가격"],
                   ].map(([entity, label]) => (
                     <div className="rounded-md border border-slate-200 bg-slate-50 p-3" key={entity}>
                       <label className="field">
@@ -2494,14 +2585,14 @@ function App() {
                 {csvImportResult && (
                   <div className="rounded-md border border-slate-200 bg-white p-3 text-sm">
                     <div className="flex flex-wrap gap-2">
-                      <Badge>{csvImportResult.entity_type}</Badge>
-                      <Badge>received: {csvImportResult.received_rows}</Badge>
-                      <Badge>created: {csvImportResult.created_rows}</Badge>
-                      <Badge>updated: {csvImportResult.updated_rows}</Badge>
-                      <Badge>failed: {csvImportResult.failed_rows}</Badge>
+                      <Badge>{CSV_ENTITY_LABELS[csvImportResult.entity_type] || csvImportResult.entity_type}</Badge>
+                      <Badge>수신: {csvImportResult.received_rows}</Badge>
+                      <Badge>생성: {csvImportResult.created_rows}</Badge>
+                      <Badge>수정: {csvImportResult.updated_rows}</Badge>
+                      <Badge>실패: {csvImportResult.failed_rows}</Badge>
                     </div>
                     <Notes notes={csvImportResult.notes} />
-                    <Notes title="Import errors" notes={csvImportResult.errors?.map((item) => `row ${item.row_number}: ${item.message}`)} />
+                    <Notes title="가져오기 오류" notes={csvImportResult.errors?.map((item) => `${item.row_number}행: ${item.message}`)} />
                   </div>
                 )}
               </Panel>
@@ -2511,24 +2602,24 @@ function App() {
               <Panel title="작업 상태">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
-                    <span>Job type</span>
+                    <span>작업 유형</span>
                     <select value={workflowJobForm.job_type} onChange={(event) => setWorkflowJobForm((current) => ({ ...current, job_type: event.target.value }))}>
                       {["pricing_simulation", "price_validation_batch", "quote_request_review"].map((jobType) => (
-                        <option key={jobType} value={jobType}>{jobType}</option>
+                        <option key={jobType} value={jobType}>{JOB_TYPE_LABELS[jobType]}</option>
                       ))}
                     </select>
                   </label>
                   <label className="field">
-                    <span>Title</span>
+                    <span>제목</span>
                     <input value={workflowJobForm.title} onChange={(event) => setWorkflowJobForm((current) => ({ ...current, title: event.target.value }))} />
                   </label>
                   <label className="field">
-                    <span>Description</span>
+                    <span>설명</span>
                     <input value={workflowJobForm.description} onChange={(event) => setWorkflowJobForm((current) => ({ ...current, description: event.target.value }))} />
                   </label>
                 </div>
                 <label className="field">
-                  <span>Input JSON</span>
+                  <span>입력 JSON</span>
                   <textarea rows="8" value={workflowJobForm.input} onChange={(event) => setWorkflowJobForm((current) => ({ ...current, input: event.target.value }))} />
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -2542,10 +2633,10 @@ function App() {
                     <thead>
                       <tr>
                         <th>ID</th>
-                        <th>Type</th>
-                        <th>Title</th>
-                        <th>Status</th>
-                        <th>Action</th>
+                        <th>유형</th>
+                        <th>제목</th>
+                        <th>상태</th>
+                        <th>처리</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2555,9 +2646,9 @@ function App() {
                       {workflowJobs.map((job) => (
                         <tr key={job.id}>
                           <td>{job.id}</td>
-                          <td>{job.job_type}</td>
+                          <td>{JOB_TYPE_LABELS[job.job_type] || job.job_type}</td>
                           <td>{job.title}</td>
-                          <td>{job.status}</td>
+                          <td>{displayStatus(job.status)}</td>
                           <td>
                             <div className="flex flex-wrap gap-2">
                               <button className="button compact secondary" onClick={() => setActiveWorkflowJob(job)}>보기</button>
@@ -2581,22 +2672,22 @@ function App() {
             )}
 
             {showSection("approvals", "admin-system") && currentUser && ["admin", "manager"].includes(currentUser.role) && (
-              <Panel title="Audit Logs">
-                <ActionButton onClick={() => refreshAuditLogs()}>Refresh audit logs</ActionButton>
+              <Panel title="감사 로그">
+                <ActionButton onClick={() => refreshAuditLogs()}>감사 로그 새로고침</ActionButton>
                 <div className="overflow-x-auto">
                   <table>
                     <thead>
                       <tr>
-                        <th>Action</th>
-                        <th>Actor</th>
-                        <th>Entity</th>
-                        <th>Summary</th>
-                        <th>Created</th>
+                        <th>작업</th>
+                        <th>사용자</th>
+                        <th>대상</th>
+                        <th>요약</th>
+                        <th>생성일</th>
                       </tr>
                     </thead>
                     <tbody>
                       {auditLogs.length === 0 && (
-                        <tr><td colSpan="5"><EmptyState title="No audit logs loaded" message="Refresh audit logs after running an authenticated workflow." /></td></tr>
+                        <tr><td colSpan="5"><EmptyState title="감사 로그가 없습니다." message="로그인 후 작업을 실행하고 감사 로그를 새로고침하세요." /></td></tr>
                       )}
                       {auditLogs.map((log) => (
                         <tr key={log.id}>
@@ -2702,10 +2793,10 @@ function StatusCard({ label, value }) {
   )
 }
 
-function LoadingState({ message = "Loading workspace data..." }) {
+function LoadingState({ message = "작업 데이터를 불러오는 중입니다..." }) {
   return (
     <div className="card mb-5 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">
-      <p className="font-semibold text-slate-800">Loading</p>
+      <p className="font-semibold text-slate-800">처리 중</p>
       <p className="mt-1">{message}</p>
     </div>
   )
@@ -2713,18 +2804,18 @@ function LoadingState({ message = "Loading workspace data..." }) {
 
 function RetryButton({ onRetry }) {
   if (!onRetry) return null
-  return <button className="button compact secondary" onClick={onRetry}>Retry</button>
+  return <button className="button compact secondary" onClick={onRetry}>다시 시도</button>
 }
 
-function ErrorState({ title = "Could not load data", message, status, onRetry }) {
+function ErrorState({ title = "데이터를 불러오지 못했습니다.", message, status, onRetry }) {
   return (
     <div className="error-state mb-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-semibold">{title}</p>
-          <p className="mt-1">{message || "Check whether the backend is running and try again."}</p>
-          {status && <p className="mt-1 text-xs text-red-600">Status: {status}</p>}
-          <p className="mt-2 text-xs text-red-600">Troubleshooting: refresh this section or verify the backend process is available.</p>
+          <p className="mt-1">{message || "백엔드 상태를 확인한 뒤 다시 시도하세요."}</p>
+          {status && <p className="mt-1 text-xs text-red-600">상태: {status}</p>}
+          <p className="mt-2 text-xs text-red-600">문제가 계속되면 이 섹션을 새로고침하거나 백엔드 실행 상태를 확인하세요.</p>
         </div>
         <RetryButton onRetry={onRetry} />
       </div>
@@ -2732,7 +2823,7 @@ function ErrorState({ title = "Could not load data", message, status, onRetry })
   )
 }
 
-function EmptyState({ title = "Nothing here yet", message, action }) {
+function EmptyState({ title = "아직 데이터가 없습니다.", message, action }) {
   return (
     <div className="empty-state rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
       <p className="font-semibold text-slate-800">{title}</p>
@@ -2746,7 +2837,7 @@ function FormErrorMessage({ message }) {
   if (!message) return null
   return (
     <div className="mb-5 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-      <p className="font-semibold">Check the form</p>
+      <p className="font-semibold">입력값을 확인하세요</p>
       <p className="mt-1">{message}</p>
     </div>
   )
@@ -2791,7 +2882,7 @@ function MetricGrid({ data, fields }) {
       <div className="grid gap-3 md:grid-cols-3">
         {fields.map((field) => (
           <div className="rounded-md bg-white p-3" key={field}>
-            <p className="text-xs text-slate-500">{field}</p>
+            <p className="text-xs text-slate-500">{displayLabel(field)}</p>
             <p className="font-semibold">{formatMoney(data[field])}</p>
           </div>
         ))}
@@ -2822,7 +2913,7 @@ function DashboardMetricTable({ title, rows }) {
   )
 }
 
-function Notes({ title = "Notes", notes }) {
+function Notes({ title = "메모", notes }) {
   if (!notes?.length) return null
   return (
     <div>
@@ -2838,9 +2929,9 @@ function CompetitorContext({ context }) {
   if (!context) return null
   return (
     <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
-      <p className="font-semibold">Competitor context: {context.available ? "available" : "none"}</p>
-      <p>count: {context.reference_price_count}</p>
-      <p>avg: {formatMoney(context.average_reference_price)}</p>
+      <p className="font-semibold">경쟁사 가격 맥락: {context.available ? "확인됨" : "없음"}</p>
+      <p>참고 가격 수: {context.reference_price_count}</p>
+      <p>평균: {formatMoney(context.average_reference_price)}</p>
     </div>
   )
 }

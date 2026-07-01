@@ -14,28 +14,28 @@ export function formatApiError(error) {
   const detail = error?.response?.data?.detail
   if (status === 401) {
     return {
-      title: "Sign in required",
-      message: "You need to sign in with a role that can access this section.",
+      title: "로그인이 필요합니다.",
+      message: "이 섹션에 접근할 수 있는 역할로 로그인하세요.",
       status,
     }
   }
   if (status === 403) {
     return {
-      title: "Role access required",
-      message: "Your current role cannot perform this action.",
+      title: "권한이 필요합니다.",
+      message: "현재 역할로는 이 작업을 실행할 수 없습니다.",
       status,
     }
   }
   if (!error?.response) {
     return {
-      title: "Backend is not reachable",
-      message: "Start the backend locally or check the configured API URL.",
+      title: "백엔드에 연결할 수 없습니다.",
+      message: "로컬 백엔드를 실행했는지 또는 API URL 설정을 확인하세요.",
       status: "network",
     }
   }
   return {
-    title: "Request failed",
-    message: typeof detail === "string" ? detail : "The backend could not complete this request. Check the inputs and try again.",
+    title: "요청을 처리하지 못했습니다.",
+    message: typeof detail === "string" ? detail : "입력값을 확인한 뒤 다시 시도하세요.",
     status,
   }
 }

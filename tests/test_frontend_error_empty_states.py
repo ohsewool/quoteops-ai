@@ -27,23 +27,23 @@ def test_frontend_contains_reusable_loading_error_empty_components():
 def test_frontend_contains_retry_and_backend_unavailable_copy():
     source = APP_SOURCE.read_text(encoding="utf-8")
 
-    assert "Retry" in source
-    assert "Backend is not reachable" in source
-    assert "Start the backend locally or check the deployed API URL" in source
+    assert "다시 시도" in source
+    assert "백엔드에 연결할 수 없습니다." in source
+    assert "로컬 백엔드 실행 상태 또는 배포 API URL을 확인하세요" in source
 
 
 def test_frontend_contains_friendly_empty_state_copy_for_major_sections():
     source = APP_SOURCE.read_text(encoding="utf-8")
 
     for text_options in [
-        ("No approval requests yet", "승인 대기 건이 없습니다."),
-        ("No scenario comparisons yet", "아직 실행한 시나리오가 없습니다."),
-        ("No HTML reports yet", "생성된 리포트가 없습니다."),
-        ("No customer quote requests yet", "들어온 요청이 없습니다."),
-        ("No workflow jobs yet", "시스템 운영 정보가 없습니다."),
-        ("No strategy templates yet",),
-        ("No audit logs loaded",),
-        ("No result yet", "아직 견적이 없습니다."),
+        ("승인 대기 건이 없습니다.",),
+        ("아직 실행한 시나리오가 없습니다.",),
+        ("생성된 리포트가 없습니다.",),
+        ("들어온 요청이 없습니다.",),
+        ("시스템 운영 정보가 없습니다.",),
+        ("아직 전략 템플릿이 없습니다.",),
+        ("감사 로그가 없습니다.",),
+        ("아직 견적이 없습니다.",),
     ]:
         assert any(text in source for text in text_options)
 
@@ -52,12 +52,12 @@ def test_frontend_contains_client_side_form_validation_copy():
     source = APP_SOURCE.read_text(encoding="utf-8")
 
     for text in [
-        "Choose a product",
-        "Quantity must be greater than 0",
-        "Margin rates must be numbers",
-        "Customer email should look like an email address",
-        "Input JSON must be valid JSON",
-        "title cannot be empty",
+        "상품을 선택한 뒤",
+        "수량은 0보다 커야 합니다.",
+        "마진율은 0 이상 1 미만",
+        "이메일 형식으로 입력하세요.",
+        "작업 입력값은 올바른 JSON이어야 합니다.",
+        "제목을 입력하세요.",
     ]:
         assert text in source
 
