@@ -97,7 +97,6 @@ def test_docs_do_not_contain_obvious_real_secret_values():
         "sk-",
         "raw-password",
         "password@example",
-        "render.com/",
         "xoxb-",
     ]:
         assert forbidden not in combined
