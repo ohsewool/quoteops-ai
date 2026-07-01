@@ -138,47 +138,74 @@ const NAV_SECTIONS = [
   {
     key: "overview",
     label: "홈",
-    description: "Portfolio-ready snapshot of health, readiness, dashboard metrics, and key workflows.",
+    description: "견적부터 가격 검증, 승인, 리포트까지 한눈에 확인합니다.",
   },
   {
     key: "quote-operations",
     label: "견적",
-    description: "Create quote previews, generate safe explanations, and manage customer quote requests.",
+    description: "고객 요청을 바탕으로 견적과 설명을 준비합니다.",
   },
   {
     key: "pricing-tools",
     label: "가격",
-    description: "Run candidate prices, validation, strategy templates, and price table comparisons.",
+    description: "가격 후보, 검증, 전략 템플릿, 가격표 비교를 확인합니다.",
   },
   {
     key: "approvals",
     label: "승인",
-    description: "Review approval requests and inspect audit logs for human-in-the-loop decisions.",
+    description: "승인 대기 건과 감사 로그를 검토합니다.",
   },
   {
     key: "customer-requests",
     label: "고객 요청",
-    description: "Submit, review, preview, and update customer quote requests.",
+    description: "고객 견적 요청을 접수하고 상태를 관리합니다.",
   },
   {
     key: "simulations",
     label: "시뮬레이션",
-    description: "Compare pricing simulations, workflow jobs, and scenario comparisons.",
+    description: "가격 시뮬레이션과 시나리오 비교를 확인합니다.",
   },
   {
     key: "reports",
     label: "리포트",
-    description: "Create and open HTML reports for dashboard, pricing, validation, and scenario work.",
+    description: "대시보드, 가격, 검증 결과를 리포트로 정리합니다.",
   },
   {
     key: "admin-system",
     label: "운영",
-    description: "Check system status, CSV import/export, audit logs, and operational controls.",
+    description: "시스템 상태, CSV, 감사 로그, 운영 도구를 관리합니다.",
   },
   {
     key: "demo-tools",
     label: "데모",
-    description: "Seed, reset, and inspect local demo scenarios for MVP walkthroughs.",
+    description: "샘플 데이터와 데모 흐름을 확인합니다.",
+  },
+]
+
+const OVERVIEW_WORKFLOW_CARDS = [
+  {
+    title: "견적 생성",
+    text: "고객 요청을 바탕으로 견적을 준비합니다.",
+    action: "견적 시작",
+    section: "quote-operations",
+  },
+  {
+    title: "가격 검증",
+    text: "기준과 조건에 맞는지 확인합니다.",
+    action: "가격 확인",
+    section: "pricing-tools",
+  },
+  {
+    title: "승인 관리",
+    text: "승인 대기 건을 검토하고 처리합니다.",
+    action: "승인 보기",
+    section: "approvals",
+  },
+  {
+    title: "리포트 생성",
+    text: "결과를 정리해 공유합니다.",
+    action: "리포트 보기",
+    section: "reports",
   },
 ]
 
@@ -1028,6 +1055,31 @@ function App() {
   const backendUnavailable = !loading && (!health || readiness?.status === "not_ready")
   const sectionNeedsSignIn = !currentUser && !["overview"].includes(activeSection)
   const safeApiBaseUrl = sanitizeApiUrl(API_BASE_URL)
+  const overviewStatusItems = [
+    {
+      label: "서비스",
+      value: health?.status === "ok" ? "정상" : "확인 필요",
+      tone: health?.status === "ok" ? "success" : "warning",
+    },
+    {
+      label: "DB 연결",
+      value: systemStatus?.database?.connection_ok || readiness?.status === "ready" ? "정상" : "확인 필요",
+      tone: systemStatus?.database?.connection_ok || readiness?.status === "ready" ? "success" : "warning",
+    },
+    {
+      label: "OpenAPI",
+      value: systemStatus?.features?.openapi_available ? "확인" : "대기",
+      tone: systemStatus?.features?.openapi_available ? "success" : "warning",
+    },
+    {
+      label: "배포",
+      value: systemStatus?.cors?.configured ? "연결됨" : "로컬",
+      tone: systemStatus?.cors?.configured ? "success" : "info",
+    },
+  ]
+  const latestActions = dashboardSummary?.audit_metrics?.latest_actions || []
+  const pendingApprovalCount = dashboardSummary?.approval_metrics?.pending_approval_requests ?? approvalRequests.length
+  const openRequestCount = dashboardSummary?.quote_metrics?.new_quote_requests ?? customerQuoteRequests.length
 
   return (
     <main className="app-shell min-h-screen bg-slate-100 text-slate-950">
@@ -1035,9 +1087,9 @@ function App() {
         <header className="app-header mb-6 flex flex-col gap-3 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-500">QuoteOps AI</p>
-            <h1 className="text-3xl font-semibold tracking-tight">Pricing operations workspace</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">가격 운영 워크스페이스</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-600">
-              Deterministic quoting, pricing validation, approvals, reporting, and demo operations in one guided MVP workspace.
+              견적, 가격 검증, 승인, 리포트를 한 흐름으로 관리합니다.
             </p>
           </div>
           <button className="button secondary" onClick={loadInitialData} disabled={!!loading}>
@@ -1078,73 +1130,151 @@ function App() {
           </div>
         </nav>
 
-        <section className="section card mb-5 rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="section-header">
-            <p className="text-sm font-semibold text-slate-500">{activeSectionMeta.label}</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight">{activeSectionMeta.key === "overview" ? "QuoteOps AI" : activeSectionMeta.label}</h2>
-          </div>
-          <p className="mt-2 max-w-4xl text-sm text-slate-600">{activeSectionMeta.description}</p>
-          {activeSection === "overview" && (
-            <div className="card-grid mt-4 grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-              <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
-                <p className="font-semibold">승인 전 자동 반영 없음</p>
-                <p className="mt-2 text-sm text-slate-600">
-                  가격 계산과 원가 검증을 지원하지만, 승인 없이 가격을 확정하거나 전송하지 않습니다.
-                </p>
-              </div>
-              <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
-                <p className="font-semibold">Quick links</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {["quote-operations", "pricing-tools", "approvals", "simulations", "reports"].map((key) => {
-                    const section = NAV_SECTIONS.find((item) => item.key === key)
-                    return (
-                      <button className="button compact secondary" key={key} onClick={() => setActiveSection(key)} type="button">
-                        {section?.label}
-                      </button>
-                    )
-                  })}
+        {activeSection === "overview" ? (
+          <section className="overview-home section">
+            <div className="overview-hero card">
+              <div className="overview-hero-copy">
+                <span className="overview-eyebrow">QuoteOps AI</span>
+                <h2>견적 가격 운영의 시작점에서</h2>
+                <p>계산, 원가, 승인, 리포트까지 한 흐름으로</p>
+                <div className="overview-actions">
+                  <button className="button button-primary" type="button" onClick={() => setActiveSection("quote-operations")}>
+                    견적 시작
+                  </button>
+                  <button className="button button-secondary" type="button" onClick={() => setActiveSection("demo-tools")}>
+                    데모 보기
+                  </button>
                 </div>
               </div>
+              <div className="overview-hero-status" aria-label="Overview system status">
+                {overviewStatusItems.map((item) => (
+                  <div className="overview-status-item" key={item.label}>
+                    <span>{item.label}</span>
+                    <strong className={`badge badge-${item.tone}`}>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
             </div>
-          )}
-          {backendUnavailable && (
-            <div className="mt-4">
+
+            {backendUnavailable && (
               <ErrorState
-                title="Backend is not reachable"
-                message={`Start the backend locally or check the deployed API URL: ${safeApiBaseUrl}.`}
+                title="데이터를 불러오지 못했습니다"
+                message={`백엔드 상태 또는 API URL을 확인하세요: ${safeApiBaseUrl}.`}
                 onRetry={loadInitialData}
               />
+            )}
+
+            <div className="overview-grid">
+              <section className="overview-workflow card">
+                <div className="section-header">
+                  <p className="text-sm font-semibold text-slate-500">주요 흐름</p>
+                  <h3>견적부터 승인까지</h3>
+                </div>
+                <div className="workflow-grid">
+                  {OVERVIEW_WORKFLOW_CARDS.map((card) => (
+                    <article className="workflow-card" key={card.title}>
+                      <h4>{card.title}</h4>
+                      <p>{card.text}</p>
+                      <button className="button compact secondary" type="button" onClick={() => setActiveSection(card.section)}>
+                        {card.action}
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              <aside className="overview-side">
+                <section className="card overview-demo-card">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-500">포트폴리오 데모용 계정</p>
+                    <h3>데모 시작</h3>
+                    <p>샘플 데이터로 흐름을 확인하세요.</p>
+                  </div>
+                  <div className="overview-actions">
+                    <button className="button secondary" type="button" onClick={() => setActiveSection("demo-tools")}>
+                      데모 보기
+                    </button>
+                    {currentUser && (
+                      <button className="button compact" type="button" onClick={handleSeedDemoData}>
+                        샘플 불러오기
+                      </button>
+                    )}
+                  </div>
+                </section>
+
+                <section className="card overview-safety-card">
+                  <span className="badge badge-warning">자동 반영 없음</span>
+                  <h3>승인 전 자동 반영 없음</h3>
+                  <p>가격 계산과 원가 검증을 지원하지만, 승인 없이 가격을 확정하거나 전송하지 않습니다.</p>
+                </section>
+
+                <section className="card overview-activity-card">
+                  <div className="section-header">
+                    <p className="text-sm font-semibold text-slate-500">다음 작업</p>
+                    <h3>진행 상황</h3>
+                  </div>
+                  {latestActions.length > 0 ? (
+                    <div className="overview-mini-list">
+                      <p><strong>{pendingApprovalCount}</strong>건 승인 대기</p>
+                      <p><strong>{openRequestCount}</strong>건 신규 요청</p>
+                      <p>최근 작업: {latestActions[0].action}</p>
+                    </div>
+                  ) : (
+                    <EmptyState
+                      title="아직 진행 중인 작업이 없습니다."
+                      message="첫 견적을 만들어 보세요."
+                    />
+                  )}
+                </section>
+              </aside>
             </div>
-          )}
-          {sectionNeedsSignIn && (
-            <div className="mt-4">
-              <EmptyState
-                title="Sign in to use this section"
-                message="You need to sign in with a role that can access this section."
-                action="Use a local demo account or your configured user credentials."
-              />
+          </section>
+        ) : (
+          <section className="section card mb-5 rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="section-header">
+              <p className="text-sm font-semibold text-slate-500">{activeSectionMeta.label}</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight">{activeSectionMeta.label}</h2>
             </div>
-          )}
-        </section>
+            <p className="mt-2 max-w-4xl text-sm text-slate-600">{activeSectionMeta.description}</p>
+            {backendUnavailable && (
+              <div className="mt-4">
+                <ErrorState
+                  title="Backend is not reachable"
+                  message={`Start the backend locally or check the deployed API URL: ${safeApiBaseUrl}.`}
+                  onRetry={loadInitialData}
+                />
+              </div>
+            )}
+            {sectionNeedsSignIn && (
+              <div className="mt-4">
+                <EmptyState
+                  title="Sign in to use this section"
+                  message="You need to sign in with a role that can access this section."
+                  action="Use a local demo account or your configured user credentials."
+                />
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="section card-grid mb-5 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
-          <Panel title="Admin login">
+          <Panel title="데모 계정">
             {currentUser ? (
               <div className="space-y-3">
                 <div className="flex flex-wrap gap-2">
                   <Badge>{currentUser.display_name}</Badge>
-                  <Badge>role: {currentUser.role}</Badge>
+                  <Badge>권한: {currentUser.role}</Badge>
                 </div>
-                <button className="button secondary" onClick={handleLogout}>Log out</button>
+                <button className="button secondary" onClick={handleLogout}>로그아웃</button>
               </div>
             ) : (
               <form className="form-grid grid gap-3 md:grid-cols-[1fr_1fr_auto]" onSubmit={handleLogin}>
                 <label className="field">
-                  <span>Username</span>
+                  <span>아이디</span>
                   <input value={loginForm.username} onChange={(event) => setLoginForm((current) => ({ ...current, username: event.target.value }))} />
                 </label>
                 <label className="field">
-                  <span>Password</span>
+                  <span>비밀번호</span>
                   <input type="password" value={loginForm.password} onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))} />
                 </label>
                 <button className="button" type="submit">로그인</button>
@@ -1157,18 +1287,18 @@ function App() {
                 </button>
               ))}
             </div>
-            <p className="text-sm text-slate-500">Demo credentials are for local MVP testing only.</p>
+            <p className="text-sm text-slate-500">포트폴리오 데모용 계정입니다.</p>
           </Panel>
 
           <section className="status-grid grid gap-4 lg:grid-cols-7" aria-label="System Status">
             <h2 className="sr-only">System Status</h2>
-            <StatusCard label="Health" value={health?.status || "-"} />
-            <StatusCard label="Ready" value={readiness?.status || "-"} />
-            <StatusCard label="Database" value={systemStatus?.database?.configured ? "configured" : "-"} />
-            <StatusCard label="DB type" value={systemStatus?.database?.type || readiness?.database_type || "-"} />
-            <StatusCard label="DB connection" value={systemStatus?.database?.connection_ok ? "ok" : "check"} />
-            <StatusCard label="CORS" value={systemStatus?.cors?.configured ? `${systemStatus.cors.origin_count} origins` : "-"} />
-            <StatusCard label="OpenAPI" value={systemStatus?.features?.openapi_available ? "available" : "check"} />
+            <StatusCard label="서비스" value={health?.status === "ok" ? "정상" : health?.status || "-"} />
+            <StatusCard label="준비 상태" value={readiness?.status === "ready" ? "정상" : readiness?.status || "-"} />
+            <StatusCard label="DB 연결" value={systemStatus?.database?.connection_ok ? "정상" : "확인"} />
+            <StatusCard label="DB 유형" value={systemStatus?.database?.type || readiness?.database_type || "-"} />
+            <StatusCard label="CORS" value={systemStatus?.cors?.configured ? "설정됨" : "-"} />
+            <StatusCard label="OpenAPI" value={systemStatus?.features?.openapi_available ? "확인" : "대기"} />
+            <StatusCard label="배포" value={systemStatus?.cors?.configured ? "연결됨" : "로컬"} />
           </section>
 
           {showSection("overview") && currentUser && dashboardSummary && (
