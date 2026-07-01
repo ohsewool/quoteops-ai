@@ -66,7 +66,8 @@ def test_raw_codes_and_console_text_are_not_rendered_directly():
     ]:
         assert forbidden not in source
 
-    assert "displayAction(latestActions[0].action)" in source
+    assert "{latestActions[0].action}" not in source
+    assert "다음 단계: 가격 평가" in source
     assert "displayAction(log.action)" in source
     assert "displayCode(log.entity_type)" in source
     assert "displayCode(template.strategy_code)" in source
