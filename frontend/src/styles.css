@@ -295,6 +295,48 @@ canvas {
   gap: var(--space-4);
 }
 
+.app-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  padding: 0.35rem 0.75rem;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.user-chip span {
+  color: var(--color-muted);
+}
+
+.advanced-details {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  padding: var(--space-3);
+}
+
+.advanced-details summary {
+  cursor: pointer;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.advanced-details > * + * {
+  margin-top: var(--space-3);
+}
+
 .app-nav {
   position: sticky;
   top: 0;
@@ -1031,6 +1073,19 @@ th {
 
   .app-header {
     align-items: stretch;
+  }
+
+  .app-user-actions {
+    justify-content: stretch;
+  }
+
+  .user-chip {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .advanced-details {
+    padding: var(--space-3);
   }
 
   .app-nav {

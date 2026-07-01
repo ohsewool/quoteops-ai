@@ -332,6 +332,91 @@ function displayStatus(value) {
   return STATUS_LABELS[String(value)] || value
 }
 
+const ROLE_LABELS = {
+  admin: "관리자",
+  manager: "매니저",
+  viewer: "조회자",
+}
+
+const ROLE_MODE_LABELS = {
+  admin: "관리자 모드",
+  manager: "매니저 모드",
+  viewer: "조회자 모드",
+}
+
+const INTERNAL_CODE_LABELS = {
+  low_margin: "낮은 마진율",
+  target_margin: "기준 마진율",
+  premium_margin: "프리미엄 마진율",
+  standard_margin_custom: "기본 마진 전략",
+  price_above_unit_cost: "단가가 원가보다 높음",
+  margin_meets_minimum: "최소 마진 기준 충족",
+  competitor_reference_below_average: "경쟁사 기준보다 낮음",
+  auth_login_success: "로그인 완료",
+  auth_login_failed: "로그인 실패",
+  scenario_comparison_list_viewed: "시나리오 비교 조회",
+  scenario_comparison_created: "시나리오 비교 생성",
+  scenario_comparison_viewed: "시나리오 비교 상세 조회",
+  csv_products_imported: "상품 CSV 가져오기",
+  csv_cost_profiles_imported: "원가 CSV 가져오기",
+  csv_competitor_prices_imported: "경쟁사 가격 CSV 가져오기",
+  approval_request_created: "승인 요청 생성",
+  approval_request_approved: "승인 처리",
+  approval_request_rejected: "반려 처리",
+  workflow_job_created: "작업 생성",
+  workflow_job_completed: "작업 완료",
+  workflow_job_cancelled: "작업 취소",
+  product: "상품",
+  products: "상품",
+  cost_profile: "원가 프로필",
+  competitor_price: "경쟁사 가격",
+  approval_request: "승인 요청",
+  scenario_comparison: "시나리오 비교",
+  workflow_job: "작업",
+  dashboard_summary: "운영 요약",
+}
+
+function displayRole(role) {
+  return ROLE_LABELS[role] || role || "사용자"
+}
+
+function displayRoleMode(role) {
+  return ROLE_MODE_LABELS[role] || `${displayRole(role)} 모드`
+}
+
+function displayCode(value) {
+  if (value === null || value === undefined || value === "") return "-"
+  const key = String(value)
+  return INTERNAL_CODE_LABELS[key] || STATUS_LABELS[key] || DISPLAY_LABELS[key] || JOB_TYPE_LABELS[key] || REPORT_TYPE_LABELS[key] || key
+}
+
+function displayAction(value) {
+  return displayCode(value)
+}
+
+function displayNote(note) {
+  if (!note) return note
+  const text = String(note)
+  const lowered = text.toLowerCase()
+  if (lowered.includes("comparison is deterministic") || lowered.includes("deterministic")) {
+    return "기준에 따라 계산한 결과입니다."
+  }
+  if (lowered.includes("no ai-generated") || lowered.includes("ai-generated")) {
+    return "자동 생성 가격이 아닌 계산 기준 결과입니다."
+  }
+  if (lowered.includes("human review") || lowered.includes("needs human review")) {
+    return "검토가 필요한 항목입니다."
+  }
+  if (lowered.includes("approve") || lowered.includes("activate")) {
+    return "승인 후 가격이 확정됩니다."
+  }
+  return displayCode(text)
+}
+
+function displayNotes(notes) {
+  return notes?.map(displayNote)
+}
+
 function App() {
   const [health, setHealth] = useState(null)
   const [readiness, setReadiness] = useState(null)
@@ -1184,28 +1269,6 @@ function App() {
   const backendUnavailable = !loading && (!health || readiness?.status === "not_ready")
   const sectionNeedsSignIn = !currentUser && !["overview"].includes(activeSection)
   const safeApiBaseUrl = sanitizeApiUrl(API_BASE_URL)
-  const overviewStatusItems = [
-    {
-      label: "서비스 정상",
-      value: health?.status === "ok" ? "정상" : "확인 필요",
-      tone: health?.status === "ok" ? "success" : "warning",
-    },
-    {
-      label: "DB 연결 정상",
-      value: systemStatus?.database?.connection_ok || readiness?.status === "ready" ? "정상" : "확인 필요",
-      tone: systemStatus?.database?.connection_ok || readiness?.status === "ready" ? "success" : "warning",
-    },
-    {
-      label: "OpenAPI 확인",
-      value: systemStatus?.features?.openapi_available ? "확인" : "대기",
-      tone: systemStatus?.features?.openapi_available ? "success" : "warning",
-    },
-    {
-      label: "배포 연결",
-      value: systemStatus?.cors?.configured ? "연결됨" : "로컬",
-      tone: systemStatus?.cors?.configured ? "success" : "info",
-    },
-  ]
   const latestActions = dashboardSummary?.audit_metrics?.latest_actions || []
   const pendingApprovalCount = dashboardSummary?.approval_metrics?.pending_approval_requests ?? approvalRequests.length
   const openRequestCount = dashboardSummary?.quote_metrics?.new_quote_requests ?? customerQuoteRequests.length
@@ -1393,9 +1456,18 @@ function App() {
               견적, 가격 검증, 승인, 리포트를 한 흐름으로 관리합니다.
             </p>
           </div>
-          <button className="button compact secondary" onClick={loadInitialData} disabled={!!loading}>
-            새로고침
-          </button>
+          <div className="app-user-actions">
+            {currentUser && (
+              <div className="user-chip" aria-label="현재 사용자">
+                <strong>{displayRoleMode(currentUser.role)}</strong>
+                <span>{currentUser.display_name || displayRole(currentUser.role)}</span>
+              </div>
+            )}
+            <button className="button compact secondary" onClick={loadInitialData} disabled={!!loading}>
+              새로고침
+            </button>
+            {currentUser && <button className="button compact secondary" onClick={handleLogout}>로그아웃</button>}
+          </div>
         </header>
 
         {loading && <LoadingState message={`${loading}...`} />}
@@ -1447,13 +1519,19 @@ function App() {
                   </button>
                 </div>
               </div>
-              <div className="overview-hero-status" aria-label="운영 상태 요약">
-                {overviewStatusItems.map((item) => (
-                  <div className="overview-status-item" key={item.label}>
-                    <span>{item.label}</span>
-                    <strong className={`badge badge-${item.tone}`}>{item.value}</strong>
-                  </div>
-                ))}
+              <div className="overview-hero-status" aria-label="업무 요약">
+                <div className="overview-status-item">
+                  <span>승인 대기</span>
+                  <strong className="badge badge-warning">{pendingApprovalCount}건</strong>
+                </div>
+                <div className="overview-status-item">
+                  <span>신규 요청</span>
+                  <strong className="badge badge-success">{openRequestCount}건</strong>
+                </div>
+                <div className="overview-status-item">
+                  <span>다음 단계</span>
+                  <strong className="badge">가격 평가</strong>
+                </div>
               </div>
             </div>
 
@@ -1518,7 +1596,7 @@ function App() {
                     <div className="overview-mini-list">
                       <p><strong>{pendingApprovalCount}</strong>건 승인 대기</p>
                       <p><strong>{openRequestCount}</strong>건 신규 요청</p>
-                      <p>최근 작업: {latestActions[0].action}</p>
+                      <p>최근 작업: {displayAction(latestActions[0].action)}</p>
                     </div>
                   ) : (
                     <EmptyState
@@ -1559,45 +1637,16 @@ function App() {
         )}
 
         <section className="section card-grid mb-5 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
-          <Panel title="데모 계정">
-            {currentUser ? (
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <Badge>{currentUser.display_name}</Badge>
-                  <Badge>권한: {currentUser.role}</Badge>
-                </div>
-                <button className="button secondary" onClick={handleLogout}>로그아웃</button>
-              </div>
-            ) : (
-              <form className="form-grid grid gap-3 md:grid-cols-[1fr_1fr_auto]" onSubmit={handleLogin}>
-                <label className="field">
-                  <span>아이디</span>
-                  <input value={loginForm.username} onChange={(event) => setLoginForm((current) => ({ ...current, username: event.target.value }))} />
-                </label>
-                <label className="field">
-                  <span>비밀번호</span>
-                  <input type="password" value={loginForm.password} onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))} />
-                </label>
-                <button className="button" type="submit">로그인</button>
-              </form>
-            )}
-            <div className="flex flex-wrap gap-2">
-              {demoUsers.map((user) => (
-                <button className="button compact secondary" key={user.username} onClick={() => useDemoUser(user.username)}>
-                  {user.username === "admin" ? "관리자" : user.username === "manager" ? "매니저" : user.username === "viewer" ? "조회자" : user.username}
-                </button>
-              ))}
-            </div>
-            <p className="text-sm text-slate-500">포트폴리오 데모용 계정입니다.</p>
-          </Panel>
 
-          <section className="status-grid grid gap-4 lg:grid-cols-4" aria-label="시스템 상태">
-            <h2 className="sr-only">시스템 상태</h2>
-            <StatusCard label="서비스 정상" value={health?.status === "ok" ? "정상" : health?.status || "-"} />
-            <StatusCard label="DB 연결 정상" value={systemStatus?.database?.connection_ok || readiness?.status === "ready" ? "정상" : "확인"} />
-            <StatusCard label="OpenAPI 확인" value={systemStatus?.features?.openapi_available ? "확인" : "대기"} />
-            <StatusCard label="배포 연결" value={systemStatus?.cors?.configured ? "연결됨" : "로컬"} />
-          </section>
+          {showSection("admin-system") && (
+            <section className="status-grid grid gap-4 lg:grid-cols-4" aria-label="시스템 상태">
+              <h2 className="sr-only">시스템 상태</h2>
+                <StatusCard label="서비스 정상" value={health?.status === "ok" ? "정상" : health?.status || "-"} />
+                <StatusCard label="DB 연결 정상" value={systemStatus?.database?.connection_ok || readiness?.status === "ready" ? "정상" : "확인"} />
+                <StatusCard label="OpenAPI 확인" value={systemStatus?.features?.openapi_available ? "정상" : "확인"} />
+                <StatusCard label="배포 연결" value={systemStatus?.cors?.configured ? "연결됨" : "로컬"} />
+            </section>
+          )}
 
           {showSection("overview") && currentUser && dashboardSummary && (
             <Panel title="운영 요약">
@@ -1615,41 +1664,41 @@ function App() {
                 <DashboardMetricTable
                   title="견적 요청"
                   rows={[
-                    ["new", dashboardSummary.quote_metrics.new_quote_requests],
-                    ["reviewing", dashboardSummary.quote_metrics.reviewing_quote_requests],
-                    ["quoted", dashboardSummary.quote_metrics.quoted_quote_requests],
-                    ["closed", dashboardSummary.quote_metrics.closed_quote_requests],
-                    ["cancelled", dashboardSummary.quote_metrics.cancelled_quote_requests],
+                    ["신규", dashboardSummary.quote_metrics.new_quote_requests],
+                    ["검토 중", dashboardSummary.quote_metrics.reviewing_quote_requests],
+                    ["견적 완료", dashboardSummary.quote_metrics.quoted_quote_requests],
+                    ["종료", dashboardSummary.quote_metrics.closed_quote_requests],
+                    ["취소", dashboardSummary.quote_metrics.cancelled_quote_requests],
                   ]}
                 />
                 <DashboardMetricTable
                   title="승인 지표"
                   rows={[
-                    ["pending", dashboardSummary.approval_metrics.pending_approval_requests],
-                    ["approved", dashboardSummary.approval_metrics.approved_requests],
-                    ["rejected", dashboardSummary.approval_metrics.rejected_requests],
-                    ["approval rate", formatRate(dashboardSummary.approval_metrics.approval_rate)],
-                    ["avg margin", dashboardSummary.approval_metrics.average_estimated_margin_rate ?? "-"],
+                    ["검토 중", dashboardSummary.approval_metrics.pending_approval_requests],
+                    ["승인됨", dashboardSummary.approval_metrics.approved_requests],
+                    ["반려됨", dashboardSummary.approval_metrics.rejected_requests],
+                    ["승인율", formatRate(dashboardSummary.approval_metrics.approval_rate)],
+                    ["평균 마진", dashboardSummary.approval_metrics.average_estimated_margin_rate ?? "-"],
                   ]}
                 />
                 <DashboardMetricTable
                   title="검증과 위험"
                   rows={[
-                    ["passed", dashboardSummary.validation_metrics.passed_validations],
-                    ["warning", dashboardSummary.validation_metrics.warning_validations],
-                    ["failed", dashboardSummary.validation_metrics.failed_validations],
-                    ["low risk", dashboardSummary.validation_metrics.low_risk_count],
-                    ["high risk", dashboardSummary.validation_metrics.high_risk_count],
+                    ["통과", dashboardSummary.validation_metrics.passed_validations],
+                    ["주의", dashboardSummary.validation_metrics.warning_validations],
+                    ["실패", dashboardSummary.validation_metrics.failed_validations],
+                    ["낮은 위험", dashboardSummary.validation_metrics.low_risk_count],
+                    ["높은 위험", dashboardSummary.validation_metrics.high_risk_count],
                   ]}
                 />
                 <DashboardMetricTable
                   title="작업 상태"
                   rows={[
-                    ["pending", dashboardSummary.workflow_metrics.pending_jobs],
-                    ["running", dashboardSummary.workflow_metrics.running_jobs],
-                    ["completed", dashboardSummary.workflow_metrics.completed_jobs],
-                    ["failed", dashboardSummary.workflow_metrics.failed_jobs],
-                    ["success rate", formatRate(dashboardSummary.workflow_metrics.job_success_rate)],
+                    ["대기", dashboardSummary.workflow_metrics.pending_jobs],
+                    ["진행 중", dashboardSummary.workflow_metrics.running_jobs],
+                    ["완료", dashboardSummary.workflow_metrics.completed_jobs],
+                    ["실패", dashboardSummary.workflow_metrics.failed_jobs],
+                    ["성공률", formatRate(dashboardSummary.workflow_metrics.job_success_rate)],
                   ]}
                 />
               </div>
@@ -1668,7 +1717,7 @@ function App() {
                     )}
                     {dashboardSummary.audit_metrics.latest_actions.map((action) => (
                       <tr key={`${action.action}-${action.created_at}`}>
-                        <td>{action.action}</td>
+                        <td>{displayAction(action.action)}</td>
                         <td>{action.actor_username}</td>
                         <td>{new Date(action.created_at).toLocaleString()}</td>
                       </tr>
@@ -1676,7 +1725,7 @@ function App() {
                   </tbody>
                 </table>
               </div>
-              <Notes notes={dashboardSummary.dashboard_notes} />
+              <Notes notes={displayNotes(dashboardSummary.dashboard_notes)} />
             </Panel>
           )}
 
@@ -1692,17 +1741,17 @@ function App() {
                   <div className="rounded-md border border-slate-200 bg-slate-50 p-4" key={`${insight.category}-${insight.title}`}>
                     <div className="mb-2 flex flex-wrap gap-2">
                       <Badge>{displayStatus(insight.severity)}</Badge>
-                      <Badge>{insight.category}</Badge>
+                      <Badge>{displayCode(insight.category)}</Badge>
                     </div>
                     <p className="font-semibold">{insight.title}</p>
                     <p className="mt-1 text-sm text-slate-600">{insight.message}</p>
                     <p className="mt-3 text-sm font-semibold text-slate-700">권장 작업</p>
                     <p className="text-sm text-slate-600">{insight.recommended_action}</p>
-                    <p className="mt-3 text-xs text-slate-500">{insight.decision_boundary}</p>
+                    <p className="mt-3 text-xs text-slate-500">{displayNote(insight.decision_boundary)}</p>
                   </div>
                 ))}
               </div>
-              <Notes notes={dashboardInsights.insight_notes} />
+              <Notes notes={displayNotes(dashboardInsights.insight_notes)} />
             </Panel>
           )}
 
@@ -1710,7 +1759,7 @@ function App() {
             <section className="support-page">
               <SupportPageHeader
                 eyebrow="데모"
-                title="데모"
+                title="데모 시작"
                 helper="샘플 데이터로 전체 흐름을 빠르게 확인하세요."
                 primary={["admin", "manager"].includes(currentUser.role) ? <button className="button compact" onClick={handleCreateFullDemoScenario}>데모 시작</button> : <button className="button compact secondary" onClick={refreshDemoStatusAndGuide}>다시 불러오기</button>}
                 secondary={currentUser.role === "admin" ? <button className="button compact secondary" onClick={handleSeedDemoData}>샘플 불러오기</button> : null}
@@ -1750,7 +1799,7 @@ function App() {
                   <div className="mb-2 flex flex-wrap gap-2">
                     <Badge>{demoScenario.scenario_name}</Badge>
                     <Badge>{demoScenario.demo_product_sku}</Badge>
-                    <Badge>{demoScenario.ready ? "ready" : "not ready"}</Badge>
+                    <Badge>{demoScenario.ready ? "샘플 데이터 준비" : "준비 필요"}</Badge>
                   </div>
                   <div className="table-wrap">
                     <table>
@@ -1758,7 +1807,6 @@ function App() {
                         <tr>
                           <th>단계</th>
                           <th>제목</th>
-                          <th>API</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1766,7 +1814,6 @@ function App() {
                           <tr key={step.step}>
                             <td>{step.step}</td>
                             <td>{step.title}</td>
-                            <td>{step.api}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1784,9 +1831,8 @@ function App() {
                     <div className="space-y-2 text-sm">
                       {demoGuide.demo_login_users.map((user) => (
                         <div className="flex flex-wrap gap-2" key={user.username}>
-                          <Badge>{user.username}</Badge>
-                          <Badge>{user.role}</Badge>
-                          <span className="text-slate-600">{user.password_hint}</span>
+                          <Badge>{displayRole(user.role)}</Badge>
+                          <span className="text-slate-600">{user.role === "viewer" ? "데모 조회자" : "데모 계정"}</span>
                         </div>
                       ))}
                     </div>
@@ -1799,14 +1845,17 @@ function App() {
               )}
 
               {(demoSeedResult || demoResetResult) && (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {demoSeedResult && (
-                    <pre className="overflow-x-auto rounded-md bg-slate-950 p-4 text-sm text-white">{JSON.stringify(demoSeedResult.created_or_verified, null, 2)}</pre>
-                  )}
-                  {demoResetResult && (
-                    <pre className="overflow-x-auto rounded-md bg-slate-950 p-4 text-sm text-white">{JSON.stringify(demoResetResult.deleted_or_disabled, null, 2)}</pre>
-                  )}
-                </div>
+                <details className="advanced-details">
+                  <summary>기술 정보</summary>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {demoSeedResult && (
+                      <pre className="overflow-x-auto rounded-md bg-slate-950 p-4 text-sm text-white">{JSON.stringify(demoSeedResult.created_or_verified, null, 2)}</pre>
+                    )}
+                    {demoResetResult && (
+                      <pre className="overflow-x-auto rounded-md bg-slate-950 p-4 text-sm text-white">{JSON.stringify(demoResetResult.deleted_or_disabled, null, 2)}</pre>
+                    )}
+                  </div>
+                </details>
               )}
             </Panel>
             </section>
@@ -1858,7 +1907,7 @@ function App() {
                   </div>
                   <p className="font-semibold">{activeHtmlReport.title}</p>
                   <p className="text-sm text-slate-600">{activeHtmlReport.summary_text}</p>
-                  <Notes notes={activeHtmlReport.report_notes} />
+                  <Notes notes={displayNotes(activeHtmlReport.report_notes)} />
                 </div>
               )}
               <div className="table-wrap">
@@ -1963,7 +2012,7 @@ function App() {
               <div className="grid gap-3 md:grid-cols-3">
                 {results.candidates?.candidates?.map((candidate) => (
                   <div className="rounded-md border border-slate-200 bg-slate-50 p-4" key={candidate.strategy}>
-                    <h3 className="font-semibold">{candidate.strategy}</h3>
+                    <h3 className="font-semibold">{displayCode(candidate.strategy)}</h3>
                     <p>Margin: {candidate.margin_rate}</p>
                     <p>Unit: {formatMoney(candidate.unit_price)}</p>
                     <p>Total: {formatMoney(candidate.total_price)}</p>
@@ -1992,12 +2041,12 @@ function App() {
                   <ul className="space-y-2">
                     {results.validation.checks.map((check) => (
                       <li className="rounded-md border border-slate-200 bg-slate-50 p-3" key={check.code}>
-                        <strong>{check.code}</strong> {check.passed ? "passed" : "needs review"} - {check.message}
+                        <strong>{displayCode(check.code)}</strong> {check.passed ? "통과" : "검토 필요"} - {displayNote(check.message)}
                       </li>
                     ))}
                   </ul>
                   <CompetitorContext context={results.validation.competitor_context} />
-                  <Notes notes={results.validation.calculation_notes} />
+                  <Notes notes={displayNotes(results.validation.calculation_notes)} />
                 </div>
               )}
             </Panel>
@@ -2061,7 +2110,7 @@ function App() {
                         </tbody>
                       </table>
                     </div>
-                    <Notes notes={activeSimulation.simulation_notes} />
+                    <Notes notes={displayNotes(activeSimulation.simulation_notes)} />
                   </div>
                 )}
                 {pricingSimulations.length > 0 && (
@@ -2084,7 +2133,7 @@ function App() {
                     <select value={selectedStrategyTemplateId} onChange={(event) => setSelectedStrategyTemplateId(event.target.value)}>
                       {strategyTemplates.map((template) => (
                         <option key={template.id} value={template.id}>
-                          #{template.id} {template.name} ({template.strategy_code})
+                          #{template.id} {template.name}
                         </option>
                       ))}
                     </select>
@@ -2093,10 +2142,13 @@ function App() {
                     <span>이름</span>
                     <input value={strategyTemplateForm.name} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, name: event.target.value }))} />
                   </label>
-                  <label className="field">
-                    <span>전략 코드</span>
-                    <input value={strategyTemplateForm.strategy_code} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, strategy_code: event.target.value }))} />
-                  </label>
+                  <details className="advanced-details">
+                    <summary>고급 입력</summary>
+                    <label className="field">
+                      <span>전략 코드</span>
+                      <input value={strategyTemplateForm.strategy_code} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, strategy_code: event.target.value }))} />
+                    </label>
+                  </details>
                   <label className="field">
                     <span>위험 선호도</span>
                     <select value={strategyTemplateForm.risk_preference} onChange={(event) => setStrategyTemplateForm((current) => ({ ...current, risk_preference: event.target.value }))}>
@@ -2173,7 +2225,7 @@ function App() {
                         <tr key={template.id}>
                           <td>{template.id}</td>
                           <td>{template.name}</td>
-                          <td>{template.strategy_code}</td>
+                          <td>{displayCode(template.strategy_code)}</td>
                           <td>{displayStatus(template.risk_preference)}</td>
                           <td>{template.margin_rates.join(", ")}</td>
                           <td>{template.default_quantities.join(", ")}</td>
@@ -2193,7 +2245,7 @@ function App() {
                     <div className="grid gap-3 md:grid-cols-3">
                       {strategyTemplateCandidates.candidates.map((candidate) => (
                         <div className="rounded-md bg-white p-3" key={candidate.strategy}>
-                          <strong>{candidate.strategy}</strong>
+                          <strong>{displayCode(candidate.strategy)}</strong>
                           <p>마진율: {candidate.margin_rate}</p>
                           <p>단가: {formatMoney(candidate.unit_price)}</p>
                           <p>합계: {formatMoney(candidate.total_price)}</p>
@@ -2282,7 +2334,7 @@ function App() {
                         </tbody>
                       </table>
                     </div>
-                    <Notes notes={activeScenarioComparison.comparison_notes} />
+                    <Notes notes={displayNotes(activeScenarioComparison.comparison_notes)} />
                     <CompetitorContext context={activeScenarioComparison.competitor_context} />
                   </div>
                 )}
@@ -2410,7 +2462,7 @@ function App() {
                         ))}
                       </tbody>
                     </table>
-                    <Notes notes={priceTableComparison.comparison_notes} />
+                    <Notes notes={displayNotes(priceTableComparison.comparison_notes)} />
                   </div>
                 )}
               </Panel>
@@ -2480,7 +2532,7 @@ function App() {
               {results.explanation && (
                 <div className="space-y-3">
                   <p className="rounded-md bg-slate-950 p-4 text-white">{results.explanation.explanation_summary}</p>
-                  <Notes notes={results.explanation.explanation_bullets} />
+                  <Notes notes={displayNotes(results.explanation.explanation_bullets)} />
                   <Notes title="결정 기준" notes={results.explanation.decision_boundaries} />
                   <Badge>출처: {results.explanation.explanation_source}</Badge>
                 </div>
@@ -2591,7 +2643,7 @@ function App() {
                       <Badge>수정: {csvImportResult.updated_rows}</Badge>
                       <Badge>실패: {csvImportResult.failed_rows}</Badge>
                     </div>
-                    <Notes notes={csvImportResult.notes} />
+                    <Notes notes={displayNotes(csvImportResult.notes)} />
                     <Notes title="가져오기 오류" notes={csvImportResult.errors?.map((item) => `${item.row_number}행: ${item.message}`)} />
                   </div>
                 )}
@@ -2618,10 +2670,13 @@ function App() {
                     <input value={workflowJobForm.description} onChange={(event) => setWorkflowJobForm((current) => ({ ...current, description: event.target.value }))} />
                   </label>
                 </div>
-                <label className="field">
-                  <span>입력 JSON</span>
-                  <textarea rows="8" value={workflowJobForm.input} onChange={(event) => setWorkflowJobForm((current) => ({ ...current, input: event.target.value }))} />
-                </label>
+                <details className="advanced-details">
+                  <summary>고급 입력</summary>
+                  <label className="field">
+                    <span>입력 JSON</span>
+                    <textarea rows="8" value={workflowJobForm.input} onChange={(event) => setWorkflowJobForm((current) => ({ ...current, input: event.target.value }))} />
+                  </label>
+                </details>
                 <div className="flex flex-wrap gap-2">
                   {["admin", "manager"].includes(currentUser.role) && (
                     <button className="button compact" onClick={handleCreateWorkflowJob}>작업 생성</button>
@@ -2666,7 +2721,10 @@ function App() {
                   </table>
                 </div>
                 {activeWorkflowJob && (
-                  <pre className="overflow-x-auto rounded-md bg-slate-950 p-4 text-sm text-white">{JSON.stringify(activeWorkflowJob.result || { error: activeWorkflowJob.error_message, status: activeWorkflowJob.status }, null, 2)}</pre>
+                  <details className="advanced-details">
+                    <summary>기술 정보</summary>
+                    <pre className="overflow-x-auto rounded-md bg-slate-950 p-4 text-sm text-white">{JSON.stringify(activeWorkflowJob.result || { error: activeWorkflowJob.error_message, status: activeWorkflowJob.status }, null, 2)}</pre>
+                  </details>
                 )}
               </Panel>
             )}
@@ -2691,9 +2749,9 @@ function App() {
                       )}
                       {auditLogs.map((log) => (
                         <tr key={log.id}>
-                          <td>{log.action}</td>
+                          <td>{displayAction(log.action)}</td>
                           <td>{log.actor_username}</td>
-                          <td>{log.entity_type}</td>
+                          <td>{displayCode(log.entity_type)}</td>
                           <td>{log.summary}</td>
                           <td>{new Date(log.created_at).toLocaleString()}</td>
                         </tr>
