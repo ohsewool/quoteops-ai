@@ -73,6 +73,14 @@ SQLite local / PostgreSQL on Render
 12. View dashboard and insights
 13. Generate HTML report
 
+## Live Demo
+
+- Frontend: https://quoteops-ai-frontend.onrender.com
+- Backend health: https://quoteops-ai-backend.onrender.com/api/health
+- Backend OpenAPI: https://quoteops-ai-backend.onrender.com/openapi.json
+
+Portfolio demo flow: open the frontend, sign in with a demo account, seed demo data, create a quote, review candidate pricing and validation, process approval, run a simulation, generate a report, and check system status. This is a portfolio SaaS MVP; it does not automatically approve, activate, or send prices.
+
 ## Safety Boundaries
 
 QuoteOps AI does not automatically approve prices. It does not automatically activate price tables, send quotes to customers, scrape real competitor websites, or require external AI APIs by default. Human review is required before business use.
