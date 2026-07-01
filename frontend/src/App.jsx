@@ -354,6 +354,7 @@ function App() {
     password: "manager-demo-password",
   })
   const [currentUser, setCurrentUser] = useState(null)
+  const [entryPanel, setEntryPanel] = useState("demo")
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === Number(selectedProductId)),
@@ -448,27 +449,30 @@ function App() {
     })
   }
 
+  async function completeLogin(credentials) {
+    const data = await login(credentials)
+    localStorage.setItem("quoteops_token", data.access_token)
+    setAccessToken(data.access_token)
+    setCurrentUser(data.user)
+    setActiveSection("overview")
+    await refreshAuditLogs(data.user)
+    setDashboardSummary(await getDashboardSummary())
+    setDashboardInsights(await getDashboardInsights())
+    setHtmlReports(await getHtmlReports())
+    setPricingSimulations(await getPricingSimulations())
+    const templates = await getStrategyTemplates()
+    setStrategyTemplates(templates)
+    if (templates.length > 0) setSelectedStrategyTemplateId(String(templates[0].id))
+    setScenarioComparisons(await getScenarioComparisons())
+    setCustomerQuoteRequests(await getCustomerQuoteRequests())
+    setWorkflowJobs(await getWorkflowJobs())
+    setDemoStatus(await getDemoStatus())
+    setDemoGuide(await getDemoGuide())
+  }
+
   async function handleLogin(event) {
     event.preventDefault()
-    await runAction("Logging in", async () => {
-      const data = await login(loginForm)
-      localStorage.setItem("quoteops_token", data.access_token)
-      setAccessToken(data.access_token)
-      setCurrentUser(data.user)
-      await refreshAuditLogs(data.user)
-      setDashboardSummary(await getDashboardSummary())
-      setDashboardInsights(await getDashboardInsights())
-      setHtmlReports(await getHtmlReports())
-      setPricingSimulations(await getPricingSimulations())
-      const templates = await getStrategyTemplates()
-      setStrategyTemplates(templates)
-      if (templates.length > 0) setSelectedStrategyTemplateId(String(templates[0].id))
-      setScenarioComparisons(await getScenarioComparisons())
-      setCustomerQuoteRequests(await getCustomerQuoteRequests())
-      setWorkflowJobs(await getWorkflowJobs())
-      setDemoStatus(await getDemoStatus())
-      setDemoGuide(await getDemoGuide())
-    })
+    await runAction("Logging in", async () => completeLogin(loginForm))
   }
 
   function handleLogout() {
@@ -966,11 +970,13 @@ function App() {
     })
   }
 
-  function useDemoUser(username) {
-    setLoginForm({
+  async function useDemoUser(username) {
+    const credentials = {
       username,
       password: `${username}-demo-password`,
-    })
+    }
+    setLoginForm(credentials)
+    await runAction("Logging in", async () => completeLogin(credentials))
   }
 
   function basePayload() {
@@ -1182,6 +1188,107 @@ function App() {
     primaryVariant: "secondary",
     primaryAction: loadInitialData,
     inputTitle: "작업 기준",
+  }
+
+  if (!currentUser) {
+    return (
+      <main className="public-shell">
+        <div className="public-page">
+          <header className="public-header">
+            <div className="public-brand">
+              <span className="public-brand-mark">Q</span>
+              <span>QuoteOps AI</span>
+            </div>
+            <div className="public-header-actions">
+              <button className="button button-ghost" type="button" onClick={() => setEntryPanel("login")}>로그인</button>
+              <button className="button button-secondary" type="button" onClick={() => setEntryPanel("demo")}>데모 체험</button>
+            </div>
+          </header>
+
+          {loading && <LoadingState message={`${loading}...`} />}
+          {errorInfo && (
+            <ErrorState
+              title={errorInfo.title}
+              message={errorInfo.message}
+              status={errorInfo.status}
+              onRetry={lastAction}
+            />
+          )}
+          {!errorInfo && error && (
+            <ErrorState
+              title="요청을 완료하지 못했습니다"
+              message={error}
+              onRetry={lastAction}
+            />
+          )}
+          {formError && <FormErrorMessage message={formError} />}
+
+          <section className="public-hero">
+            <div className="public-hero-copy">
+              <p className="public-eyebrow">QuoteOps AI</p>
+              <h1>견적 가격 운영의 시작점에서</h1>
+              <p className="public-hero-text">견적 생성, 가격 평가, 승인, 리포트까지 한 흐름으로 관리하세요.</p>
+              <div className="public-cta-row">
+                <button className="button button-primary public-cta" type="button" onClick={() => setEntryPanel("login")}>서비스 시작하기</button>
+                <button className="button button-secondary public-cta" type="button" onClick={() => setEntryPanel("demo")}>데모 체험하기</button>
+              </div>
+              <p className="public-feature-line">견적 · 가격 평가 · 승인 · 시뮬레이션 · 리포트 · 감사 로그</p>
+            </div>
+
+            <aside className="public-entry-card" aria-label="QuoteOps AI entry">
+              <div className="public-entry-tabs">
+                <button className={`button compact ${entryPanel === "login" ? "" : "secondary"}`} type="button" onClick={() => setEntryPanel("login")}>로그인</button>
+                <button className={`button compact ${entryPanel === "demo" ? "" : "secondary"}`} type="button" onClick={() => setEntryPanel("demo")}>데모 체험</button>
+              </div>
+              {entryPanel === "login" ? (
+                <form className="public-login-form" onSubmit={handleLogin}>
+                  <label className="field">
+                    <span>아이디</span>
+                    <input value={loginForm.username} onChange={(event) => setLoginForm((current) => ({ ...current, username: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>비밀번호</span>
+                    <input type="password" value={loginForm.password} onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))} />
+                  </label>
+                  <button className="button button-primary" type="submit">로그인</button>
+                </form>
+              ) : (
+                <div className="public-demo-panel">
+                  <p className="public-entry-helper">포트폴리오 데모용 계정</p>
+                  <div className="public-demo-grid">
+                    {demoUsers.map((user) => (
+                      <button className="button button-secondary" key={user.username} type="button" onClick={() => useDemoUser(user.username)}>
+                        {user.username === "admin" ? "관리자" : user.username === "manager" ? "매니저" : user.username === "viewer" ? "조회자" : user.username}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </aside>
+          </section>
+
+          <section className="public-flow-section" aria-label="QuoteOps AI workflow">
+            {OVERVIEW_WORKFLOW_CARDS.map((card, index) => (
+              <article className="public-flow-card" key={card.title}>
+                <span>{index + 1}</span>
+                <h2>{card.title}</h2>
+                <p>{card.text}</p>
+              </article>
+            ))}
+          </section>
+
+          <section className="public-safety-card">
+            <span className="badge badge-warning">자동 반영 없음</span>
+            <div>
+              <h2>승인 전 자동 반영 없음</h2>
+              <p>가격 계산과 평가를 지원하지만, 승인 없이 가격을 확정하거나 전송하지 않습니다.</p>
+            </div>
+          </section>
+
+          <p className="public-mvp-note">포트폴리오용 SaaS MVP입니다.</p>
+        </div>
+      </main>
+    )
   }
 
   return (
