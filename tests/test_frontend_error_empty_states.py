@@ -37,10 +37,10 @@ def test_frontend_contains_friendly_empty_state_copy_for_major_sections():
 
     for text_options in [
         ("No approval requests yet", "승인 대기 건이 없습니다."),
-        ("No scenario comparisons yet",),
-        ("No HTML reports yet",),
+        ("No scenario comparisons yet", "아직 실행한 시나리오가 없습니다."),
+        ("No HTML reports yet", "생성된 리포트가 없습니다."),
         ("No customer quote requests yet", "들어온 요청이 없습니다."),
-        ("No workflow jobs yet",),
+        ("No workflow jobs yet", "시스템 운영 정보가 없습니다."),
         ("No strategy templates yet",),
         ("No audit logs loaded",),
         ("No result yet", "아직 견적이 없습니다."),

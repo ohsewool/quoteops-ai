@@ -1138,6 +1138,26 @@ function App() {
       secondaryAction: loadInitialData,
       inputTitle: "승인 기준",
     },
+    simulations: {
+      eyebrow: "시뮬레이션",
+      title: "시뮬레이션",
+      helper: "조건을 바꿔 가격 결과를 비교하세요.",
+      primary: "시뮬레이션 실행",
+      primaryAction: handlePricingSimulation,
+      secondary: "시나리오 비교",
+      secondaryAction: refreshScenarioComparisons,
+      inputTitle: "시뮬레이션 기준",
+    },
+    "admin-system": {
+      eyebrow: "운영",
+      title: "운영",
+      helper: "데이터 작업, 시스템 상태, 작업 상태를 확인하세요.",
+      primary: "상태 새로고침",
+      primaryAction: loadInitialData,
+      secondary: "작업 새로고침",
+      secondaryAction: refreshWorkflowJobs,
+      inputTitle: "운영 기준",
+    },
   }[activeSection] || {
     eyebrow: activeSectionMeta.label,
     title: activeSectionMeta.label,
@@ -1368,20 +1388,20 @@ function App() {
           </section>
 
           {showSection("overview") && currentUser && dashboardSummary && (
-            <Panel title="KPI Dashboard">
+            <Panel title="운영 요약">
               <div className="flex flex-wrap gap-2">
-                <button className="button compact" onClick={refreshDashboardSummary}>Refresh dashboard</button>
-                <Badge>generated: {new Date(dashboardSummary.generated_at).toLocaleString()}</Badge>
+                <button className="button compact" onClick={refreshDashboardSummary}>새로고침</button>
+                <Badge>생성: {new Date(dashboardSummary.generated_at).toLocaleString()}</Badge>
               </div>
               <div className="grid gap-3 md:grid-cols-4">
-                <StatusCard label="Products" value={dashboardSummary.summary.total_products} />
-                <StatusCard label="Quote requests" value={dashboardSummary.summary.total_quote_requests} />
-                <StatusCard label="Approvals" value={dashboardSummary.summary.total_approval_requests} />
-                <StatusCard label="High risk" value={dashboardSummary.summary.high_risk_count} />
+                <StatusCard label="상품" value={dashboardSummary.summary.total_products} />
+                <StatusCard label="진행 중 견적" value={dashboardSummary.summary.total_quote_requests} />
+                <StatusCard label="승인 대기" value={dashboardSummary.approval_metrics.pending_approval_requests} />
+                <StatusCard label="위험 검증" value={dashboardSummary.summary.high_risk_count} />
               </div>
               <div className="grid gap-4 xl:grid-cols-2">
                 <DashboardMetricTable
-                  title="Quote requests"
+                  title="견적 요청"
                   rows={[
                     ["new", dashboardSummary.quote_metrics.new_quote_requests],
                     ["reviewing", dashboardSummary.quote_metrics.reviewing_quote_requests],
@@ -1391,7 +1411,7 @@ function App() {
                   ]}
                 />
                 <DashboardMetricTable
-                  title="Approval metrics"
+                  title="승인 지표"
                   rows={[
                     ["pending", dashboardSummary.approval_metrics.pending_approval_requests],
                     ["approved", dashboardSummary.approval_metrics.approved_requests],
@@ -1401,7 +1421,7 @@ function App() {
                   ]}
                 />
                 <DashboardMetricTable
-                  title="Validation and risk"
+                  title="검증과 위험"
                   rows={[
                     ["passed", dashboardSummary.validation_metrics.passed_validations],
                     ["warning", dashboardSummary.validation_metrics.warning_validations],
@@ -1411,7 +1431,7 @@ function App() {
                   ]}
                 />
                 <DashboardMetricTable
-                  title="Workflow jobs"
+                  title="작업 상태"
                   rows={[
                     ["pending", dashboardSummary.workflow_metrics.pending_jobs],
                     ["running", dashboardSummary.workflow_metrics.running_jobs],
@@ -1421,7 +1441,7 @@ function App() {
                   ]}
                 />
               </div>
-              <div className="overflow-x-auto">
+              <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
@@ -1432,7 +1452,7 @@ function App() {
                   </thead>
                   <tbody>
                     {dashboardSummary.audit_metrics.latest_actions.length === 0 && (
-                      <tr><td colSpan="3"><EmptyState title="No recent audit actions" message="Run a workflow or approval action to populate the latest activity feed." /></td></tr>
+                      <tr><td colSpan="3"><EmptyState title="표시할 요약 정보가 없습니다." message="데모 데이터를 불러오면 흐름을 확인할 수 있습니다." /></td></tr>
                     )}
                     {dashboardSummary.audit_metrics.latest_actions.map((action) => (
                       <tr key={`${action.action}-${action.created_at}`}>
@@ -1449,11 +1469,11 @@ function App() {
           )}
 
           {showSection("overview") && currentUser && dashboardInsights && (
-            <Panel title="Dashboard Insights">
+            <Panel title="분석 인사이트">
               <div className="flex flex-wrap gap-2">
-                <button className="button compact" onClick={refreshDashboardInsights}>Refresh insights</button>
-                <Badge>insights: {dashboardInsights.insight_count}</Badge>
-                <Badge>generated: {new Date(dashboardInsights.generated_at).toLocaleString()}</Badge>
+                <button className="button compact" onClick={refreshDashboardInsights}>새로고침</button>
+                <Badge>인사이트: {dashboardInsights.insight_count}</Badge>
+                <Badge>생성: {new Date(dashboardInsights.generated_at).toLocaleString()}</Badge>
               </div>
               <div className="grid gap-3 xl:grid-cols-2">
                 {dashboardInsights.insights.map((insight) => (
@@ -1475,32 +1495,41 @@ function App() {
           )}
 
           {showSection("demo-tools") && currentUser && (
-            <Panel title="Demo Tools">
-              <p className="max-w-3xl text-sm text-slate-600">
-                Recommended walkthrough: check status, seed demo data if needed, create the full scenario, then open quote preview,
-                candidate prices, validation, approvals, audit logs, scenario comparison, dashboard insights, and reports. Demo tools
-                are local/demo helpers only; they do not approve prices, activate price tables, send quotes, scrape competitors, process
-                payments, or send email.
-              </p>
+            <section className="support-page">
+              <SupportPageHeader
+                eyebrow="데모"
+                title="데모"
+                helper="샘플 데이터로 전체 흐름을 빠르게 확인하세요."
+                primary={["admin", "manager"].includes(currentUser.role) ? <button className="button compact" onClick={handleCreateFullDemoScenario}>데모 시작</button> : <button className="button compact secondary" onClick={refreshDemoStatusAndGuide}>다시 불러오기</button>}
+                secondary={currentUser.role === "admin" ? <button className="button compact secondary" onClick={handleSeedDemoData}>샘플 불러오기</button> : null}
+              />
+              <Panel title="데모 흐름">
+                <ol className="support-flow-list">
+                  {["샘플 데이터 준비", "견적 생성", "가격 평가", "승인 처리", "리포트 확인"].map((step, index) => (
+                    <li key={step}><span>{index + 1}</span>{step}</li>
+                  ))}
+                </ol>
+              </Panel>
+              <Panel title="데모 도구">
               <div className="flex flex-wrap gap-2">
-                <button className="button compact secondary" onClick={refreshDemoStatusAndGuide}>Refresh demo status</button>
+                <button className="button compact secondary" onClick={refreshDemoStatusAndGuide}>다시 불러오기</button>
                 {currentUser.role === "admin" && (
-                  <button className="button compact" onClick={handleSeedDemoData}>Seed demo data</button>
+                  <button className="button compact" onClick={handleSeedDemoData}>샘플 불러오기</button>
                 )}
                 {["admin", "manager"].includes(currentUser.role) && (
-                  <button className="button compact" onClick={handleCreateFullDemoScenario}>Create full scenario</button>
+                  <button className="button compact" onClick={handleCreateFullDemoScenario}>데모 시작</button>
                 )}
                 {currentUser.role === "admin" && (
-                  <button className="button compact secondary border-red-200 text-red-700" onClick={handleResetDemoData}>Reset known demo data</button>
+                  <button className="button compact secondary border-red-200 text-red-700" onClick={handleResetDemoData}>데모 초기화</button>
                 )}
               </div>
 
               {demoStatus && (
                 <div className="grid gap-3 md:grid-cols-4">
-                  <StatusCard label="Demo ready" value={demoStatus.demo_ready ? "ready" : "needs seed"} />
-                  <StatusCard label="Demo products" value={demoStatus.counts.products} />
-                  <StatusCard label="Demo competitors" value={demoStatus.counts.competitors} />
-                  <StatusCard label="Scenario comparisons" value={demoStatus.counts.scenario_comparisons} />
+                  <StatusCard label="데모 상태" value={demoStatus.demo_ready ? "준비됨" : "샘플 필요"} />
+                  <StatusCard label="상품" value={demoStatus.counts.products} />
+                  <StatusCard label="경쟁사" value={demoStatus.counts.competitors} />
+                  <StatusCard label="시나리오" value={demoStatus.counts.scenario_comparisons} />
                 </div>
               )}
 
@@ -1511,7 +1540,7 @@ function App() {
                     <Badge>{demoScenario.demo_product_sku}</Badge>
                     <Badge>{demoScenario.ready ? "ready" : "not ready"}</Badge>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="table-wrap">
                     <table>
                       <thead>
                         <tr>
@@ -1539,7 +1568,7 @@ function App() {
               {demoGuide && (
                 <div className="grid gap-4 xl:grid-cols-2">
                   <div className="rounded-md border border-slate-200 bg-white p-3">
-                    <p className="mb-2 font-semibold">Local demo users</p>
+                    <p className="mb-2 font-semibold">데모 계정</p>
                     <div className="space-y-2 text-sm">
                       {demoGuide.demo_login_users.map((user) => (
                         <div className="flex flex-wrap gap-2" key={user.username}>
@@ -1551,8 +1580,8 @@ function App() {
                     </div>
                   </div>
                   <div className="rounded-md border border-slate-200 bg-white p-3">
-                    <Notes title="Safety boundaries" notes={demoGuide.business_safety_boundaries} />
-                    <Notes title="What not to claim" notes={demoGuide.what_not_to_claim} />
+                    <Notes title="안전 기준" notes={demoGuide.business_safety_boundaries} />
+                    <Notes title="말하지 않을 것" notes={demoGuide.what_not_to_claim} />
                   </div>
                 </div>
               )}
@@ -1568,13 +1597,22 @@ function App() {
                 </div>
               )}
             </Panel>
+            </section>
           )}
 
           {showSection("reports") && currentUser && (
-            <Panel title="HTML Reports">
+            <section className="support-page">
+              <SupportPageHeader
+                eyebrow="리포트"
+                title="리포트"
+                helper="견적과 가격 검증 결과를 정리해 공유하세요."
+                primary={["admin", "manager"].includes(currentUser.role) ? <button className="button compact" onClick={handleCreateHtmlReport}>리포트 생성</button> : null}
+                secondary={<button className="button compact secondary" onClick={refreshHtmlReports}>최근 리포트</button>}
+              />
+            <Panel title="리포트 생성">
               <div className="grid gap-3 md:grid-cols-3">
                 <label className="field">
-                  <span>Report type</span>
+                  <span>리포트 유형</span>
                   <select value={htmlReportForm.report_type} onChange={(event) => setHtmlReportForm((current) => ({ ...current, report_type: event.target.value }))}>
                     {["dashboard_summary", "approval_request", "pricing_simulation", "scenario_comparison", "quote_preview", "price_validation"].map((type) => (
                       <option key={type} value={type}>{type}</option>
@@ -1582,21 +1620,21 @@ function App() {
                   </select>
                 </label>
                 <label className="field">
-                  <span>Title</span>
+                  <span>제목</span>
                   <input value={htmlReportForm.title} onChange={(event) => setHtmlReportForm((current) => ({ ...current, title: event.target.value }))} />
                 </label>
                 <label className="field">
-                  <span>Source ID</span>
+                  <span>대상 ID</span>
                   <input value={htmlReportForm.source_id} onChange={(event) => setHtmlReportForm((current) => ({ ...current, source_id: event.target.value }))} />
                 </label>
               </div>
               <div className="flex flex-wrap gap-2">
                 {["admin", "manager"].includes(currentUser.role) && (
-                  <button className="button compact" onClick={handleCreateHtmlReport}>Create report</button>
+                  <button className="button compact" onClick={handleCreateHtmlReport}>리포트 생성</button>
                 )}
-                <button className="button compact secondary" onClick={refreshHtmlReports}>Refresh reports</button>
+                <button className="button compact secondary" onClick={refreshHtmlReports}>다시 불러오기</button>
                 {activeHtmlReport && (
-                  <button className="button compact secondary" onClick={() => handleOpenHtmlReportContent(activeHtmlReport.id)}>Open HTML</button>
+                  <button className="button compact secondary" onClick={() => handleOpenHtmlReportContent(activeHtmlReport.id)}>리포트 보기</button>
                 )}
               </div>
               {activeHtmlReport && (
@@ -1611,7 +1649,7 @@ function App() {
                   <Notes notes={activeHtmlReport.report_notes} />
                 </div>
               )}
-              <div className="overflow-x-auto">
+              <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
@@ -1624,7 +1662,7 @@ function App() {
                   </thead>
                   <tbody>
                     {htmlReports.length === 0 && (
-                      <tr><td colSpan="5"><EmptyState title="No HTML reports yet" message="Generate a report from a dashboard, approval request, simulation, or scenario comparison." /></td></tr>
+                      <tr><td colSpan="5"><EmptyState title="생성된 리포트가 없습니다." message="첫 리포트를 만들어 보세요." /></td></tr>
                     )}
                     {htmlReports.slice(0, 8).map((report) => (
                       <tr key={report.id}>
@@ -1634,8 +1672,8 @@ function App() {
                         <td>{report.source_id || "-"}</td>
                         <td>
                           <div className="flex flex-wrap gap-2">
-                            <button className="button compact secondary" onClick={() => handleViewHtmlReport(report.id)}>View</button>
-                            <button className="button compact secondary" onClick={() => handleOpenHtmlReportContent(report.id)}>Open</button>
+                            <button className="button compact secondary" onClick={() => handleViewHtmlReport(report.id)}>보기</button>
+                            <button className="button compact secondary" onClick={() => handleOpenHtmlReportContent(report.id)}>열기</button>
                           </div>
                         </td>
                       </tr>
@@ -1644,6 +1682,7 @@ function App() {
                 </table>
               </div>
             </Panel>
+            </section>
           )}
         </section>
 
@@ -1753,7 +1792,7 @@ function App() {
             )}
 
             {showSection("simulations") && currentUser && (
-              <Panel title="Pricing Simulation">
+              <Panel title="시뮬레이션">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
                     <span>Simulation name</span>
@@ -1773,7 +1812,7 @@ function App() {
                   </label>
                 </div>
                 {["admin", "manager"].includes(currentUser.role) && (
-                  <ActionButton onClick={handlePricingSimulation}>Run simulation</ActionButton>
+                  <ActionButton onClick={handlePricingSimulation}>시뮬레이션 실행</ActionButton>
                 )}
                 {activeSimulation && (
                   <div className="space-y-3">
@@ -1782,7 +1821,7 @@ function App() {
                       <Badge>scenarios: {activeSimulation.scenario_count}</Badge>
                       <Badge>unit cost: {formatMoney(activeSimulation.unit_cost)}</Badge>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="table-wrap">
                       <table>
                         <thead>
                           <tr>
@@ -1964,7 +2003,7 @@ function App() {
             )}
 
             {showSection("simulations") && currentUser && (
-              <Panel title="Scenario Comparison">
+              <Panel title="시나리오 비교">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
                     <span>Comparison name</span>
@@ -1989,9 +2028,9 @@ function App() {
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {["admin", "manager"].includes(currentUser.role) && (
-                    <button className="button compact" onClick={handleCreateScenarioComparison}>Create comparison</button>
+                    <button className="button compact" onClick={handleCreateScenarioComparison}>시나리오 비교</button>
                   )}
-                  <button className="button compact secondary" onClick={refreshScenarioComparisons}>Refresh comparisons</button>
+                  <button className="button compact secondary" onClick={refreshScenarioComparisons}>다시 불러오기</button>
                 </div>
                 {activeScenarioComparison && (
                   <div className="space-y-3">
@@ -2001,7 +2040,7 @@ function App() {
                       <Badge>highest profit: {activeScenarioComparison.summary.highest_profit_label}</Badge>
                       <Badge>lowest risk: {activeScenarioComparison.summary.lowest_risk_label}</Badge>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="table-wrap">
                       <table>
                         <thead>
                           <tr>
@@ -2048,7 +2087,7 @@ function App() {
                     </thead>
                     <tbody>
                       {scenarioComparisons.length === 0 && (
-                        <tr><td colSpan="5"><EmptyState title="No scenario comparisons yet" message="Create a comparison to review pricing options side by side." /></td></tr>
+                        <tr><td colSpan="5"><EmptyState title="아직 실행한 시나리오가 없습니다." message="조건을 바꿔 가격 결과를 비교해 보세요." /></td></tr>
                       )}
                       {scenarioComparisons.slice(0, 8).map((comparison) => (
                         <tr key={comparison.id}>
@@ -2056,7 +2095,7 @@ function App() {
                           <td>{comparison.name}</td>
                           <td>{comparison.product_name}</td>
                           <td>{comparison.scenario_count}</td>
-                          <td><button className="button compact secondary" onClick={() => handleViewScenarioComparison(comparison.id)}>View</button></td>
+                          <td><button className="button compact secondary" onClick={() => handleViewScenarioComparison(comparison.id)}>보기</button></td>
                         </tr>
                       ))}
                     </tbody>
@@ -2306,7 +2345,7 @@ function App() {
             )}
 
             {showSection("admin-system") && currentUser && (
-              <Panel title="CSV Import and Export">
+              <Panel title="데이터 관리">
                 <div className="grid gap-3 md:grid-cols-3">
                   {[
                     ["products", "Products"],
@@ -2324,9 +2363,9 @@ function App() {
                       </label>
                       <div className="flex flex-wrap gap-2">
                         {["admin", "manager"].includes(currentUser.role) && (
-                          <button className="button compact" onClick={() => handleCsvImport(entity)}>Import</button>
+                          <button className="button compact" onClick={() => handleCsvImport(entity)}>데이터 가져오기</button>
                         )}
-                        <button className="button compact secondary" onClick={() => handleCsvExport(entity, `${entity}.csv`)}>Export</button>
+                        <button className="button compact secondary" onClick={() => handleCsvExport(entity, `${entity}.csv`)}>내보내기</button>
                       </div>
                     </div>
                   ))}
@@ -2348,7 +2387,7 @@ function App() {
             )}
 
             {showSection("simulations", "admin-system") && currentUser && (
-              <Panel title="Workflow Jobs">
+              <Panel title="작업 상태">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
                     <span>Job type</span>
@@ -2373,11 +2412,11 @@ function App() {
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {["admin", "manager"].includes(currentUser.role) && (
-                    <button className="button compact" onClick={handleCreateWorkflowJob}>Create job</button>
+                    <button className="button compact" onClick={handleCreateWorkflowJob}>작업 생성</button>
                   )}
-                  <button className="button compact secondary" onClick={refreshWorkflowJobs}>Refresh jobs</button>
+                  <button className="button compact secondary" onClick={refreshWorkflowJobs}>다시 불러오기</button>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="table-wrap">
                   <table>
                     <thead>
                       <tr>
@@ -2390,7 +2429,7 @@ function App() {
                     </thead>
                     <tbody>
                       {workflowJobs.length === 0 && (
-                        <tr><td colSpan="5"><EmptyState title="No workflow jobs yet" message="Create a job to run repeatable pricing, validation, or quote review work." /></td></tr>
+                        <tr><td colSpan="5"><EmptyState title="시스템 운영 정보가 없습니다." message="작업을 생성하면 상태를 확인할 수 있습니다." /></td></tr>
                       )}
                       {workflowJobs.map((job) => (
                         <tr key={job.id}>
@@ -2400,11 +2439,11 @@ function App() {
                           <td>{job.status}</td>
                           <td>
                             <div className="flex flex-wrap gap-2">
-                              <button className="button compact secondary" onClick={() => setActiveWorkflowJob(job)}>View</button>
+                              <button className="button compact secondary" onClick={() => setActiveWorkflowJob(job)}>보기</button>
                               {job.status === "pending" && ["admin", "manager"].includes(currentUser.role) && (
                                 <>
-                                  <button className="button compact" onClick={() => handleRunWorkflowJob(job.id)}>Run</button>
-                                  <button className="button compact secondary" onClick={() => handleCancelWorkflowJob(job.id)}>Cancel</button>
+                                  <button className="button compact" onClick={() => handleRunWorkflowJob(job.id)}>실행</button>
+                                  <button className="button compact secondary" onClick={() => handleCancelWorkflowJob(job.id)}>취소</button>
                                 </>
                               )}
                             </div>
@@ -2512,6 +2551,22 @@ function SafetyBoundaryCard() {
       <div>
         <h3>승인 전 자동 반영 없음</h3>
         <p>승인 없이 가격을 확정하거나 전송하지 않습니다.</p>
+      </div>
+    </section>
+  )
+}
+
+function SupportPageHeader({ eyebrow, title, helper, primary, secondary }) {
+  return (
+    <section className="support-header card">
+      <div>
+        <p className="overview-eyebrow">{eyebrow}</p>
+        <h2>{title}</h2>
+        <p>{helper}</p>
+      </div>
+      <div className="overview-actions">
+        {primary}
+        {secondary}
       </div>
     </section>
   )
