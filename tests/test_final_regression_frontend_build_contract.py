@@ -28,17 +28,17 @@ def test_frontend_keeps_main_navigation_and_regression_ux_copy():
         ("Admin / System", "운영"),
         ("Demo Tools", "데모"),
         ("System Status",),
-        ("Dashboard Insights",),
-        ("Scenario Comparison",),
-        ("HTML Reports",),
+        ("Dashboard Insights", "분석 인사이트"),
+        ("Scenario Comparison", "시나리오 비교"),
+        ("HTML Reports", "리포트 생성"),
     ]:
         assert any(label in source for label in label_options)
     for text_options in [
         ("Backend is not reachable", "데이터를 불러오지 못했습니다"),
         ("Retry", "다시 불러오기"),
         ("No approval requests yet", "승인 대기 건이 없습니다."),
-        ("No scenario comparisons yet",),
-        ("No HTML reports yet",),
+        ("No scenario comparisons yet", "아직 실행한 시나리오가 없습니다."),
+        ("No HTML reports yet", "생성된 리포트가 없습니다."),
         ("No result yet", "아직 견적이 없습니다."),
     ]:
         assert any(text in source for text in text_options)
