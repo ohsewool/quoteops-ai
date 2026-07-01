@@ -1202,7 +1202,7 @@ function App() {
         {formError && <FormErrorMessage message={formError} />}
 
         <nav className="app-nav mb-5 rounded-md border border-slate-200 bg-white p-3 shadow-sm" aria-label="Workspace sections">
-          <div className="flex flex-wrap gap-2">
+          <div className="app-nav-list flex flex-wrap gap-2">
             {NAV_SECTIONS.map((section) => (
               <button
                 className={`nav-pill ${activeSection === section.key ? "active" : ""}`}
