@@ -61,7 +61,9 @@ def test_frontend_overview_includes_safe_decision_boundary_and_quick_links():
 
     assert "승인 전 자동 반영 없음" in source
     assert "승인 없이 가격을 확정하거나 전송하지 않습니다" in source
-    assert "Quick links" in source
+    assert "주요 흐름" in source
+    assert "견적 생성" in source
+    assert "가격 검증" in source
 
 
 def test_frontend_api_client_uses_vite_api_base_url_and_local_fallback():
