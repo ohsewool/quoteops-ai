@@ -10,6 +10,16 @@ Authenticated app screens should present business workflow language, not raw dev
 - Raw JSON inputs and payload previews are placed behind 고급 입력 or 기술 정보 disclosure controls.
 - Backend APIs, auth behavior, pricing formulas, payload keys, and database models are unchanged.
 
+## PR-47 Remaining Visible UI Artifact Cleanup
+
+PR-47 removes the remaining visible English/internal artifacts from normal authenticated screens.
+
+- Home no longer shows internal dashboard insight or raw activity log panels.
+- Pricing and safety explanation text is Korean-first while backend payload keys stay unchanged.
+- Demo flow cards use responsive widths so Korean step titles do not break vertically.
+- Demo step names and safety notes render as Korean business workflow copy.
+- Technical diagnostics remain under 운영 or collapsed 기술 정보 sections.
+
 ## PR-42 목적
 
 QuoteOps AI를 포트폴리오용 SaaS MVP로 보여주기 전에 최종 화면 흐름, 반응형 상태, 안전 문구, Render 재배포 확인 절차를 정리한다. 이 단계는 기능 추가가 아니라 최종 QA와 데모 준비 문서화다.
