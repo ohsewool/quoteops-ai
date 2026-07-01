@@ -1,5 +1,15 @@
 # PR-42 포트폴리오 UI QA
 
+## PR-46 Developer Console Artifact Cleanup
+
+Authenticated app screens should present business workflow language, not raw developer-console details.
+
+- Normal workflow screens use Korean labels for roles, statuses, audit actions, rule codes, and demo flow steps.
+- The authenticated header uses a compact user chip instead of a dominant demo/user-role card.
+- Technical DB, OpenAPI, CORS, and deployment diagnostics stay in the 운영/System area.
+- Raw JSON inputs and payload previews are placed behind 고급 입력 or 기술 정보 disclosure controls.
+- Backend APIs, auth behavior, pricing formulas, payload keys, and database models are unchanged.
+
 ## PR-42 목적
 
 QuoteOps AI를 포트폴리오용 SaaS MVP로 보여주기 전에 최종 화면 흐름, 반응형 상태, 안전 문구, Render 재배포 확인 절차를 정리한다. 이 단계는 기능 추가가 아니라 최종 QA와 데모 준비 문서화다.
