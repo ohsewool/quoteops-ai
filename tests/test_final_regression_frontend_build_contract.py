@@ -17,31 +17,34 @@ def test_frontend_api_client_keeps_env_base_url_contract():
 def test_frontend_keeps_main_navigation_and_regression_ux_copy():
     source = APP_SOURCE.read_text(encoding="utf-8")
 
-    for label_options in [
-        ("Overview", "홈"),
-        ("Quote Operations", "견적"),
-        ("Pricing Tools", "가격"),
-        ("Approvals", "승인"),
-        ("Customer Requests", "고객 요청"),
-        ("Simulations", "시뮬레이션"),
-        ("Reports", "리포트"),
-        ("Admin / System", "운영"),
-        ("Demo Tools", "데모"),
-        ("시스템 상태",),
-        ("Dashboard Insights", "분석 인사이트"),
-        ("Scenario Comparison", "시나리오 비교"),
-        ("HTML Reports", "리포트 생성"),
+    for text in [
+        "대시보드",
+        "고객 요청",
+        "견적",
+        "가격 평가",
+        "승인함",
+        "리포트",
+        "운영",
+        "데모",
+        "시스템 상태",
+        "분석 인사이트",
+        "시나리오 비교",
+        "리포트 생성",
+        "시뮬레이션",
     ]:
-        assert any(label in source for label in label_options)
+        assert text in source
+
     for text_options in [
-        ("백엔드에 연결할 수 없습니다.", "데이터를 불러오지 못했습니다"),
+        ("백엔드에 연결할 수 없습니다.", "데이터를 불러오지 못했습니다."),
         ("다시 시도", "다시 불러오기"),
-        ("승인 대기 건이 없습니다.",),
+        ("현재 처리할 승인 항목이 없습니다.",),
         ("아직 실행한 시나리오가 없습니다.",),
-        ("생성된 리포트가 없습니다.",),
+        ("아직 생성된 문서가 없습니다.",),
         ("아직 견적이 없습니다.",),
     ]:
         assert any(text in source for text in text_options)
+
+    assert 'label: "시뮬레이션"' not in source
 
 
 def test_frontend_source_does_not_expose_backend_secret_names_or_keys():

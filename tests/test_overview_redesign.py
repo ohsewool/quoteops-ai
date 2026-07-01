@@ -18,8 +18,8 @@ def test_overview_includes_korean_hero_and_primary_actions():
     for text in [
         "견적부터 승인까지 한 흐름으로",
         "견적 생성, 가격 평가, 승인, 리포트까지 한 번에 관리하세요.",
-        "계산, 원가, 승인, 리포트까지 한 흐름으로",
-        "견적 시작",
+        "오늘 처리할 견적과 승인",
+        "견적 만들기",
         "데모 보기",
         "승인 전 자동 반영 없음",
     ]:
@@ -30,9 +30,10 @@ def test_overview_includes_main_workflow_cards():
     source = _read(APP_SOURCE)
 
     for label in [
+        "고객 요청",
         "견적 생성",
-        "가격 검증",
-        "승인 관리",
+        "가격 평가",
+        "승인함",
         "리포트 생성",
     ]:
         assert label in source
@@ -48,18 +49,19 @@ def test_overview_keeps_demo_login_role_labels():
 def test_overview_keeps_all_major_navigation_sections_available():
     source = _read(APP_SOURCE)
 
-    for label_options in [
-        ("Overview", "홈"),
-        ("Quote Operations", "견적"),
-        ("Pricing Tools", "가격"),
-        ("Approvals", "승인"),
-        ("Customer Requests", "고객 요청"),
-        ("Simulations", "시뮬레이션"),
-        ("Reports", "리포트"),
-        ("Admin / System", "운영"),
-        ("Demo Tools", "데모"),
+    for label in [
+        "대시보드",
+        "고객 요청",
+        "견적",
+        "가격 평가",
+        "승인함",
+        "리포트",
+        "운영",
+        "데모",
     ]:
-        assert any(label in source for label in label_options)
+        assert label in source
+
+    assert 'label: "시뮬레이션"' not in source
 
 
 def test_frontend_api_client_keeps_base_url_contract():

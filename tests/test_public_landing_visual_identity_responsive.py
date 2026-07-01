@@ -27,7 +27,7 @@ def test_public_landing_includes_service_entry_copy():
         "포트폴리오 데모용 계정",
         "견적 생성",
         "가격 평가",
-        "승인 관리",
+        "승인함",
         "리포트 생성",
     ]:
         assert text in source
@@ -38,18 +38,18 @@ def test_authenticated_navigation_labels_remain_available():
 
     for section_key in [
         "overview",
+        "customer-requests",
         "quote-operations",
         "pricing-tools",
         "approvals",
-        "customer-requests",
-        "simulations",
         "reports",
         "admin-system",
         "demo-tools",
     ]:
         assert f'key: "{section_key}"' in source
 
-    assert source.count("label:") >= 9
+    assert 'key: "simulations"' not in source
+    assert source.count("label:") >= 8
 
 
 def test_source_has_public_landing_and_authenticated_shell_modes():

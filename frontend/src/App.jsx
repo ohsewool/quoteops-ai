@@ -137,38 +137,33 @@ function validateJson(value) {
 const NAV_SECTIONS = [
   {
     key: "overview",
-    label: "홈",
-    description: "견적부터 가격 검증, 승인, 리포트까지 한눈에 확인합니다.",
-  },
-  {
-    key: "quote-operations",
-    label: "견적",
-    description: "고객 요청을 바탕으로 견적과 설명을 준비합니다.",
-  },
-  {
-    key: "pricing-tools",
-    label: "가격",
-    description: "가격 후보, 검증, 전략 템플릿, 가격표 비교를 확인합니다.",
-  },
-  {
-    key: "approvals",
-    label: "승인",
-    description: "승인 대기 건과 감사 로그를 검토합니다.",
+    label: "대시보드",
+    description: "오늘 처리할 견적과 승인을 먼저 확인합니다.",
   },
   {
     key: "customer-requests",
     label: "고객 요청",
-    description: "고객 견적 요청을 접수하고 상태를 관리합니다.",
+    description: "견적을 만들기 전의 요청을 수집하고 정리합니다.",
   },
   {
-    key: "simulations",
-    label: "시뮬레이션",
-    description: "가격 시뮬레이션과 시나리오 비교를 확인합니다.",
+    key: "quote-operations",
+    label: "견적",
+    description: "고객 요청을 견적 작업으로 전환하고 제출 가능한 상태까지 정리합니다.",
+  },
+  {
+    key: "pricing-tools",
+    label: "가격 평가",
+    description: "후보 가격과 규칙 검증 결과를 비교해 승인 필요 여부를 판단합니다.",
+  },
+  {
+    key: "approvals",
+    label: "승인함",
+    description: "승인자가 빠르게 판단할 수 있도록 필요한 근거만 모읍니다.",
   },
   {
     key: "reports",
     label: "리포트",
-    description: "대시보드, 가격, 검증 결과를 리포트로 정리합니다.",
+    description: "견적 문서와 운영 요약을 공유 가능한 형식으로 관리합니다.",
   },
   {
     key: "admin-system",
@@ -184,21 +179,27 @@ const NAV_SECTIONS = [
 
 const OVERVIEW_WORKFLOW_CARDS = [
   {
+    title: "고객 요청",
+    text: "신규 요청을 확인하고 견적 작업으로 전환합니다.",
+    action: "고객 요청 열기",
+    section: "customer-requests",
+  },
+  {
     title: "견적 생성",
-    text: "고객 요청을 바탕으로 견적을 준비합니다.",
-    action: "견적 시작",
+    text: "요청 조건을 견적 항목과 수량으로 정리합니다.",
+    action: "견적 만들기",
     section: "quote-operations",
   },
   {
-    title: "가격 검증",
-    text: "기준과 조건에 맞는지 확인합니다.",
-    action: "가격 확인",
+    title: "가격 평가",
+    text: "후보 가격과 규칙 검증 결과를 비교합니다.",
+    action: "가격 평가 열기",
     section: "pricing-tools",
   },
   {
-    title: "승인 관리",
-    text: "승인 대기 건을 검토하고 처리합니다.",
-    action: "승인 보기",
+    title: "승인함",
+    text: "승인 대기 견적의 근거와 위험을 확인합니다.",
+    action: "승인함 보기",
     section: "approvals",
   },
   {
@@ -207,6 +208,17 @@ const OVERVIEW_WORKFLOW_CARDS = [
     action: "리포트 보기",
     section: "reports",
   },
+]
+
+const DASHBOARD_WORKFLOW_STEPS = ["고객 요청", "견적 생성", "가격 평가", "승인", "리포트"]
+
+const DEMO_WORKFLOW_STEPS = [
+  "샘플 데이터 준비",
+  "고객 요청 생성",
+  "견적 생성",
+  "가격 평가",
+  "승인 처리",
+  "리포트 생성",
 ]
 
 const CORE_WORKFLOW_STEPS = [
@@ -380,6 +392,7 @@ const INTERNAL_CODE_LABELS = {
   scenario_comparison: "시나리오 비교",
   workflow_job: "작업",
   dashboard_summary: "운영 요약",
+  report_review: "리포트 확인",
 }
 
 const VISIBLE_TEXT_LABELS = {
@@ -1343,66 +1356,76 @@ function App() {
   const pendingApprovalCount = dashboardSummary?.approval_metrics?.pending_approval_requests ?? approvalRequests.length
   const openRequestCount = dashboardSummary?.quote_metrics?.new_quote_requests ?? customerQuoteRequests.length
   const workflowPageMeta = {
-    "quote-operations": {
-      eyebrow: "견적",
-      title: "견적 흐름",
-      helper: "고객 요청부터 견적 미리보기까지 한 흐름으로 확인하세요.",
-      primary: "새 견적",
-      primarySection: "quote-operations",
-      secondary: "요청 가져오기",
-      secondarySection: "customer-requests",
-      inputTitle: "견적 입력",
-    },
     "customer-requests": {
       eyebrow: "고객 요청",
       title: "고객 요청",
-      helper: "들어온 요청을 확인하고 견적으로 연결하세요.",
-      primary: "견적 생성",
-      primarySection: "quote-operations",
-      secondary: "다시 불러오기",
-      secondaryAction: refreshCustomerQuoteRequests,
+      helper: "견적을 만들기 전의 요청을 수집하고 정리합니다.",
+      primary: "요청 등록",
+      primaryAction: handleCreateCustomerQuoteRequest,
+      secondary: "견적으로 전환",
+      secondarySection: "quote-operations",
       inputTitle: "요청 기준",
     },
+    "quote-operations": {
+      eyebrow: "견적",
+      title: "견적",
+      helper: "고객 요청을 견적 작업으로 전환하고 제출 가능한 상태까지 정리합니다.",
+      primary: "새 견적",
+      primarySection: "quote-operations",
+      secondary: "가격 평가로 이동",
+      secondarySection: "pricing-tools",
+      inputTitle: "견적 입력",
+    },
     "pricing-tools": {
-      eyebrow: "가격",
-      title: "가격 도구",
-      helper: "가격안을 계산하고 기준에 맞는지 평가하세요.",
-      primary: "가격 계산",
+      eyebrow: "가격 평가",
+      title: "가격 평가",
+      helper: "후보 가격과 규칙 검증 결과를 비교해 승인 필요 여부를 판단합니다.",
+      primary: "적용 가격 확정",
       primaryAction: handleCandidates,
-      secondary: "가격 평가",
-      secondaryAction: handleValidation,
+      secondary: "시뮬레이션 열기",
+      secondaryAction: handlePricingSimulation,
       inputTitle: "가격 기준",
     },
     approvals: {
-      eyebrow: "승인",
-      title: "승인 관리",
-      helper: "승인 대기 건을 검토하고 처리하세요.",
-      primary: "승인 요청",
+      eyebrow: "승인함",
+      title: "승인함",
+      helper: "승인자가 빠르게 판단할 수 있도록 필요한 근거만 모읍니다.",
+      primary: "승인",
       primaryAction: handleCreateApproval,
-      secondary: "다시 불러오기",
+      secondary: "반려",
       secondaryAction: loadInitialData,
       inputTitle: "승인 기준",
     },
-    simulations: {
-      eyebrow: "시뮬레이션",
-      title: "시뮬레이션",
-      helper: "조건을 바꿔 가격 결과를 비교하세요.",
-      primary: "시뮬레이션 실행",
-      primaryAction: handlePricingSimulation,
-      secondary: "시나리오 비교",
-      secondaryAction: refreshScenarioComparisons,
-      inputTitle: "시뮬레이션 기준",
+    reports: {
+      eyebrow: "리포트",
+      title: "리포트",
+      helper: "견적 문서와 운영 요약을 공유 가능한 형식으로 관리합니다.",
+      primary: "문서 생성",
+      primaryAction: handleCreateHtmlReport,
+      secondary: "미리보기",
+      secondaryAction: refreshHtmlReports,
+      inputTitle: "문서 기준",
     },
     "admin-system": {
       eyebrow: "운영",
       title: "운영",
-      helper: "데이터 작업, 시스템 상태, 작업 상태를 확인하세요.",
+      helper: "시스템 상태와 데이터 관리, 개발자 기능을 관리합니다.",
       primary: "상태 새로고침",
       primaryVariant: "secondary",
       primaryAction: loadInitialData,
-      secondary: "작업 새로고침",
-      secondaryAction: refreshWorkflowJobs,
+      secondary: "감사 로그",
+      secondaryAction: refreshAuditLogs,
       inputTitle: "운영 기준",
+    },
+    "demo-tools": {
+      eyebrow: "데모",
+      title: "데모",
+      helper: "샘플 데이터를 사용해 실제 업무 흐름을 순서대로 체험합니다.",
+      primary: "데모 시작",
+      primaryAction: handleCreateFullDemoScenario,
+      secondary: "샘플 데이터 준비",
+      secondaryAction: handleSeedDemoData,
+      inputTitle: "데모 안내",
     },
   }[activeSection] || {
     eyebrow: activeSectionMeta.label,
@@ -1530,7 +1553,7 @@ function App() {
             {currentUser && (
               <div className="user-chip" aria-label="현재 사용자">
                 <strong>{displayRoleMode(currentUser.role)}</strong>
-                <span>{currentUser.display_name || displayRole(currentUser.role)}</span>
+                <span>업무 계정</span>
               </div>
             )}
             <button className="button compact secondary" onClick={loadInitialData} disabled={!!loading}>
@@ -1577,30 +1600,40 @@ function App() {
           <section className="overview-home section">
             <div className="overview-hero card">
               <div className="overview-hero-copy">
-                <span className="overview-eyebrow">QuoteOps AI</span>
-                <h2>견적부터 승인까지 한 흐름으로</h2>
-                <p>계산, 원가, 승인, 리포트까지 한 흐름으로</p>
+                <span className="overview-eyebrow">대시보드</span>
+                <h2>오늘 처리할 견적과 승인</h2>
+                <p>지연 없이 처리해야 할 요청과 병목을 먼저 확인하세요.</p>
                 <div className="overview-actions">
-                  <button className="button button-primary" type="button" onClick={() => setActiveSection("quote-operations")}>
-                    견적 시작
+                  <button className="button button-primary" type="button" onClick={() => setActiveSection("customer-requests")}>
+                    고객 요청
                   </button>
-                  <button className="button button-secondary" type="button" onClick={() => setActiveSection("demo-tools")}>
-                    데모 보기
+                  <button className="button button-secondary" type="button" onClick={() => setActiveSection("quote-operations")}>
+                    견적
+                  </button>
+                  <button className="button button-secondary" type="button" onClick={() => setActiveSection("approvals")}>
+                    승인함 보기
+                  </button>
+                  <button className="button button-secondary" type="button" onClick={() => setActiveSection("pricing-tools")}>
+                    가격 평가 열기
                   </button>
                 </div>
               </div>
               <div className="overview-hero-status" aria-label="업무 요약">
                 <div className="overview-status-item">
-                  <span>승인 대기</span>
-                  <strong className="badge badge-warning">{pendingApprovalCount}건</strong>
-                </div>
-                <div className="overview-status-item">
                   <span>신규 요청</span>
                   <strong className="badge badge-success">{openRequestCount}건</strong>
                 </div>
                 <div className="overview-status-item">
-                  <span>다음 단계</span>
-                  <strong className="badge">가격 평가</strong>
+                  <span>가격 평가 필요</span>
+                  <strong className="badge badge-warning">{results.validation ? "검토됨" : "대기"}</strong>
+                </div>
+                <div className="overview-status-item">
+                  <span>승인 대기</span>
+                  <strong className="badge badge-warning">{pendingApprovalCount}건</strong>
+                </div>
+                <div className="overview-status-item">
+                  <span>최근 리포트</span>
+                  <strong className="badge">{htmlReports.length}건</strong>
                 </div>
               </div>
             </div>
@@ -1616,8 +1649,16 @@ function App() {
             <div className="overview-grid">
               <section className="overview-workflow card">
                 <div className="section-header">
-                  <p className="text-sm font-semibold text-slate-500">주요 흐름</p>
-                  <h3>견적부터 승인까지</h3>
+                  <p className="text-sm font-semibold text-slate-500">오늘의 작업</p>
+                  <h3>고객 요청 → 견적 생성 → 가격 평가 → 승인 → 리포트</h3>
+                </div>
+                <div className="workflow-step-strip">
+                  {DASHBOARD_WORKFLOW_STEPS.map((step, index) => (
+                    <div className="workflow-step" key={step}>
+                      <span>{index + 1}</span>
+                      <strong>{step}</strong>
+                    </div>
+                  ))}
                 </div>
                 <div className="workflow-grid">
                   {OVERVIEW_WORKFLOW_CARDS.map((card) => (
@@ -1635,7 +1676,7 @@ function App() {
               <aside className="overview-side">
                 <section className="card overview-demo-card">
                   <div>
-                    <p className="text-sm font-semibold text-slate-500">포트폴리오 데모용 계정</p>
+                    <p className="text-sm font-semibold text-slate-500">빠른 실행</p>
                     <h3>데모 시작</h3>
                     <p>샘플 데이터로 흐름을 확인하세요.</p>
                   </div>
@@ -1653,8 +1694,8 @@ function App() {
 
                 <section className="card overview-safety-card">
                   <span className="badge badge-warning">자동 반영 없음</span>
-                  <h3>승인 전 자동 반영 없음</h3>
-                  <p>가격 계산과 원가 검증을 지원하지만, 승인 없이 가격을 확정하거나 전송하지 않습니다.</p>
+                  <h3>최종 가격은 승인 후 확정됩니다</h3>
+                  <p>계산과 평가는 돕고, 결정은 사람이 합니다.</p>
                 </section>
 
                 <section className="card overview-activity-card">
@@ -1823,13 +1864,13 @@ function App() {
               <SupportPageHeader
                 eyebrow="데모"
                 title="데모 시작"
-                helper="샘플 데이터로 전체 흐름을 빠르게 확인하세요."
+                helper="샘플 데이터를 사용해 실제 업무 흐름을 순서대로 체험합니다."
                 primary={["admin", "manager"].includes(currentUser.role) ? <button className="button compact" onClick={handleCreateFullDemoScenario}>데모 시작</button> : <button className="button compact secondary" onClick={refreshDemoStatusAndGuide}>다시 불러오기</button>}
                 secondary={currentUser.role === "admin" ? <button className="button compact secondary" onClick={handleSeedDemoData}>샘플 불러오기</button> : null}
               />
               <Panel title="데모 흐름">
                 <ol className="support-flow-list">
-                  {["샘플 데이터 준비", "견적 생성", "가격 평가", "승인 처리", "리포트 확인"].map((step, index) => (
+                  {DEMO_WORKFLOW_STEPS.map((step, index) => (
                     <li key={step}><span>{index + 1}</span>{step}</li>
                   ))}
                 </ol>
@@ -1900,10 +1941,11 @@ function App() {
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-md border border-slate-200 bg-white p-3">
+                  <details className="advanced-details">
+                    <summary>데모 안내</summary>
                     <Notes title="안전 기준" notes={demoGuide.business_safety_boundaries} />
                     <Notes title="말하지 않을 것" notes={demoGuide.what_not_to_claim} />
-                  </div>
+                  </details>
                 </div>
               )}
 
@@ -1929,11 +1971,17 @@ function App() {
               <SupportPageHeader
                 eyebrow="리포트"
                 title="리포트"
-                helper="견적과 가격 검증 결과를 정리해 공유하세요."
-                primary={["admin", "manager"].includes(currentUser.role) ? <button className="button compact" onClick={handleCreateHtmlReport}>리포트 생성</button> : null}
-                secondary={<button className="button compact secondary" onClick={refreshHtmlReports}>최근 리포트</button>}
+                helper="견적 문서와 운영 요약을 공유 가능한 형식으로 관리합니다."
+                primary={["admin", "manager"].includes(currentUser.role) ? <button className="button compact" onClick={handleCreateHtmlReport}>문서 생성</button> : null}
+                secondary={<button className="button compact secondary" onClick={refreshHtmlReports}>내보내기 이력</button>}
               />
-            <Panel title="리포트 생성">
+            <Panel title="문서 생성">
+              <div className="workflow-panel-intro">
+                <Badge>문서</Badge>
+                <Badge>요약</Badge>
+                <Badge>내보내기 이력</Badge>
+                <p>문서 생성, 미리보기, 재생성 작업을 한곳에서 관리합니다.</p>
+              </div>
               <div className="grid gap-3 md:grid-cols-3">
                 <label className="field">
                   <span>리포트 유형</span>
@@ -1954,11 +2002,11 @@ function App() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {["admin", "manager"].includes(currentUser.role) && (
-                  <button className="button compact" onClick={handleCreateHtmlReport}>리포트 생성</button>
+                  <button className="button compact" onClick={handleCreateHtmlReport}>문서 생성</button>
                 )}
                 <button className="button compact secondary" onClick={refreshHtmlReports}>다시 불러오기</button>
                 {activeHtmlReport && (
-                  <button className="button compact secondary" onClick={() => handleOpenHtmlReportContent(activeHtmlReport.id)}>리포트 보기</button>
+                  <button className="button compact secondary" onClick={() => handleOpenHtmlReportContent(activeHtmlReport.id)}>미리보기</button>
                 )}
               </div>
               {activeHtmlReport && (
@@ -1986,7 +2034,7 @@ function App() {
                   </thead>
                   <tbody>
                     {htmlReports.length === 0 && (
-                      <tr><td colSpan="5"><EmptyState title="생성된 리포트가 없습니다." message="첫 리포트를 만들어 보세요." /></td></tr>
+                      <tr><td colSpan="5"><EmptyState title="아직 생성된 문서가 없습니다." message="견적이 승인되면 문서를 생성하세요." /></td></tr>
                     )}
                     {htmlReports.slice(0, 8).map((report) => (
                       <tr key={report.id}>
@@ -2055,11 +2103,18 @@ function App() {
           <div className="grid gap-5">
             {showSection("quote-operations") && (
             <Panel title="견적 미리보기">
-              <div className="workflow-panel-intro">
-                <Badge>새 견적</Badge>
-                <p>상품과 수량을 기준으로 견적 미리보기를 만듭니다.</p>
+                <div className="workflow-panel-intro">
+                  <Badge>기본 정보 → 항목/수량 → 가격 반영 → 검토 → 승인 요청</Badge>
+                  <p>고객 요청을 견적 작업으로 전환하고 제출 가능한 상태까지 정리합니다.</p>
+                  <Badge>라인 아이템</Badge>
+                  <Badge>가격 평가로 이동</Badge>
+                </div>
+              <div className="flex flex-wrap gap-2">
+                <ActionButton onClick={handleQuotePreview}>새 견적</ActionButton>
+                <button className="button compact secondary" onClick={() => setActiveSection("pricing-tools")}>가격 평가로 이동</button>
+                <button className="button compact secondary" onClick={handleExplanation}>문서 미리보기</button>
+                <button className="button compact secondary" onClick={handleCreateApproval}>승인 요청</button>
               </div>
-              <ActionButton onClick={handleQuotePreview}>새 견적</ActionButton>
               <MetricGrid data={results.quotePreview} fields={["unit_cost", "total_cost", "suggested_unit_price", "suggested_total_price", "estimated_gross_profit", "estimated_margin_rate"]} />
               <Notes notes={displayNotes(results.quotePreview?.calculation_notes)} />
             </Panel>
@@ -2067,9 +2122,19 @@ function App() {
 
             {showSection("pricing-tools") && (
             <Panel title="가격안">
-              <div className="workflow-panel-intro">
-                <Badge>가격 계산</Badge>
-                <p>원가와 마진 기준으로 가격 후보를 계산합니다.</p>
+                <div className="workflow-panel-intro">
+                  <Badge>가격안 비교</Badge>
+                  <p>기준가, 원가, 적용 후보가, 예상 마진, 리스크 수준, 승인 필요 여부를 함께 확인합니다.</p>
+                  <Badge>트리거된 규칙</Badge>
+                  <Badge>승인 트리거</Badge>
+                </div>
+              <div className="grid gap-3 md:grid-cols-6">
+                <StatusCard label="기준가" value={results.quotePreview ? formatMoney(results.quotePreview.suggested_unit_price) : "-"} />
+                <StatusCard label="원가" value={results.quotePreview ? formatMoney(results.quotePreview.unit_cost) : "-"} />
+                <StatusCard label="적용 후보가" value={formatMoney(proposedUnitPrice)} />
+                <StatusCard label="예상 마진" value={results.validation?.estimated_margin_rate ?? "-"} />
+                <StatusCard label="리스크 수준" value={displayStatus(results.validation?.risk_level)} />
+                <StatusCard label="승인 필요 여부" value={pendingApprovalCount > 0 ? "필요" : "검토"} />
               </div>
               <ActionButton onClick={handleCandidates}>가격 계산</ActionButton>
               <div className="grid gap-3 md:grid-cols-3">
@@ -2088,10 +2153,10 @@ function App() {
             )}
 
             {showSection("pricing-tools") && (
-            <Panel title="가격 평가">
+            <Panel title="원가 결과">
               <div className="workflow-panel-intro">
                 <Badge>가격 평가</Badge>
-                <p>제안 단가가 기준과 조건에 맞는지 확인합니다.</p>
+                <p>트리거된 규칙, 승인 트리거, 비교 메모, 이전 버전 대비 차이를 확인합니다.</p>
               </div>
               <ActionButton onClick={handleValidation}>가격 평가</ActionButton>
               {results.validation && (
@@ -2110,12 +2175,22 @@ function App() {
                   </ul>
                   <CompetitorContext context={results.validation.competitor_context} />
                   <Notes notes={displayNotes(results.validation.calculation_notes)} />
+                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                    <p className="font-semibold">다음 작업</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button className="button compact" onClick={handleCreateApproval}>승인 요청</button>
+                      <button className="button compact secondary" onClick={() => setActiveSection("quote-operations")}>견적 수정</button>
+                      <button className="button compact secondary" onClick={handleCreateHtmlReport}>리포트 생성</button>
+                    </div>
+                  </div>
                 </div>
               )}
             </Panel>
             )}
 
-            {showSection("simulations") && currentUser && (
+            {showSection("pricing-tools") && currentUser && (
+              <details className="advanced-details">
+                <summary>시뮬레이션</summary>
               <Panel title="시뮬레이션">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
@@ -2186,6 +2261,7 @@ function App() {
                   </div>
                 )}
               </Panel>
+              </details>
             )}
 
             {showSection("pricing-tools", "simulations") && currentUser && (
@@ -2329,7 +2405,9 @@ function App() {
               </Panel>
             )}
 
-            {showSection("simulations") && currentUser && (
+            {showSection("pricing-tools") && currentUser && (
+              <details className="advanced-details">
+                <summary>시나리오 비교</summary>
               <Panel title="시나리오 비교">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
@@ -2429,9 +2507,10 @@ function App() {
                   </table>
                 </div>
               </Panel>
+              </details>
             )}
 
-            {showSection("pricing-tools", "simulations") && currentUser && (
+            {showSection("pricing-tools") && currentUser && (
               <Panel title="가격표 이력과 비교">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
@@ -2532,11 +2611,14 @@ function App() {
             )}
 
             {showSection("approvals") && (
-            <Panel title="승인 관리">
-              <div className="workflow-panel-intro">
-                <Badge>승인 대기</Badge>
-                <p>승인 대기 건을 검토하고 승인 또는 반려합니다.</p>
-              </div>
+            <Panel title="승인 대기 목록">
+                <div className="workflow-panel-intro">
+                  <Badge>선택한 견적 상세</Badge>
+                  <p>왜 승인이 필요한지, 변경 전후 비교와 라인별 핵심 수치를 확인합니다.</p>
+                  <Badge>승인 대기 목록</Badge>
+                  <Badge>왜 승인이 필요한지</Badge>
+                  <Badge>변경 전후 비교</Badge>
+                </div>
               <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
                 <label className="field">
                   <span>검토자</span>
@@ -2563,7 +2645,7 @@ function App() {
                   </thead>
                   <tbody>
                     {approvalRequests.length === 0 && (
-                      <tr><td colSpan="7"><EmptyState title="승인 대기 건이 없습니다." message="가격 검증 후 승인 요청을 만들 수 있습니다." /></td></tr>
+                      <tr><td colSpan="7"><EmptyState title="현재 처리할 승인 항목이 없습니다." message="승인 대기 견적이 생기면 이곳에서 판단할 수 있습니다." /></td></tr>
                     )}
                     {approvalRequests.map((request) => (
                       <tr key={request.id}>
@@ -2606,11 +2688,21 @@ function App() {
             </Panel>
             )}
 
-            {showSection("quote-operations", "customer-requests") && currentUser && (
+            {showSection("customer-requests") && currentUser && (
               <Panel title="고객 요청">
                 <div className="workflow-panel-intro">
                   <Badge>고객 요청</Badge>
-                  <p>들어온 요청을 확인하고 견적으로 연결하세요.</p>
+                  <p>견적을 만들기 전의 요청을 수집하고 정리합니다.</p>
+                  <Badge>요청 번호</Badge>
+                  <Badge>요청명</Badge>
+                  <Badge>마감 임박</Badge>
+                  <Badge>생성일</Badge>
+                  <Badge>담당자</Badge>
+                  <Badge>기본 정보</Badge>
+                  <Badge>요청 품목/조건</Badge>
+                  <Badge>첨부/메모</Badge>
+                  <Badge>관련 활동</Badge>
+                  <Badge>견적 만들기</Badge>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   {["customer_name", "customer_email", "customer_company", "quantity", "request_note"].map((field) => (
@@ -2620,7 +2712,10 @@ function App() {
                     </label>
                   ))}
                 </div>
-                <ActionButton onClick={handleCreateCustomerQuoteRequest}>요청 등록</ActionButton>
+                <div className="flex flex-wrap gap-2">
+                  <ActionButton onClick={handleCreateCustomerQuoteRequest}>요청 등록</ActionButton>
+                  <button className="button compact secondary" onClick={() => setActiveSection("quote-operations")}>견적으로 전환</button>
+                </div>
                 <div className="grid gap-3 md:grid-cols-[1fr_auto]">
                   <label className="field">
                     <span>상태 변경</span>
@@ -2646,7 +2741,7 @@ function App() {
                     </thead>
                     <tbody>
                       {customerQuoteRequests.length === 0 && (
-                        <tr><td colSpan="6"><EmptyState title="들어온 요청이 없습니다." message="고객 요청을 등록하면 견적 흐름을 시작할 수 있습니다." /></td></tr>
+                        <tr><td colSpan="6"><EmptyState title="등록된 고객 요청이 없습니다." message="새 요청을 등록하거나 데모 시나리오를 불러오세요." /></td></tr>
                       )}
                       {customerQuoteRequests.map((request) => (
                         <tr key={request.id}>
@@ -2676,6 +2771,13 @@ function App() {
 
             {showSection("admin-system") && currentUser && (
               <Panel title="데이터 관리">
+                <div className="workflow-panel-intro">
+                  <Badge>시스템 상태</Badge>
+                  <Badge>데이터 관리</Badge>
+                  <Badge>감사 로그</Badge>
+                  <Badge>API/개발자</Badge>
+                  <p>시스템 상태와 데이터 관리, 개발자 기능을 관리합니다.</p>
+                </div>
                 <div className="grid gap-3 md:grid-cols-3">
                   {[
                     ["products", "상품"],
@@ -2716,7 +2818,7 @@ function App() {
               </Panel>
             )}
 
-            {showSection("simulations", "admin-system") && currentUser && (
+            {showSection("admin-system") && currentUser && (
               <Panel title="작업 상태">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="field">
