@@ -2,7 +2,7 @@
 
 | Subphase | Scope | Commit | Tests | Independent Review | Verdict |
 |---|---|---|---|---|---|
-| V2-01A | Repository, configuration, frontend foundation, docs, CI structure | Pending local checkpoint | backend compile; 6 pytest passed; 1 frontend test passed; production build passed; environment policy script passed | One staging docs/OpenAPI mismatch found and corrected; no runtime Docker, `create_all`, SQLite, V1 structure, or secret exposure found | V2-01A VERIFIED |
+| V2-01A | Repository, configuration, frontend foundation, docs, CI structure | `8042e739fcfb34a626b433d8b267aa4b898826de` | backend compile; 6 pytest passed; 1 frontend test passed; production build passed; environment policy script passed | One staging docs/OpenAPI mismatch found and corrected; no runtime Docker, `create_all`, SQLite, V1 structure, or secret exposure found | V2-01A VERIFIED |
 | V2-01B | Database, Alembic, authentication, and security baseline | Pending | Pending | Pending | Pending |
 
 ## V2-01A verification evidence
