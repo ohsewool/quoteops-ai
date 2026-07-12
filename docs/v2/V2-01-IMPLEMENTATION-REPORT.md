@@ -3,7 +3,7 @@
 | Subphase | Scope | Commit | Tests | Independent Review | Verdict |
 |---|---|---|---|---|---|
 | V2-01A | Repository, configuration, frontend foundation, docs, CI structure | `8042e739fcfb34a626b433d8b267aa4b898826de` | backend compile; 6 pytest passed; 1 frontend test passed; production build passed; environment policy script passed | One staging docs/OpenAPI mismatch found and corrected; no runtime Docker, `create_all`, SQLite, V1 structure, or secret exposure found | V2-01A VERIFIED |
-| V2-01B | Database, Alembic, authentication, and security baseline | Pending blocked-work preservation commit | 21 pytest passed; 1 PostgreSQL integration test skipped; frontend regression/build passed; offline Alembic upgrade/downgrade rendered | Three remediation cycles completed: JWT timestamp precision, duplicate enum DDL, staging auth-secret fail-closed policy. Mandatory PostgreSQL execution remains unavailable. | V2-01B BLOCKED |
+| V2-01B | Database, Alembic, authentication, and security baseline | `d2430beb3ea04f14e692bebdf6a079ba5437db28` | 21 pytest passed; 1 PostgreSQL integration test skipped; frontend regression/build passed; offline Alembic upgrade/downgrade rendered | Three remediation cycles completed: JWT timestamp precision, duplicate enum DDL, staging auth-secret fail-closed policy. Mandatory PostgreSQL execution remains unavailable. | V2-01B BLOCKED |
 
 ## V2-01A verification evidence
 
