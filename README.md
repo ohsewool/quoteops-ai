@@ -6,6 +6,8 @@ QuoteOps AI V2 is a lightweight pricing operations SaaS and grounded pricing ope
 
 `V2-01A` establishes a clean repository, strict environment policy, dependency locks, neutral React foundation, and documentation structure. It does not contain product domains, business APIs, demo data, or a completed product UI.
 
+`V2-01B` prepares the FastAPI, SQLAlchemy, Alembic, authentication, audit, Decimal, and security baseline. Its mandatory real PostgreSQL integration verification is blocked until an explicitly identified V2-only PostgreSQL target is available.
+
 The authoritative product and security decisions are in [docs/v2/V2-00-PRODUCT-CONTRACT.md](docs/v2/V2-00-PRODUCT-CONTRACT.md).
 
 ## Local prerequisites
@@ -38,6 +40,12 @@ Before database work, read [docs/development/native-postgresql.md](docs/developm
 
 ```powershell
 .\scripts\validate-v2-environment.ps1 -Environment local
+```
+
+After Alembic has successfully prepared a V2-only database, create the first administrator explicitly. No account is seeded at application startup:
+
+```powershell
+.\.venv\Scripts\python -m backend.cli.create_first_user --username admin --display-name "V2 Admin"
 ```
 
 ## Safety boundary
