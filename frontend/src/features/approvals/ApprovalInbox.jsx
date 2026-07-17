@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiClientError } from "../../app/api/client.js";
 import { useAuth } from "../../app/auth/AuthProvider.jsx";
 import { navigate, useLocation } from "../../app/router.jsx";
+import { CopilotPanel } from "../copilot/CopilotPanel.jsx";
 import { decideApprovalRequest, getApprovalRequest, listApprovalRequests } from "./approvalApi.js";
 
 const APPROVAL_STATUS_LABELS = {
@@ -170,6 +171,30 @@ function DecisionControls({ approval, onDecide, saving, user }) {
 }
 
 function ApprovalDetail({ approval, onDecide, saving, user }) {
+  const copilotActions = [
+    {
+      id: "approval-reason-draft",
+      label: "Generate approval reason draft",
+      payload: {
+        purpose: "approval_reason_draft",
+        quote_revision_id: approval.quote_revision_id,
+        pricing_check_id: approval.pricing_check_id,
+        price_candidate_id: approval.price_candidate_id,
+        approval_request_id: approval.id
+      }
+    }
+  ];
+  if (approval.status === "rejected" && approval.decision) {
+    copilotActions.push({
+      id: "rejection-revision-suggestion",
+      label: "Generate revision suggestion",
+      payload: {
+        purpose: "rejection_revision_suggestion",
+        quote_revision_id: approval.decision.result_quote_revision_id,
+        approval_request_id: approval.id
+      }
+    });
+  }
   return (
     <>
       <section className="approval-detail-heading" aria-labelledby="approval-detail-title">
@@ -183,6 +208,7 @@ function ApprovalDetail({ approval, onDecide, saving, user }) {
       {approval.request_reason ? <section className="approval-reason"><h2>요청 사유</h2><p>{approval.request_reason}</p></section> : null}
       {approval.decision?.demo_self_approval_used ? <p className="approval-demo-label">데모 환경 self-approval 기록</p> : null}
       <ApprovalTimeline approval={approval} />
+      <CopilotPanel actions={copilotActions} quoteId={approval.quote_id} title="Approval evidence copilot" />
       <DecisionControls approval={approval} onDecide={onDecide} saving={saving} user={user} />
       <section className="approval-links"><AppLink className="button button-secondary" to={`/app/quotes/${approval.quote_id}`}>원본 견적 열기</AppLink>{approval.status === "approved" ? <AppLink className="button button-primary" to="/app/reports">리포트로 이동</AppLink> : null}</section>
     </>

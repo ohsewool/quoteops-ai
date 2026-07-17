@@ -284,6 +284,19 @@ button { cursor: pointer; }
 .approval-status-rejected, .approval-status-cancelled { background: #fff0ec; border-color: #e9ad9d; color: #9b3522; }
 .approval-demo-label { border-left: 3px solid #05668d; color: #40515b; line-height: 1.6; margin: 24px 0 0; padding: 8px 0 8px 14px; }
 
+.copilot-panel { border-top: 1px solid #d6e0e4; margin-top: 28px; max-width: 880px; padding-top: 24px; }
+.copilot-panel-heading h2 { font-size: 1.06rem; margin: 0; }
+.copilot-panel-heading p { color: #52616b; line-height: 1.6; margin: 8px 0 0; }
+.copilot-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.copilot-output { border-left: 3px solid #05668d; color: #263640; margin-top: 18px; padding: 12px 0 12px 16px; }
+.copilot-output-heading { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
+.copilot-output-heading strong { color: #034d68; font-size: .88rem; }
+.copilot-output-heading span { color: #62727b; font-size: .8rem; }
+.copilot-output > p { line-height: 1.65; margin: 10px 0; white-space: pre-wrap; }
+.copilot-output details { color: #52616b; font-size: .84rem; }
+.copilot-output summary { cursor: pointer; font-weight: 700; }
+.copilot-output ul { margin: 8px 0 0; padding-left: 18px; }
+
 .report-create-panel, .report-list-section, .report-detail-heading, .report-preview, .report-lines, .report-history, .report-regenerate { border-top: 1px solid #d6e0e4; margin-top: 28px; padding-top: 24px; }
 .report-create-panel { display: grid; gap: 18px; max-width: 760px; }
 .report-create-panel h2, .report-list-section h2, .report-detail-heading h2, .report-preview h2, .report-lines h2, .report-history h2, .report-regenerate h2 { font-size: 1.06rem; margin: 0; }

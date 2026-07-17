@@ -13,6 +13,7 @@ from backend.api.errors import ApiError
 from backend.api.routers.auth import router as auth_router
 from backend.api.routers.approvals import router as approvals_router
 from backend.api.routers.customer_requests import router as customer_requests_router
+from backend.api.routers.copilot import router as copilot_router
 from backend.api.routers.html_reports import router as html_reports_router
 from backend.api.routers.pricing_checks import router as pricing_checks_router
 from backend.api.routers.quotes import router as quotes_router
@@ -99,6 +100,7 @@ def create_app(
     app.include_router(pricing_checks_router)
     app.include_router(approvals_router)
     app.include_router(html_reports_router)
+    app.include_router(copilot_router)
     return app
 
 

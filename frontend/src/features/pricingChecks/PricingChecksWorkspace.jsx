@@ -5,6 +5,7 @@ import { useAuth } from "../../app/auth/AuthProvider.jsx";
 import { navigate, useLocation } from "../../app/router.jsx";
 import { getQuote, listQuotes } from "../quotes/quoteApi.js";
 import { createApprovalRequest } from "../approvals/approvalApi.js";
+import { CopilotPanel } from "../copilot/CopilotPanel.jsx";
 import { createPricingCheck, getPricingCheck, listPricingChecks } from "./pricingCheckApi.js";
 
 const PRODUCT_LABELS = {
@@ -212,6 +213,32 @@ function PricingCheckDetail({ approvalError, approvalSaving, canSubmitApproval, 
       <div className="pricing-summary-grid"><section><h3>선택 가격</h3><strong>{formatKrw(check.selected_total_price)}</strong><dl><div><dt>총 원가</dt><dd>{formatKrw(check.total_cost)}</dd></div><div><dt>예상 이익</dt><dd>{formatKrw(check.selected_gross_profit)}</dd></div><div><dt>예상 마진</dt><dd>{formatPercent(check.selected_margin_rate)}</dd></div></dl></section><section><h3>경쟁사 context</h3><dl><div><dt>참고 포함</dt><dd>{competitorContext.included ? "포함" : "제외"}</dd></div><div><dt>참고 건수</dt><dd>{competitorContext.reference_count.toLocaleString("ko-KR")}</dd></div><div><dt>평균 단가</dt><dd>{competitorContext.average_unit_price ? formatKrw(competitorContext.average_unit_price) : "없음"}</dd></div></dl></section></div>
       <section className="pricing-candidates-section" aria-labelledby="pricing-candidates-title"><div className="pricing-section-heading"><div><h2 id="pricing-candidates-title">후보 비교</h2><p>모든 금액과 검증은 서버에서 저장된 deterministic snapshot입니다.</p></div></div><CandidateTable candidates={check.candidates} /></section>
       <ValidationList candidate={selectedCandidate} />
+      <CopilotPanel
+        quoteId={check.quote_id}
+        title="Pricing evidence copilot"
+        actions={[
+          {
+            id: "candidate-explanation",
+            label: "Generate candidate explanation",
+            payload: {
+              purpose: "candidate_explanation",
+              quote_revision_id: check.quote_revision_id,
+              pricing_check_id: check.id,
+              price_candidate_id: check.selected_candidate_id
+            }
+          },
+          {
+            id: "validation-summary",
+            label: "Generate validation summary",
+            payload: {
+              purpose: "validation_summary",
+              quote_revision_id: check.quote_revision_id,
+              pricing_check_id: check.id,
+              price_candidate_id: check.selected_candidate_id
+            }
+          }
+        ]}
+      />
       {onApprovalSubmit ? <ApprovalSubmissionPanel check={check} error={approvalError} onSubmit={onApprovalSubmit} saving={approvalSaving} submittable={canSubmitApproval} /> : null}
     </>
   );
