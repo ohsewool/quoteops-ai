@@ -2,8 +2,8 @@
 
 | Subphase | Scope | Commit | Tests | Independent review | Verdict |
 |---|---|---|---|---|---|
-| V2-06A | Quote-scoped approval lineage, deterministic revalidation, authenticated decisions, PostgreSQL guards | pending checkpoint | Approval target: 4 passed; full backend: 43 passed | Submission revalidation, requester/reviewer separation, warning and failed gates, terminal transition trigger, decision immutability, rejection revision lineage, audit metadata, and concurrent reviewer behavior were reviewed. | V2-06A VERIFIED |
-| V2-06B | Approval Inbox and detail workspace | pending | pending | pending | pending |
+| V2-06A | Quote-scoped approval lineage, deterministic revalidation, authenticated decisions, PostgreSQL guards | `7b46370` | Approval target: 5 passed; full backend: 43 passed before final demo-mode target addition | Submission revalidation, requester/reviewer separation, warning and failed gates, terminal transition trigger, decision immutability, rejection revision lineage, audit metadata, concurrent reviewer behavior, and explicit demo exception were reviewed. | V2-06A VERIFIED |
+| V2-06B | Approval Inbox, pricing-check submission, role-safe detail, and decision controls | pending checkpoint | Feature target: 3 passed; frontend regression: 23 passed; production build passed | API-backed list/detail, server-owned version submission, Viewer read-only behavior, requester review guard, warning reason form, terminal rendering, responsive layout, and raw-cost exclusion were reviewed. | V2-06B VERIFIED |
 
 ## V2-06A delivery
 
@@ -77,9 +77,32 @@ V2-06A used only the configured V2 test database. The application database was
 not downgraded or changed during this subphase. V1 remains unmodified, and the
 ignored root `.env` remains untracked.
 
-## V2-06B pending scope
+## V2-06B delivery
 
-V2-06B will add the authenticated Approval Inbox, request detail/timeline, and
-review controls using these APIs. It will not add approval overrides, client
-side reviewer identity, price-table activation, reports, AI decisions, or any
-V1 integration.
+`/app/approvals` is now an authenticated approval inbox rather than a future
+phase placeholder. It loads the persisted approval list and selected detail
+from the API, shows the Quote revision/check/candidate/requester chain, safe
+candidate aggregates, validation/risk, request reason, decision record, and a
+timeline reconstructed from persisted request and decision timestamps.
+
+Managers and admins can submit the selected current Pricing Check from
+`/app/pricing`. The browser sends only saved IDs and an optional or required
+written reason; it never calculates a candidate or sends reviewer identity.
+Warning/medium-risk requests require a visible reason locally and remain
+server-enforced. After submission the UI opens the saved approval detail.
+
+In the inbox, managers/admins can approve or reject only another requester's
+pending item using the current server-provided optimistic version. The UI does
+not offer a requester decision control, Viewer state remains read-only, and a
+terminal result removes controls. The detail includes a visible demo label only
+when the server persisted the explicit demo self-approval flag.
+
+```text
+V2-06B frontend target=3 passed in 6.93s
+frontend regression=23 passed in 11.91s
+Vite production build=49 modules transformed; built in 2.36s
+demo self-approval backend target=1 passed in 52.97s
+```
+
+V2-06B does not add approval overrides, client-supplied reviewer identity,
+price-table activation, report generation, AI decisions, or V1 integration.

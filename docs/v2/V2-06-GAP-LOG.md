@@ -18,15 +18,29 @@
 - Rejection preserves the rejected revision and opens a distinct current draft
   revision for new pricing work. Approval does not activate a price table.
 - Two simultaneous reviewers are covered by a PostgreSQL race test with one
-  success and one `409` terminal-state result.
+  success and one `409` terminal-state result. Explicit local demo mode is
+  separately tested for the visible self-approval flag and audit event.
 - The V2 test database alone was used for integration verification. V1 remains
   unchanged. The ignored root `.env` remains ignored and untracked.
 
-## Pending V2-06B scope, not a V2-06A backend gap
+## V2-06B verified scope
 
-- Approval Inbox list/detail/timeline and real review controls remain for the
-  approved V2-06B frontend subphase.
+- `/app/approvals` is an actual authenticated Inbox with API-backed list,
+  detail, safe evidence summary, request/decision timeline, and Quote link.
+- Managers/admins can submit a current selected Pricing Check from the Pricing
+  workspace and decide a different requester's pending approval using the
+  persisted server version. Viewer remains read-only.
+- The browser does not calculate candidate values, choose reviewer identity,
+  bypass warning reasons, or expose raw cost/profile fields. Terminal decisions
+  remove UI controls and stale/conflict errors are surfaced safely.
+- Focused frontend tests, frontend regression, and the production build passed.
+
+## Remaining parent-phase activation
+
+- V2-06 application-database forward migration, V2 test-database
+  downgrade/re-upgrade proof, final full backend/frontend verification, and
+  V1 unchanged verification remain for the V2-06 parent gate.
 - Browser/Playwright visual evidence remains a V2-10B manual-review gate; it
-  is not claimed by V2-06A.
+  is not claimed by V2-06.
 
-No known mandatory V2-06A backend gaps remain after verification.
+No known mandatory V2-06A or V2-06B implementation gaps remain after verification.

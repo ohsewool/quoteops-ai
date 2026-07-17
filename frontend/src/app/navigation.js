@@ -3,7 +3,7 @@ const allNavigation = [
   { href: "/app/requests", label: "고객 요청" },
   { href: "/app/quotes", label: "견적" },
   { href: "/app/pricing", label: "가격 검토" },
-  { href: "/app/approvals", label: "승인", phase: "V2-06" },
+  { href: "/app/approvals", label: "승인" },
   { href: "/app/reports", label: "리포트", phase: "V2-07" },
   { href: "/app/operations", label: "운영", roles: ["admin"] },
   { href: "/app/demo", label: "데모", roles: ["admin", "manager"], demoOnly: true }

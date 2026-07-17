@@ -137,11 +137,12 @@ frontend production build=47 modules transformed; built in 2.32s
 
 ## Next action
 
-Complete V2-06B Approval Inbox from the verified V2-06A local checkpoint.
+Run the V2-06 parent migration, regression, and V1 boundary gates before
+merging the verified local phase into `main`.
 
 ## Current verdict
 
-V2-06A VERIFIED; V2-06B PENDING
+V2-06A VERIFIED; V2-06B VERIFIED; V2-06 parent activation PENDING
 
 ## V2-06A evidence
 
@@ -162,6 +163,22 @@ backend regression. V1 remains unchanged.
 ```text
 approval PostgreSQL target=4 passed in 189.56s (0:03:09)
 backend regression=43 passed in 451.04s (0:07:31)
+```
+
+## V2-06B evidence
+
+`/app/approvals` is now a real authenticated Inbox, and `/app/pricing` can
+submit the selected current immutable Pricing Check for approval. The frontend
+uses only persisted IDs, version, reasons, and safe response aggregates.
+Manager/admin decision controls are hidden for the requester and absent for
+Viewer; the backend remains the authority for every authorization and terminal
+transition.
+
+```text
+frontend approval target=3 passed in 6.93s
+frontend regression=23 passed in 11.91s
+frontend build=49 modules transformed; built in 2.36s
+explicit demo self-approval target=1 passed in 52.97s
 ```
 
 ## V2-04 parent evidence

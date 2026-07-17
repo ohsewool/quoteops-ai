@@ -442,3 +442,34 @@ def test_two_reviewers_race_yields_exactly_one_terminal_decision(client: TestCli
     assert detail.status_code == 200
     assert detail.json()["status"] == "approved"
     assert detail.json()["decision"] is not None
+
+
+def test_explicit_demo_mode_marks_self_approval_and_audit(client: TestClient) -> None:
+    requester_headers = _token(client, "approval-requester", "approval-requester-pass")
+    _create_source_data(client, requester_headers)
+    quote = _create_quote(client, requester_headers, title="Approval Demo Exception")
+    check = _create_pricing_check(client, requester_headers, quote)
+    created = _submit_approval(client, requester_headers, quote, check)
+    assert created.status_code == 201
+    approval = created.json()
+
+    with TestClient(create_app(Settings(demo_enabled=True))) as demo_client:
+        approved = demo_client.post(
+            f"/api/approval-requests/{approval['id']}/approve",
+            headers=requester_headers,
+            json={"version": approval["version"]},
+        )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["decision"]["demo_self_approval_used"] is True
+
+    settings = Settings()
+    engine = build_engine(settings)
+    try:
+        with engine.connect() as connection:
+            actions = connection.execute(
+                text("SELECT action FROM audit_events WHERE entity_id = :entity_id ORDER BY id"),
+                {"entity_id": str(approval["id"])},
+            ).scalars().all()
+        assert "demo_self_approval_used" in actions
+    finally:
+        engine.dispose()
