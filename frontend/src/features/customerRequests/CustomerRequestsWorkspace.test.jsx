@@ -91,34 +91,56 @@ describe("V2-03B customer-request workspace", () => {
     expect(window.location.pathname).toBe("/app/requests/15");
   });
 
-  it("shows quote conversion as a V2-04 dependency and only sends an allowed transition", async () => {
+  it("converts a reviewing request through the V2-04 quote API", async () => {
     const user = userEvent.setup();
     const manager = authenticate("manager");
     const reviewing = requestItem({ status: "reviewing", version: 2, reviewed_at: "2026-07-17T12:00:00Z", ready_for_quote_conversion: true, allowed_transitions: ["cancelled"] });
-    const cancelled = requestItem({ status: "cancelled", version: 3, ready_for_quote_conversion: false, allowed_transitions: [] });
-    let transitioned = false;
+    const quote = {
+      id: 51,
+      customer_request_id: 12,
+      quote_number: "Q-20260717-TEST",
+      title: "Quote for Acme Print",
+      customer_name: "Acme Print",
+      contact_name: "Kim",
+      request_product_code: "a3_flyer",
+      request_quantity: 100,
+      source_request_version: 2,
+      status: "draft",
+      currency: "KRW",
+      total_amount: "0.00",
+      formula_version: "quote-line-sum-v1",
+      rounding_policy_version: "krw-half-up-v1",
+      notes: null,
+      assignee_user_id: null,
+      created_by_user_id: 2,
+      version: 1,
+      current_revision_number: 1,
+      created_at: "2026-07-17T12:00:00Z",
+      updated_at: "2026-07-17T12:00:00Z",
+      lines: [],
+      current_revision: { id: 1, quote_id: 51, revision_number: 1, quote_version: 1, source_request_version: 2, status: "draft", total_amount: "0.00", currency: "KRW", line_count: 0, formula_version: "quote-line-sum-v1", rounding_policy_version: "krw-half-up-v1", created_by_user_id: 2, created_at: "2026-07-17T12:00:00Z" }
+    };
     global.fetch.mockImplementation((url, options = {}) => {
       const path = String(url);
       if (path.includes("/api/auth/me")) return Promise.resolve(jsonResponse(manager));
-      if (path.endsWith("/api/customer-requests/12/transitions") && options.method === "POST") {
-        transitioned = true;
-        return Promise.resolve(jsonResponse(cancelled));
-      }
-      if (path.endsWith("/api/customer-requests/12")) return Promise.resolve(jsonResponse(transitioned ? cancelled : reviewing));
+      if (path.endsWith("/api/customer-quote-requests/12/quotes") && options.method === "POST") return Promise.resolve(jsonResponse(quote, 201));
       if (path.endsWith("/api/customer-requests/12/audit-events")) return Promise.resolve(jsonResponse({ items: [] }));
+      if (path.endsWith("/api/customer-requests/12")) return Promise.resolve(jsonResponse(reviewing));
+      if (path.includes("/api/quotes/51/revisions")) return Promise.resolve(jsonResponse({ items: [], page: 1, page_size: 25, total: 0 }));
+      if (path.endsWith("/api/quotes/51")) return Promise.resolve(jsonResponse(quote));
       return Promise.reject(new Error(`Unexpected request: ${path}`));
     });
     setRoute("/app/requests/12");
 
     render(<App />);
 
-    expect(await screen.findByText(/견적 생성은 V2-04에서 영속 Quote와 함께 수행됩니다/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /견적/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "요청 취소" }));
+    expect(await screen.findByRole("button", { name: "견적으로 전환" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "견적으로 전환" }));
 
-    expect(await screen.findByText("취소됨")).toBeInTheDocument();
-    const transitionCall = global.fetch.mock.calls.find(([url, options]) => url.endsWith("/transitions") && options.method === "POST");
-    expect(JSON.parse(transitionCall[1].body)).toEqual({ version: 2, target_status: "cancelled" });
+    expect(await screen.findByRole("heading", { name: "Quote for Acme Print" })).toBeInTheDocument();
+    const conversionCall = global.fetch.mock.calls.find(([url, options]) => url.endsWith("/api/customer-quote-requests/12/quotes") && options.method === "POST");
+    expect(JSON.parse(conversionCall[1].body)).toEqual({ request_version: 2 });
+    expect(global.fetch.mock.calls.some(([url]) => String(url).endsWith("/transitions"))).toBe(false);
   });
 
   it("sends the current version when a manager saves an edit", async () => {

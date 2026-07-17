@@ -99,14 +99,19 @@ describe("V2-02A public landing and session behavior", () => {
     expect(screen.queryByText(/postgresql\+psycopg/i)).not.toBeInTheDocument();
   });
 
-  it("returns an honest planned-phase page for a stable deep link", async () => {
+  it("opens the actual API-backed quote workspace for a stable deep link", async () => {
     window.sessionStorage.setItem(authStorageKey, JSON.stringify({ accessToken: "manager-token", expiresAt: "2099-01-01T00:00:00Z" }));
-    global.fetch.mockResolvedValueOnce(jsonResponse({ id: 2, username: "manager", display_name: "Manager", role: "manager", active: true }));
+    global.fetch.mockImplementation((url) => {
+      const path = String(url);
+      if (path.includes("/api/auth/me")) return Promise.resolve(jsonResponse({ id: 2, username: "manager", display_name: "Manager", role: "manager", active: true }));
+      if (path.includes("/api/quotes?")) return Promise.resolve(jsonResponse({ items: [], page: 1, page_size: 25, total: 0 }));
+      return Promise.reject(new Error(`Unexpected request: ${path}`));
+    });
     setRoute("/app/quotes");
     render(<App />);
 
     expect(await screen.findByRole("heading", { name: "견적" })).toBeInTheDocument();
-    expect(screen.getByText("Planned in V2-04")).toBeInTheDocument();
-    expect(screen.queryByText(/₩[0-9]/)).not.toBeInTheDocument();
+    expect(await screen.findByText("저장된 견적이 없습니다.")).toBeInTheDocument();
+    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining("/api/quotes?"), expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer manager-token" }) }));
   });
 });

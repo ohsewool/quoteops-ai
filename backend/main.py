@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse, Response
 from backend.api.errors import ApiError
 from backend.api.routers.auth import router as auth_router
 from backend.api.routers.customer_requests import router as customer_requests_router
+from backend.api.routers.quotes import router as quotes_router
 from backend.api.routers.system import router as system_router
 from backend.config import Settings
 from backend.db import SessionFactory, build_session_factory
@@ -91,6 +92,7 @@ def create_app(
     app.include_router(system_router)
     app.include_router(auth_router)
     app.include_router(customer_requests_router)
+    app.include_router(quotes_router)
     return app
 
 
