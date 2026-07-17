@@ -159,6 +159,30 @@ def transition_customer_request(
     request_id: str,
     allow_quote_conversion: bool = False,
 ) -> CustomerRequestResponse:
+    customer_request = apply_customer_request_transition(
+        session,
+        customer_request_id=customer_request_id,
+        payload=payload,
+        actor=actor,
+        request_id=request_id,
+        allow_quote_conversion=allow_quote_conversion,
+    )
+    _commit(session)
+    session.refresh(customer_request)
+    return _request_response(customer_request)
+
+
+def apply_customer_request_transition(
+    session: Session,
+    *,
+    customer_request_id: int,
+    payload: CustomerRequestTransition,
+    actor: User,
+    request_id: str,
+    allow_quote_conversion: bool = False,
+) -> CustomerRequest:
+    """Apply a request transition without committing a surrounding workflow."""
+
     repository = CustomerRequestRepository(session)
     customer_request = repository.get(customer_request_id, for_update=True)
     if customer_request is None:
@@ -183,9 +207,7 @@ def transition_customer_request(
         request_id=request_id,
         metadata={"previous_status": previous_status.value, "new_status": customer_request.status.value, "previous_version": payload.version, "new_version": customer_request.version},
     )
-    _commit(session)
-    session.refresh(customer_request)
-    return _request_response(customer_request)
+    return customer_request
 
 
 def request_audit_events(session: Session, customer_request_id: int) -> list[CustomerRequestAuditEventResponse]:
