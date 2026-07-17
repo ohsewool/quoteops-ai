@@ -137,12 +137,71 @@ frontend production build=47 modules transformed; built in 2.32s
 
 ## Next action
 
-Merge the verified local V2-05 checkpoint into `main`, then create
-`v2-06-approval-inbox` from the updated local main.
+Merge the verified local V2-06 checkpoint into `main`, then create
+`v2-07-report-center` from updated local `main`.
 
 ## Current verdict
 
-V2-05 VERIFIED
+V2-06 VERIFIED
+
+## V2-06A evidence
+
+V2-06A adds the quote-scoped approval request and immutable terminal decision
+domain. Each submission records the authenticated requester, immutable Quote
+revision, pricing check, selected candidate, safe validation snapshot, and
+optimistic version. Submission re-runs deterministic validation from stored
+Decimal snapshot inputs and rejects evidence divergence. Normal-mode
+self-approval is `403`; `failed/high` is `409`; warning/medium submission
+requires a written reason; no override or automatic price-table activation is
+available.
+
+Approved and rejected decisions are guarded by PostgreSQL triggers. Rejection
+preserves its revision then returns the Quote to a new editable draft revision.
+The test database alone was used for the four approval target tests and full
+backend regression. V1 remains unchanged.
+
+```text
+approval PostgreSQL target=4 passed in 189.56s (0:03:09)
+backend regression=43 passed in 451.04s (0:07:31)
+```
+
+## V2-06B evidence
+
+`/app/approvals` is now a real authenticated Inbox, and `/app/pricing` can
+submit the selected current immutable Pricing Check for approval. The frontend
+uses only persisted IDs, version, reasons, and safe response aggregates.
+Manager/admin decision controls are hidden for the requester and absent for
+Viewer; the backend remains the authority for every authorization and terminal
+transition.
+
+```text
+frontend approval target=3 passed in 6.93s
+frontend regression=23 passed in 11.91s
+frontend build=49 modules transformed; built in 2.36s
+explicit demo self-approval target=1 passed in 52.97s
+```
+
+## V2-06 parent evidence
+
+The V2 application database moved forward once from `0004_pricing_check_domain`
+to `0005_approval_domain`; no application-database downgrade occurred. The
+separate V2 test database alone completed the V2-06 downgrade, empty-schema,
+and re-upgrade recovery proof. Application readiness remains a JSON `200`.
+
+```text
+application_alembic_revision=0005_approval_domain
+test_alembic_revision=0005_approval_domain
+application_tables_match_v2_06=True
+application_approval_constraints_present=True
+application_approval_triggers_match=True
+backend regression=44 passed in 514.18s (0:08:34)
+frontend regression=23 passed in 17.29s
+frontend production build=49 modules transformed; built in 1.44s
+v2_env_ignored=True
+v2_env_tracked=False
+risky_tracked_files=[]
+V1 tracked diff=empty
+```
 
 ## V2-04 parent evidence
 

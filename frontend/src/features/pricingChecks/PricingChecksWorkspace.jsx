@@ -4,6 +4,7 @@ import { ApiClientError } from "../../app/api/client.js";
 import { useAuth } from "../../app/auth/AuthProvider.jsx";
 import { navigate, useLocation } from "../../app/router.jsx";
 import { getQuote, listQuotes } from "../quotes/quoteApi.js";
+import { createApprovalRequest } from "../approvals/approvalApi.js";
 import { createPricingCheck, getPricingCheck, listPricingChecks } from "./pricingCheckApi.js";
 
 const PRODUCT_LABELS = {
@@ -155,7 +156,51 @@ function ValidationList({ candidate }) {
   );
 }
 
-function PricingCheckDetail({ check }) {
+function ApprovalSubmissionPanel({ check, error, onSubmit, saving, submittable }) {
+  const [reason, setReason] = useState("");
+  const [localError, setLocalError] = useState("");
+  const needsReason = check.validation_status === "warning" || check.risk_level === "medium";
+
+  useEffect(() => {
+    setReason("");
+    setLocalError("");
+  }, [check.id]);
+
+  if (check.status === "blocked") {
+    return <section className="pricing-approval-panel"><h2>승인 요청</h2><p>실패 또는 high-risk 가격 점검은 승인 요청으로 제출할 수 없습니다.</p></section>;
+  }
+  if (!submittable) {
+    return <section className="pricing-approval-panel"><h2>승인 요청</h2><p>현재 Quote revision에서 생성된 최신 가격 점검만 승인 요청으로 제출할 수 있습니다.</p></section>;
+  }
+
+  const submit = (event) => {
+    event.preventDefault();
+    const normalized = reason.trim();
+    if (needsReason && !normalized) {
+      setLocalError("warning 또는 medium-risk 점검은 검토 사유를 입력하세요.");
+      return;
+    }
+    setLocalError("");
+    onSubmit({
+      quote_id: check.quote_id,
+      pricing_check_id: check.id,
+      price_candidate_id: check.selected_candidate_id,
+      reason: normalized || null
+    });
+  };
+
+  return (
+    <form className="pricing-approval-panel" noValidate onSubmit={submit}>
+      <div><h2>승인 요청</h2><p>선택 후보와 immutable validation snapshot을 별도 reviewer에게 제출합니다.</p></div>
+      <label htmlFor="approval-request-reason">검토 사유{needsReason ? " (필수)" : " (선택)"}<textarea id="approval-request-reason" maxLength="2000" onChange={(event) => setReason(event.target.value)} placeholder={needsReason ? "warning 또는 medium-risk 사유를 입력하세요." : "검토에 필요한 맥락을 입력할 수 있습니다."} rows="4" value={reason} /></label>
+      {localError ? <p className="form-error" role="alert">{localError}</p> : null}
+      {error ? <p className="form-error" role="alert">{error}</p> : null}
+      <div className="request-form-actions"><button className="button button-primary" disabled={saving} type="submit">{saving ? "요청 제출 중" : "승인 요청 제출"}</button></div>
+    </form>
+  );
+}
+
+function PricingCheckDetail({ approvalError, approvalSaving, canSubmitApproval, check, onApprovalSubmit }) {
   const selectedCandidate = check.candidates.find((candidate) => candidate.id === check.selected_candidate_id);
   const competitorContext = check.competitor_context;
   return (
@@ -167,6 +212,7 @@ function PricingCheckDetail({ check }) {
       <div className="pricing-summary-grid"><section><h3>선택 가격</h3><strong>{formatKrw(check.selected_total_price)}</strong><dl><div><dt>총 원가</dt><dd>{formatKrw(check.total_cost)}</dd></div><div><dt>예상 이익</dt><dd>{formatKrw(check.selected_gross_profit)}</dd></div><div><dt>예상 마진</dt><dd>{formatPercent(check.selected_margin_rate)}</dd></div></dl></section><section><h3>경쟁사 context</h3><dl><div><dt>참고 포함</dt><dd>{competitorContext.included ? "포함" : "제외"}</dd></div><div><dt>참고 건수</dt><dd>{competitorContext.reference_count.toLocaleString("ko-KR")}</dd></div><div><dt>평균 단가</dt><dd>{competitorContext.average_unit_price ? formatKrw(competitorContext.average_unit_price) : "없음"}</dd></div></dl></section></div>
       <section className="pricing-candidates-section" aria-labelledby="pricing-candidates-title"><div className="pricing-section-heading"><div><h2 id="pricing-candidates-title">후보 비교</h2><p>모든 금액과 검증은 서버에서 저장된 deterministic snapshot입니다.</p></div></div><CandidateTable candidates={check.candidates} /></section>
       <ValidationList candidate={selectedCandidate} />
+      {onApprovalSubmit ? <ApprovalSubmissionPanel check={check} error={approvalError} onSubmit={onApprovalSubmit} saving={approvalSaving} submittable={canSubmitApproval} /> : null}
     </>
   );
 }
@@ -180,6 +226,7 @@ export function PricingChecksPage() {
   const [checkState, setCheckState] = useState({ loading: false, error: "", check: null });
   const [selectedCheckId, setSelectedCheckId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [approvalState, setApprovalState] = useState({ saving: false, error: "" });
   const loadGeneration = useRef(0);
   const detailGeneration = useRef(0);
   const loadedQuoteId = useRef(null);
@@ -284,6 +331,25 @@ export function PricingChecksPage() {
     }
   };
 
+  const submitApproval = async (payload) => {
+    setApprovalState({ saving: true, error: "" });
+    try {
+      const approval = await createApprovalRequest(request, payload);
+      navigate(`/app/approvals?approval_id=${approval.id}`);
+      return;
+    } catch (error) {
+      const message = error instanceof ApiClientError && error.code === "approval_reason_required"
+        ? "warning 또는 medium-risk 점검은 검토 사유를 입력하세요."
+        : error instanceof ApiClientError && error.code === "blocked_pricing_check"
+          ? "실패 또는 high-risk 가격 점검은 승인 요청으로 제출할 수 없습니다."
+          : error instanceof ApiClientError && error.code === "stale_pricing_check"
+            ? "Quote가 변경되었습니다. 최신 revision으로 가격 점검을 다시 생성하세요."
+            : pricingErrorMessage(error);
+      setApprovalState({ saving: false, error: message });
+      return;
+    }
+  };
+
   const quote = quoteState.quote;
   const eligible = quote?.status === "draft" && quote.lines.length > 0;
 
@@ -305,7 +371,7 @@ export function PricingChecksPage() {
       </> : null}
       {checkState.loading ? <p className="inline-state" role="status">점검 snapshot을 불러오는 중입니다.</p> : null}
       {checkState.error ? <div className="request-message request-message-error" role="alert"><p>{checkState.error}</p><button className="button button-secondary" onClick={() => loadCheck(selectedCheckId)} type="button">다시 시도</button></div> : null}
-      {checkState.check ? <PricingCheckDetail check={checkState.check} /> : null}
+      {checkState.check ? <PricingCheckDetail approvalError={approvalState.error} approvalSaving={approvalState.saving} canSubmitApproval={Boolean(manager && quote && quote.status === "draft" && quote.version === checkState.check.quote_version && quote.current_revision.id === checkState.check.quote_revision_id)} check={checkState.check} onApprovalSubmit={manager ? submitApproval : null} /> : null}
     </section>
   );
 }

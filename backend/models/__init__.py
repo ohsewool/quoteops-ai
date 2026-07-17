@@ -1,4 +1,5 @@
 from backend.models.audit_event import AuditEvent
+from backend.models.approval import ApprovalDecision, ApprovalRequest
 from backend.models.base import Base
 from backend.models.customer_request import CustomerRequest
 from backend.models.pricing import (
@@ -17,6 +18,8 @@ from backend.models.user import User
 
 __all__ = [
     "AuditEvent",
+    "ApprovalDecision",
+    "ApprovalRequest",
     "Base",
     "CustomerRequest",
     "Competitor",
