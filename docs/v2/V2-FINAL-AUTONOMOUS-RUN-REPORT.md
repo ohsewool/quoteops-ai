@@ -2,9 +2,9 @@
 
 ## Run status
 
-V2-01 through V2-04 are complete. This local-only checkpoint records the
-verified persistent Customer Request -> Quote workflow; authorized autonomous
-work resumes at V2-05A.
+V2-01 through V2-04 and V2-05A are complete. This local-only checkpoint
+records the verified deterministic pricing evidence backend; authorized
+autonomous work resumes at V2-05B.
 
 ## V1 evidence
 
@@ -12,7 +12,7 @@ V1 remained read-only on `pr-48-cpq-workflow-app-shell-restructure`. Its only wo
 
 ## V2 repository state
 
-The local-only V2 repository is on `v2-04-quote-domain`; no remote was added,
+The local-only V2 repository is on `v2-05-pricing-check`; no remote was added,
 no push, pull request, or deployment was performed, and `.env` remains ignored
 and untracked.
 
@@ -29,7 +29,8 @@ and untracked.
 | V2-04B | VERIFIED | Atomic request-to-Quote API and audit contract passed. |
 | V2-04C | VERIFIED | API-backed Quote workspace passed. |
 | V2-04 parent | VERIFIED | Application DB forward activation, backend/frontend regression, and readiness passed. |
-| V2-05A through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
+| V2-05A | VERIFIED | Deterministic pricing source/evidence PostgreSQL domain and APIs passed. |
+| V2-05B through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
 
 ## Application database activation
 
@@ -77,14 +78,36 @@ No known mandatory V2-01 gaps remain after verification.
 
 Only the V2 application and test databases were used. V1 was never connected. The application database was upgraded once and not downgraded. Destructive proof was restricted to `quoteops_ai_v2_test`.
 
+## V2-05A evidence
+
+Migration `0004_pricing_check_domain` provides products, active cost profiles,
+competitor references, immutable pricing checks/candidates/validations, and
+the authenticated V2 pricing-check API. Candidate calculation uses only
+Decimal deterministic services and persists formula, rule, rounding, source
+profile/version, and normalized competitor context snapshots. Viewer pricing
+responses exclude raw cost components and raw source configuration.
+
+```text
+test_downgrade_revision=0003_quote_domain
+pricing_tables_absent_after_downgrade=True
+pricing_enums_absent_after_downgrade=True
+test_reupgrade_to_0004=OK
+pricing target after recovery=6 passed in 125.20s
+backend regression=39 passed in 287.34s (0:04:47)
+```
+
+The application database is deliberately unchanged at V2-04 head; it has not
+been downgraded and will receive only a forward V2-05 migration after V2-05B
+and parent verification. V1 remains unchanged.
+
 ## Next action
 
-Create the verified local V2-04 checkpoint, merge it locally into `main`, then
-create `v2-05-pricing-check` from updated local `main`.
+Create the verified local V2-05A checkpoint, then implement the API-backed
+V2-05B Pricing Check Workspace before V2-05 parent activation.
 
 ## Current verdict
 
-V2-04 VERIFIED
+V2-05A VERIFIED
 
 ## V2-04 parent evidence
 
