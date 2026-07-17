@@ -334,6 +334,22 @@ button { cursor: pointer; }
 .report-history span { color: #62727b; font-size: .83rem; overflow-wrap: anywhere; }
 .report-regenerate > div { max-width: 680px; }
 
+.operations-section, .demo-guide-card { border-top: 1px solid #d6e0e4; margin-top: 28px; padding-top: 24px; }
+.operations-section h2, .demo-guide-card h2, .demo-guide-card h3 { font-size: 1.06rem; margin: 0; }
+.operations-section p, .demo-guide-card p { color: #52616b; line-height: 1.6; margin: 8px 0 0; }
+.operations-csv-form { display: grid; gap: 16px; margin-top: 18px; max-width: 860px; }
+.operations-csv-form label, .operations-audit-filters label { color: #40515b; display: grid; font-size: .86rem; font-weight: 700; gap: 7px; min-width: 0; }
+.operations-csv-form textarea, .operations-audit-filters input { background: #fff; border: 1px solid #b9c7cd; border-radius: 4px; color: #17212b; min-height: 42px; padding: 10px; width: 100%; }
+.operations-csv-form textarea { min-height: 144px; resize: vertical; }
+.operations-csv-form textarea:focus-visible, .operations-audit-filters input:focus-visible { outline: 3px solid #f0b429; outline-offset: 2px; }
+.operations-audit-filters { align-items: end; display: grid; gap: 14px; grid-template-columns: minmax(170px, 1fr) minmax(170px, 1fr) auto; margin-top: 18px; max-width: 860px; }
+.operations-audit-filters input { padding: 0 10px; }
+.operations-audit-table { min-width: 660px; }
+.demo-guide-card { max-width: 860px; }
+.demo-guide-step { border-left: 3px solid #05668d; margin-top: 20px; padding: 2px 0 2px 16px; }
+.demo-guide-step .request-form-actions { margin-top: 16px; }
+.demo-guide-card .status-list { margin-top: 20px; }
+
 @media (max-width: 860px) {
   .workspace-shell { grid-template-columns: 184px minmax(0, 1fr); }
   .workspace-main { padding: 30px; }
@@ -390,6 +406,8 @@ button { cursor: pointer; }
   .report-summary-grid > section + section { border-left: 0; border-top: 1px solid #d6e0e4; padding-left: 0; }
   .report-summary-grid dl div, .report-history li { grid-template-columns: 1fr; gap: 4px; }
   .report-preview iframe { height: 540px; }
+  .operations-audit-filters { align-items: stretch; grid-template-columns: 1fr; }
+  .operations-audit-filters .button { justify-self: start; }
 }
 
 @media (max-width: 420px) {

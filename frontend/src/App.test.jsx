@@ -88,14 +88,18 @@ describe("V2-02A public landing and session behavior", () => {
 
   it("loads safe operations status only for an admin deep link", async () => {
     window.sessionStorage.setItem(authStorageKey, JSON.stringify({ accessToken: "admin-token", expiresAt: "2099-01-01T00:00:00Z" }));
-    global.fetch
-      .mockResolvedValueOnce(jsonResponse({ id: 1, username: "admin", display_name: "Admin", role: "admin", active: true }))
-      .mockResolvedValueOnce(jsonResponse({ environment: "local", database_configured: true, docs_enabled: true, openapi_enabled: true, demo_enabled: false, cors_origin_count: 1 }));
+    global.fetch.mockImplementation((url) => {
+      const path = String(url);
+      if (path.includes("/api/auth/me")) return Promise.resolve(jsonResponse({ id: 1, username: "admin", display_name: "Admin", role: "admin", active: true }));
+      if (path.includes("/api/operations/diagnostics")) return Promise.resolve(jsonResponse({ environment: "local", database_configured: true, docs_enabled: true, openapi_enabled: true, demo_enabled: false, cors_origin_count: 1, database_ready: true, alembic_revision: "0009_operations_demo_domain", audit_event_count: 3 }));
+      if (path.includes("/api/operations/audit-events")) return Promise.resolve(jsonResponse({ items: [], page: 1, page_size: 25, total: 0 }));
+      return Promise.reject(new Error(`Unexpected request: ${path}`));
+    });
     setRoute("/app/operations");
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "운영" })).toBeInTheDocument();
-    expect(await screen.findByText("확인됨")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Operations" })).toBeInTheDocument();
+    expect(await screen.findByText("ready")).toBeInTheDocument();
     expect(screen.queryByText(/postgresql\+psycopg/i)).not.toBeInTheDocument();
   });
 

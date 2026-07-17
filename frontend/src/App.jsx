@@ -51,7 +51,7 @@ function WorkspaceRoutes() {
   } else if (path === "/app/operations") {
     page = user.role === "admin" ? <OperationsPage /> : <AccessDeniedPage />;
   } else if (path === "/app/demo") {
-    page = demoEnabled && ["admin", "manager"].includes(user.role) ? <DemoShell /> : <AccessDeniedPage />;
+    page = demoEnabled && user.role === "admin" ? <DemoShell /> : <AccessDeniedPage />;
   } else {
     page = <FuturePhasePage title="업무 공간" phase="V2" description="요청한 업무 공간을 찾을 수 없습니다." />;
   }
