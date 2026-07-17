@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { ApiClientError, authApi, request } from "../api/client.js";
+import { ApiClientError, authApi, request, requestText } from "../api/client.js";
 
 const SESSION_KEY = "quoteops-ai-v2.session";
 const AuthContext = createContext(null);
@@ -80,6 +80,17 @@ export function AuthProvider({ children, client = authApi }) {
     }
   }, [clearSession, token]);
 
+  const authorizedTextRequest = useCallback(async (path, options = {}) => {
+    try {
+      return await requestText(path, { ...options, token });
+    } catch (error) {
+      if (error instanceof ApiClientError && error.status === 401) {
+        clearSession();
+      }
+      throw error;
+    }
+  }, [clearSession, token]);
+
   const value = useMemo(() => ({
     user,
     token,
@@ -87,8 +98,9 @@ export function AuthProvider({ children, client = authApi }) {
     isAuthenticated: state === "authenticated",
     login,
     logout: clearSession,
-    request: authorizedRequest
-  }), [authorizedRequest, clearSession, login, state, token, user]);
+    request: authorizedRequest,
+    requestText: authorizedTextRequest
+  }), [authorizedRequest, authorizedTextRequest, clearSession, login, state, token, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -18,12 +18,9 @@ import PublicLanding from "./app/pages/PublicLanding.jsx";
 import { ApprovalInboxPage } from "./features/approvals/ApprovalInbox.jsx";
 import { PricingChecksPage } from "./features/pricingChecks/PricingChecksWorkspace.jsx";
 import { QuoteDetailPage, QuotesPage } from "./features/quotes/QuoteWorkspace.jsx";
+import { ReportCenterPage } from "./features/reports/ReportCenter.jsx";
 
 const demoEnabled = import.meta.env.VITE_DEMO_ENABLED === "true";
-
-const plannedPages = {
-  "/app/reports": { title: "리포트", phase: "V2-07", description: "승인된 견적 기반 report center는 V2-07에서 구현됩니다." }
-};
 
 function WorkspaceRoutes() {
   const location = useLocation();
@@ -49,8 +46,8 @@ function WorkspaceRoutes() {
     page = <PricingChecksPage />;
   } else if (path === "/app/approvals") {
     page = <ApprovalInboxPage />;
-  } else if (plannedPages[path]) {
-    page = <FuturePhasePage {...plannedPages[path]} />;
+  } else if (path === "/app/reports") {
+    page = <ReportCenterPage />;
   } else if (path === "/app/operations") {
     page = user.role === "admin" ? <OperationsPage /> : <AccessDeniedPage />;
   } else if (path === "/app/demo") {
