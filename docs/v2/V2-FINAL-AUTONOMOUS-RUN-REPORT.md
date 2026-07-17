@@ -2,9 +2,9 @@
 
 ## Run status
 
-V2-01 through V2-05 are complete. This local-only checkpoint records the
-verified deterministic Pricing Check Workspace and its activated application
-schema; authorized autonomous work resumes at V2-06A.
+V2-01 through V2-07 are complete. This local-only checkpoint records the
+verified Report Center and its activated application schema; authorized
+autonomous work resumes at V2-08A.
 
 ## V1 evidence
 
@@ -12,9 +12,9 @@ V1 remained read-only on `pr-48-cpq-workflow-app-shell-restructure`. Its only wo
 
 ## V2 repository state
 
-The local-only V2 repository is on `v2-05-pricing-check`; no remote was added,
-no push, pull request, or deployment was performed, and `.env` remains ignored
-and untracked.
+The local-only V2 repository is on `v2-07-report-center` before its verified
+checkpoint merge. No remote was added, no push, pull request, or deployment
+was performed, and `.env` remains ignored and untracked.
 
 ## Verdicts
 
@@ -32,7 +32,9 @@ and untracked.
 | V2-05A | VERIFIED | Deterministic pricing source/evidence PostgreSQL domain and APIs passed. |
 | V2-05B | VERIFIED | API-backed Pricing Check Workspace passed. |
 | V2-05 parent | VERIFIED | Application DB forward activation, backend/frontend regression, and readiness passed. |
-| V2-06A through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
+| V2-06 parent | VERIFIED | Approval lineage and approval inbox checks passed. |
+| V2-07 parent | VERIFIED | Approved-Quote reports, safe preview, lineage, and application activation passed. |
+| V2-08A through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
 
 ## Application database activation
 
@@ -137,12 +139,43 @@ frontend production build=47 modules transformed; built in 2.32s
 
 ## Next action
 
-Merge the verified local V2-06 checkpoint into `main`, then create
-`v2-07-report-center` from updated local `main`.
+Merge the verified local V2-07 checkpoint into `main`, then create
+`v2-08-grounded-pricing-copilot` from updated local `main`.
 
 ## Current verdict
 
-V2-06 VERIFIED
+V2-07 VERIFIED
+
+## V2-07 evidence
+
+V2-07 adds the V2-only immutable `html_reports` artifact, backed exclusively
+by an approved Quote revision and terminal approval decision. It preserves
+safe canonical pricing evidence, source revision identifiers, an optional
+predecessor report ID, hash, escaped CSP-protected HTML, and audit events.
+Generation/regeneration is manager/admin-only; viewers can safely list, read,
+and preview an artifact. No report API can alter approvals, prices, active
+price tables, or V1.
+
+```text
+test downgrade/re-upgrade: 0006 -> 0005 -> 0006 on test DB only
+focused report PostgreSQL API/schema: 3 passed in 116.01s
+backend regression: 47 passed in 642.43s (0:10:42)
+frontend report target: 3 passed in 0.92s
+frontend regression: 26 passed in 32.75s
+frontend production build: 51 modules transformed; built in 3.12s
+application_alembic_revision=0006_html_report_domain
+application_tables_match_v2_07_with_metadata=True
+application_html_report_triggers_match=True
+application_readiness_status=200
+v2_env_ignored=True
+v2_env_tracked=False
+risky_tracked_files=[]
+V1 tracked diff=empty
+```
+
+The application database was forward-migrated once and never downgraded. The
+destructive migration proof used `quoteops_ai_v2_test` only. V1 remains
+unchanged, and its pre-existing untracked `docs/v2/` directory was not touched.
 
 ## V2-06A evidence
 

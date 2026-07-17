@@ -53,6 +53,38 @@ export async function request(path, { method = "GET", body, token, signal } = {}
   return payload;
 }
 
+export async function requestText(path, { method = "GET", body, token, signal } = {}) {
+  const headers = { Accept: "text/html" };
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal
+    });
+  } catch {
+    throw new ApiClientError("Unable to reach QuoteOps AI.", { code: "network_unavailable" });
+  }
+
+  if (!response.ok) {
+    const payload = await parseJson(response);
+    throw new ApiClientError(payload?.detail || "The request could not be completed.", {
+      code: payload?.code,
+      status: response.status,
+      fieldErrors: payload?.field_errors || []
+    });
+  }
+  return response.text();
+}
+
 export const authApi = {
   login(credentials) {
     return request("/api/auth/login", { method: "POST", body: credentials });
