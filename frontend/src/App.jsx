@@ -3,6 +3,11 @@ import { useAuth } from "./app/auth/AuthProvider.jsx";
 import WorkspaceLayout from "./app/layouts/WorkspaceLayout.jsx";
 import { useLocation } from "./app/router.jsx";
 import AccessDeniedPage from "./app/pages/AccessDeniedPage.jsx";
+import {
+  CustomerRequestDetailPage,
+  CustomerRequestsPage,
+  NewCustomerRequestPage
+} from "./features/customerRequests/CustomerRequestsWorkspace.jsx";
 import DashboardShell from "./app/pages/DashboardShell.jsx";
 import DemoShell from "./app/pages/DemoShell.jsx";
 import FuturePhasePage from "./app/pages/FuturePhasePage.jsx";
@@ -14,7 +19,6 @@ import PublicLanding from "./app/pages/PublicLanding.jsx";
 const demoEnabled = import.meta.env.VITE_DEMO_ENABLED === "true";
 
 const plannedPages = {
-  "/app/requests": { title: "고객 요청", phase: "V2-03", description: "고객 요청 workflow는 V2-03에서 구현됩니다." },
   "/app/quotes": { title: "견적", phase: "V2-04", description: "지속형 견적과 line-item workspace는 V2-04에서 구현됩니다." },
   "/app/pricing": { title: "가격 검토", phase: "V2-05", description: "결정적 candidate와 validation workspace는 V2-05에서 구현됩니다." },
   "/app/approvals": { title: "승인", phase: "V2-06", description: "Quote-scoped approval inbox는 V2-06에서 구현됩니다." },
@@ -31,6 +35,12 @@ function WorkspaceRoutes() {
     page = <DashboardShell />;
   } else if (path === "/app/dashboard") {
     page = <DashboardShell />;
+  } else if (path === "/app/requests") {
+    page = <CustomerRequestsPage />;
+  } else if (path === "/app/requests/new") {
+    page = <NewCustomerRequestPage />;
+  } else if (/^\/app\/requests\/\d+$/.test(path)) {
+    page = <CustomerRequestDetailPage customerRequestId={Number(path.split("/").at(-1))} />;
   } else if (plannedPages[path]) {
     page = <FuturePhasePage {...plannedPages[path]} />;
   } else if (path === "/app/operations") {

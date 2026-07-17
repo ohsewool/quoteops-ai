@@ -20,7 +20,12 @@ class User(Base):
     display_name: Mapped[str] = mapped_column(String(128), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(512), nullable=False)
     role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole, name="user_role", native_enum=True),
+        Enum(
+            UserRole,
+            name="user_role",
+            native_enum=True,
+            values_callable=lambda enum_class: [member.value for member in enum_class],
+        ),
         nullable=False,
         default=UserRole.VIEWER,
     )

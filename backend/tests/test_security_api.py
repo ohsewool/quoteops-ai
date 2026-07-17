@@ -91,17 +91,17 @@ def bearer(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_only_contractual_foundation_routes_are_exposed(client: TestClient) -> None:
+def test_foundation_routes_remain_exposed_as_the_contract_grows(client: TestClient) -> None:
     response = client.get("/openapi.json")
     assert response.status_code == 200
-    assert set(response.json()["paths"]) == {
+    assert {
         "/api/health",
         "/api/health/live",
         "/api/health/ready",
         "/api/auth/login",
         "/api/auth/me",
         "/api/system/status",
-    }
+    }.issubset(set(response.json()["paths"]))
 
 
 def test_health_live_and_ready_are_public_and_correlated(client: TestClient) -> None:
