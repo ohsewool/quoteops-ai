@@ -68,3 +68,11 @@ def test_production_rejects_docs_demo_and_placeholder_secret() -> None:
             openapi_enabled=False,
             auth_secret="CHANGE_ME_WITH_A_LONG_RANDOM_VALUE",
         )
+
+    with pytest.raises(ValidationError, match="authentication secret"):
+        settings(
+            environment=Environment.STAGING,
+            docs_enabled=False,
+            openapi_enabled=False,
+            auth_secret=None,
+        )

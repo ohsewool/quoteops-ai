@@ -1,9 +1,13 @@
 # V2-01 Gap Log
 
-## V2-01A
+No known mandatory V2-01 gaps remain after verification.
 
-No known mandatory V2-01A gaps remain after verification.
+## Closed verification gates
 
-## V2-01B
-
-PostgreSQL availability is currently unverified. The local environment inspection found no `psql`, PostgreSQL service, or V2-only PostgreSQL environment variable. No database-dependent subphase can be marked verified until an approved target is available.
+- V2-01A repository, configuration, CI, frontend, and security-foundation checks passed.
+- V2-01B used distinct V2-only application and test PostgreSQL databases.
+- The application database was upgraded to head without a downgrade.
+- The test database passed the isolated upgrade/downgrade/re-upgrade cycle.
+- PostgreSQL integration, the full backend suite, frontend test/build, readiness success, sanitized readiness failure, and tracked-artifact security checks passed.
+- `.env` remains ignored and untracked; no secret values are recorded here.
+- V1 remains unchanged.

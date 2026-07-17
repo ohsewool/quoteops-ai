@@ -8,6 +8,28 @@ on:
 jobs:
   backend-foundation:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: quoteops_v2_ci
+          POSTGRES_USER: quoteops_v2_ci
+          POSTGRES_PASSWORD: quoteops_v2_ci_password
+        options: >-
+          --health-cmd "pg_isready -U quoteops_v2_ci -d quoteops_v2_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      QUOTEOPS_ENV: test
+      QUOTEOPS_DATABASE_URL: postgresql+psycopg://quoteops_v2_ci:quoteops_v2_ci_password@localhost:5432/quoteops_v2_ci
+      QUOTEOPS_CORS_ORIGINS: http://localhost:5173
+      QUOTEOPS_AUTH_SECRET: ci-test-only-auth-secret-not-for-reuse
+      QUOTEOPS_DOCS_ENABLED: "true"
+      QUOTEOPS_OPENAPI_ENABLED: "true"
+      QUOTEOPS_POSTGRES_INTEGRATION: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,6 +40,8 @@ jobs:
       - name: Verify backend foundation
         run: |
           python -m compileall backend
+          alembic upgrade head
+          alembic current
           pytest -q backend/tests
 
   frontend-foundation:
