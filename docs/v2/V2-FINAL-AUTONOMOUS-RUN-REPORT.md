@@ -2,9 +2,10 @@
 
 ## Run status
 
-V2-01 through V2-09 are complete. This local-only checkpoint records the
-verified Operations, Guided Demo, and selected adapter boundary; authorized
-autonomous work resumes at V2-10A after the V2-09 checkpoint merge.
+V2-01 through V2-09 and V2-10A are complete. This local-only checkpoint
+records the verified release-regression and migration-recovery evidence;
+authorized autonomous work resumes at V2-10B for manual/staging readiness
+review.
 
 ## V1 evidence
 
@@ -12,8 +13,8 @@ V1 remained read-only on `pr-48-cpq-workflow-app-shell-restructure`. Its only wo
 
 ## V2 repository state
 
-The local-only V2 repository is on `v2-09-operations-demo-adapters` before its
-verified checkpoint merge. No remote was added, no push, pull request, or
+The local-only V2 repository is on `v2-10-verification-release-readiness`
+before its V2-10A checkpoint. No remote was added, no push, pull request, or
 deployment was performed, and `.env` remains ignored and untracked.
 
 ## Verdicts
@@ -40,7 +41,8 @@ deployment was performed, and `.env` remains ignored and untracked.
 | V2-09A | VERIFIED | Safe diagnostics/audit search and isolated competitor-reference CSV adapter passed. |
 | V2-09B | VERIFIED | Explicit admin-only two-product guided demo and guide-state reset passed. |
 | V2-09 parent | VERIFIED | Test-only migration recovery, application forward activation, security gates, full backend/frontend regression, and build passed. |
-| V2-10A through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
+| V2-10A | VERIFIED | Local full regression, security, base rollback/rebuild, release smoke, and V1-boundary checks passed. |
+| V2-10B | Not started in this report | Manual visual/staging/migration/cutover readiness review remains pending. |
 
 ## V2-01 application database activation
 
@@ -339,3 +341,28 @@ The application database was forward-migrated once from V2-08 to V2-09 and
 never downgraded. Destructive recovery proof was restricted to the V2 test
 database. V1 remained unchanged; no remote, push, pull request, deployment,
 Docker installation, or external AI call occurred.
+
+## V2-10A evidence
+
+V2-10A adds a safe local release smoke command and a release API-contract
+test. The smoke command verifies that both V2 databases are distinct and at
+Alembic head, the expected schema is present, public health/live/ready/OpenAPI
+responses are healthy, required Tier A paths are present, no connection string
+or health secret marker is exposed, `.env` remains ignored/untracked, and no
+risky generated artifact is tracked. It performs no migration or mutation.
+
+```text
+test migration cycle: 0009 -> base -> 0009 on test DB only
+backend regression after clean re-upgrade: 57 passed in 937.62s (0:15:37)
+frontend regression: 30 passed in 28.35s
+frontend production build: 57 modules transformed; built in 1.69s
+release_readiness=VERIFIED_LOCAL
+v2_float_columns=[]
+startup_create_all_present=False
+runtime_application_sqlite_reference_present=False
+V1 tracked diff=empty
+```
+
+The V2 application database was not downgraded. V2-10B remains the separate
+manual/staging readiness gate; no deployment, V1 database connection, remote,
+push, pull request, or cutover occurred.
