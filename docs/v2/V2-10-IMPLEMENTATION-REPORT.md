@@ -3,6 +3,7 @@
 | Subphase | Scope | Commit | Verification | Independent review | Verdict |
 |---|---|---|---|---|---|
 | V2-10A | Full local regression, security, migration, role, and rollback verification | Local V2-10A checkpoint | Full PostgreSQL backend, frontend regression/build, test-only base rollback/rebuild, release smoke, and boundary checks passed. | Release contract, schema, migrations, runtime safety, tracked artifacts, V1 boundary, and frozen Tier B paths were reviewed. | V2-10A VERIFIED |
+| V2-10B | Read-only V1 export transformation, quarantine evidence, local visual QA, and release handoff | Local V2-10B checkpoint | Pure export transformation and CLI tests passed; public/login desktop and true 390px mobile visual checks passed. | The transformer has no database or V1 runtime dependency. Mandatory staging, authorized V1 export, authenticated browser, rollback, and cutover gates remain external. | V2-10B BLOCKED |
 
 ## V2-10A delivery
 
@@ -68,3 +69,76 @@ V1 tracked diff=empty
   and remains unmodified.
 
 V2-10A VERIFIED.
+
+## V2-10B local delivery
+
+V2-10B adds a deliberately database-free V1 migration-preflight path:
+
+- `backend/services/v1_export_transform.py` transforms only an explicitly
+  supplied `quoteops-v1-readonly-export` JSON document. It opens neither a V1
+  connection nor a V2 connection and performs no write.
+- The manifest uses `v2-10-v1-transform-v1`, preserves exact Decimal text for
+  accepted product/cost records, verifies legacy price evidence against the
+  deterministic cost-and-margin formula, and records a SHA-256 source
+  fingerprint.
+- Unsupported products, non-exact numeric values, duplicate active cost
+  profiles, missing source mappings, and price recomputation differences above
+  `0.01` KRW are quarantined without carrying raw rejected values into the
+  quarantine report.
+- `scripts/transform_v1_readonly_export.py` writes a manifest and a separate
+  quarantine report from an already-exported local JSON file. It never reads
+  `.env`, never contacts a database, and returns a nonzero status for
+  `--require-clean` when manual quarantine review is required.
+
+The tool creates an import manifest only. It does not auto-create a user,
+connect to V1, import into V2, alter an application database, or authorize a
+cutover. Those actions require a separately authorized staging procedure.
+
+The V2-10B release materials are:
+
+- `docs/v2/V2-10-MIGRATION-RUNBOOK.md`
+- `docs/v2/V2-10-CUTOVER-ROLLBACK-RUNBOOK.md`
+- `docs/v2/V2-10-RELEASE-READINESS-REVIEW.md`
+
+## V2-10B local verification
+
+```text
+python -m compileall backend scripts: completed successfully
+V1 export transformer target: 6 passed in 0.39s
+CLI BOM-compatible clean-export smoke: passed through the subprocess test
+database_writes_performed=False
+complete PostgreSQL backend regression: 63 passed in 939.95s (0:15:39)
+frontend regression: 30 passed in 21.92s
+frontend production build: 57 modules transformed; built in 2.75s
+release_readiness=VERIFIED_LOCAL
+desktop public landing and login visual smoke: rendered cleanly
+true 390px mobile public viewport: innerWidth=390, clientWidth=390, scrollWidth=390
+true 390px mobile login viewport: innerWidth=390, clientWidth=390, scrollWidth=390
+application_user_count=0
+V1 tracked diff=empty; pre-existing V1 docs/v2/ untracked content was untouched
+```
+
+The initial screenshot attempt used Chrome's minimum headless window width and
+was therefore discarded as a cropped harness artifact. The final visual result
+uses Chrome device emulation at an actual 390px CSS viewport, where both
+responsive breakpoints and document width were verified.
+
+## V2-10B independent review and release decision
+
+- The transform path accepts only exact decimal strings. A binary JSON number
+  from a Float-derived V1 export is quarantined rather than rounded into V2.
+- V1 `price_table_items` remain out of the initial V2 import scope. They are
+  retained only as validated legacy evidence when their stored Decimal text
+  matches V2 recomputation within `0.01` KRW; otherwise they are quarantined.
+- The transformer is covered with accepted records, unsupported data,
+  malformed numeric values, recomputation drift, duplicate active cost
+  profiles, secret-field rejection, and a real CLI subprocess test.
+- Unauthenticated public and login surfaces were visually checked. Protected
+  workflow visual QA was not bypassed: the application has no users and first
+  user provisioning remains an explicit CLI-only action.
+- A real staging deployment, authorized read-only V1 export, migration dry
+  run, staging rollback rehearsal, and cutover approval were not performed.
+  The autonomous-run restrictions prohibit deployment and V1 database access,
+  so these are mandatory external gates rather than issues to work around.
+
+V2-10B BLOCKED. V2-10 is not complete and no cutover decision is authorized.

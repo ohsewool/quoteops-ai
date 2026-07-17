@@ -366,3 +366,38 @@ V1 tracked diff=empty
 The V2 application database was not downgraded. V2-10B remains the separate
 manual/staging readiness gate; no deployment, V1 database connection, remote,
 push, pull request, or cutover occurred.
+
+## V2-10B local evidence and blocked release gates
+
+V2-10B implemented a pure, versioned V1 export transformer and separate
+quarantine report. The transformer is intentionally limited to a supplied
+read-only JSON export: it neither opens a V1 connection nor connects to or
+writes a V2 database. Exact Decimal text is required for all migrated monetary
+and rate fields. Legacy price evidence is recomputed deterministically and
+quarantined when it differs by more than `0.01` KRW.
+
+```text
+V1 export transformer target: 6 passed in 0.39s
+CLI clean-export smoke: passed
+database_writes_performed=False
+complete PostgreSQL backend regression: 63 passed in 939.95s (0:15:39)
+frontend regression: 30 passed in 21.92s
+frontend production build: 57 modules transformed; built in 2.75s
+release_readiness=VERIFIED_LOCAL
+desktop landing/login visual smoke: passed
+390px public viewport: innerWidth=390, clientWidth=390, documentScrollWidth=390
+390px login viewport: innerWidth=390, clientWidth=390, documentScrollWidth=390
+application_user_count=0
+V1 tracked diff=empty; pre-existing V1 docs/v2/ untracked content was untouched
+```
+
+The public and login visual checks are complete. Authenticated core-workflow
+visual verification was correctly not bypassed: no user was created at startup
+or for testing, and no reviewer credentials were supplied. The real V1 export,
+separate V2 staging deployment, staging migration/import dry run, rollback
+rehearsal, and a human cutover decision are mandatory external tasks. The run
+was explicitly prohibited from deployment and V1 database access.
+
+**V2-10B BLOCKED.** V2-10 is not complete, no cutover is authorized, and the
+repository is left ready for the manual release-readiness process described in
+the V2-10 runbooks.
