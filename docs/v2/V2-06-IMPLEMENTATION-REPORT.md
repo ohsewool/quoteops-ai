@@ -106,3 +106,54 @@ demo self-approval backend target=1 passed in 52.97s
 
 V2-06B does not add approval overrides, client-supplied reviewer identity,
 price-table activation, report generation, AI decisions, or V1 integration.
+
+## V2-06 parent activation
+
+The configured V2 application database and test database names were parsed
+without printing either connection URL and confirmed distinct. Before
+activation, the application database was at `0004_pricing_check_domain` and
+had no V2-06 approval tables. The test database was already at V2-06 head.
+
+Only the V2 test database was downgraded to `0004_pricing_check_domain` and
+inspected before re-upgrading to head. The application database was never
+downgraded. It was forward-migrated once from `0004_pricing_check_domain` to
+`0005_approval_domain` after both V2-06 subphases passed.
+
+```text
+application_database_name=quoteops_ai_v2
+test_database_name=quoteops_ai_v2_test
+database_names_distinct=True
+application_alembic_revision_before=0004_pricing_check_domain
+test_alembic_revision_before=0005_approval_domain
+application_v2_06_tables_absent_before=True
+test_v2_06_tables_present_before=True
+test_downgrade_revision=0004_pricing_check_domain
+approval_tables_absent_after_downgrade=True
+approval_enum_absent_after_downgrade=True
+test_reupgrade_to_0005=OK
+application_alembic_revision=0005_approval_domain
+test_alembic_revision=0005_approval_domain
+application_tables_match_v2_06=True
+application_approval_constraints_present=True
+application_approval_triggers_match=True
+application_readiness_status=200
+application_readiness_is_json=True
+```
+
+Final regression and boundary evidence:
+
+```text
+python -m compileall backend alembic: completed successfully
+backend regression=44 passed in 514.18s (0:08:34)
+frontend regression=23 passed in 17.29s
+frontend production build=49 modules transformed; built in 1.44s
+v2_env_ignored=True
+v2_env_tracked=False
+risky_tracked_files=[]
+V1 tracked diff: empty
+V1 status: pre-existing untracked docs/v2/ only
+```
+
+No application-database downgrade, V1 database connection, V1 modification,
+remote, push, pull request, deployment, automatic activation, report
+generation, or AI decision occurred. V2-06 VERIFIED.

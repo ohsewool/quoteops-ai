@@ -137,12 +137,12 @@ frontend production build=47 modules transformed; built in 2.32s
 
 ## Next action
 
-Run the V2-06 parent migration, regression, and V1 boundary gates before
-merging the verified local phase into `main`.
+Merge the verified local V2-06 checkpoint into `main`, then create
+`v2-07-report-center` from updated local `main`.
 
 ## Current verdict
 
-V2-06A VERIFIED; V2-06B VERIFIED; V2-06 parent activation PENDING
+V2-06 VERIFIED
 
 ## V2-06A evidence
 
@@ -179,6 +179,28 @@ frontend approval target=3 passed in 6.93s
 frontend regression=23 passed in 11.91s
 frontend build=49 modules transformed; built in 2.36s
 explicit demo self-approval target=1 passed in 52.97s
+```
+
+## V2-06 parent evidence
+
+The V2 application database moved forward once from `0004_pricing_check_domain`
+to `0005_approval_domain`; no application-database downgrade occurred. The
+separate V2 test database alone completed the V2-06 downgrade, empty-schema,
+and re-upgrade recovery proof. Application readiness remains a JSON `200`.
+
+```text
+application_alembic_revision=0005_approval_domain
+test_alembic_revision=0005_approval_domain
+application_tables_match_v2_06=True
+application_approval_constraints_present=True
+application_approval_triggers_match=True
+backend regression=44 passed in 514.18s (0:08:34)
+frontend regression=23 passed in 17.29s
+frontend production build=49 modules transformed; built in 1.44s
+v2_env_ignored=True
+v2_env_tracked=False
+risky_tracked_files=[]
+V1 tracked diff=empty
 ```
 
 ## V2-04 parent evidence

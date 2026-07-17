@@ -35,12 +35,20 @@
   remove UI controls and stale/conflict errors are surfaced safely.
 - Focused frontend tests, frontend regression, and the production build passed.
 
-## Remaining parent-phase activation
+## Verified V2-06 parent activation
 
-- V2-06 application-database forward migration, V2 test-database
-  downgrade/re-upgrade proof, final full backend/frontend verification, and
-  V1 unchanged verification remain for the V2-06 parent gate.
+- The application database was forward-migrated once from V2-05 to
+  `0005_approval_domain`; it now has exactly the approved V2-01 through V2-06
+  table set, required approval constraints/triggers, and healthy JSON
+  readiness.
+- The distinct V2 test database alone was downgraded to V2-05, shown to have
+  no approval tables or enum, then re-upgraded to V2-06 head before final
+  integration regression.
+- Final backend regression, frontend regression, and production build passed.
+- Root `.env` remains ignored and untracked; no risky generated/secrets/database
+  artifacts are tracked. V1's tracked diff remains empty; its pre-existing
+  untracked `docs/v2/` directory was not changed.
 - Browser/Playwright visual evidence remains a V2-10B manual-review gate; it
   is not claimed by V2-06.
 
-No known mandatory V2-06A or V2-06B implementation gaps remain after verification.
+No known mandatory V2-06 gaps remain after verification.
