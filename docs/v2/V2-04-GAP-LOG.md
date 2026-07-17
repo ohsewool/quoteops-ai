@@ -1,6 +1,6 @@
 # V2-04 Gap Log
 
-No known mandatory V2-04A gaps remain after verification.
+No known mandatory V2-04B gaps remain after verification.
 
 ## Verified V2-04A scope
 
@@ -14,11 +14,20 @@ No known mandatory V2-04A gaps remain after verification.
 - Destructive downgrade/re-upgrade checks ran only against the V2 test
   database.
 
+## Verified V2-04B scope
+
+- A reviewing customer request converts to an atomic persisted draft Quote and
+  revision 1 only for manager/admin, then becomes quoted in the same database
+  transaction.
+- Quote worklist/detail, draft metadata update, atomic current-line
+  replacement, revision list/detail, pagination/filtering, role errors, stale
+  version conflicts, Decimal wire values, audit events, and OpenAPI paths are
+  covered by real PostgreSQL integration tests.
+- No pricing candidate, pricing check, approval, report, AI action, or price
+  table activation has been added.
+
 ## Remaining planned work
 
-- V2-04B must convert only a convertible customer request to an atomic
-  persisted Quote, maintain versions/revisions/totals, expose role-safe APIs,
-  and audit all mutations.
 - V2-04C must replace the V2-02 Quote placeholder with a responsive,
   accessible, API-backed list and workspace without fabricated prices or
   pricing candidates.
