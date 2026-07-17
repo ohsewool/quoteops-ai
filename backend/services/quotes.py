@@ -220,6 +220,25 @@ def _advance_quote(quote: Quote) -> None:
     quote.current_revision_number += 1
 
 
+def create_workflow_revision(
+    session: Session,
+    *,
+    quote: Quote,
+    target_status: QuoteStatus,
+    actor: User,
+) -> QuoteRevision:
+    """Advance quote workflow state while preserving an immutable revision snapshot."""
+
+    quote.status = target_status
+    _advance_quote(quote)
+    return _create_revision_snapshot(
+        session,
+        quote=quote,
+        lines=QuoteRepository(session).lines_for_quote(quote.id),
+        actor=actor,
+    )
+
+
 def _line_total(unit_price: Decimal, quantity: int) -> Decimal:
     return quantize_money(unit_price * quantity)
 

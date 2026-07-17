@@ -137,12 +137,32 @@ frontend production build=47 modules transformed; built in 2.32s
 
 ## Next action
 
-Merge the verified local V2-05 checkpoint into `main`, then create
-`v2-06-approval-inbox` from the updated local main.
+Complete V2-06B Approval Inbox from the verified V2-06A local checkpoint.
 
 ## Current verdict
 
-V2-05 VERIFIED
+V2-06A VERIFIED; V2-06B PENDING
+
+## V2-06A evidence
+
+V2-06A adds the quote-scoped approval request and immutable terminal decision
+domain. Each submission records the authenticated requester, immutable Quote
+revision, pricing check, selected candidate, safe validation snapshot, and
+optimistic version. Submission re-runs deterministic validation from stored
+Decimal snapshot inputs and rejects evidence divergence. Normal-mode
+self-approval is `403`; `failed/high` is `409`; warning/medium submission
+requires a written reason; no override or automatic price-table activation is
+available.
+
+Approved and rejected decisions are guarded by PostgreSQL triggers. Rejection
+preserves its revision then returns the Quote to a new editable draft revision.
+The test database alone was used for the four approval target tests and full
+backend regression. V1 remains unchanged.
+
+```text
+approval PostgreSQL target=4 passed in 189.56s (0:03:09)
+backend regression=43 passed in 451.04s (0:07:31)
+```
 
 ## V2-04 parent evidence
 
