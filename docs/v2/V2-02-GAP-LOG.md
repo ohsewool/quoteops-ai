@@ -1,13 +1,19 @@
 # V2-02 Gap Log
 
-## V2-02A
+No known mandatory V2-02 gaps remain after verification.
 
-No known mandatory V2-02A gaps remain after verification.
+## Verified scope
 
-## V2-02B
-
-Not started. The authenticated shell, role-aware navigation, responsive layout,
-and accessibility baseline remain the next scoped work.
+- Public landing, safe login/logout/session handling, protected route redirects,
+  and explicit demo shell gating are complete.
+- URL-based workspace navigation is available for dashboard, customer requests,
+  quotes, pricing checks, approvals, reports, operations, and demo routes.
+- Viewer, manager, and admin visible navigation differs by role; backend API
+  authorization remains mandatory and independent of visibility.
+- The operations page reads only the V2-01 admin system-status endpoint and
+  excludes secrets and raw diagnostics.
+- Future workflow pages are explicit phase placeholders and do not fabricate
+  operational data.
 
 ## Manual visual evidence
 
