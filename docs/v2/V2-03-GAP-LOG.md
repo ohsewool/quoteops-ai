@@ -1,6 +1,6 @@
 # V2-03 Gap Log
 
-No known mandatory V2-03A gaps remain after verification.
+No known mandatory V2-03 gaps remain after verification.
 
 ## Verified V2-03A scope
 
@@ -15,14 +15,18 @@ No known mandatory V2-03A gaps remain after verification.
 - Quote conversion remains honestly reserved for V2-04. No endpoint falsely
   marks a request quoted without a persisted Quote.
 
-## Remaining planned work
+## Verified V2-03B and parent scope
 
-- V2-03B must add the responsive, accessible request list/detail/create/edit
-  UI and surface loading, empty, validation, permission, and state-conflict
-  states using the verified API.
-- Parent V2-03 activation must forward-migrate only the V2 application
-  database after V2-03B verification. Destructive migration checks remain
-  test-database-only.
+- The authenticated workspace has responsive list, detail, create, and edit
+  routes backed by the V2-03 API, including real loading, empty, safe error,
+  permission, and stale-version behavior.
+- Viewer controls are read-only; manager/admin mutation controls remain backed
+  by server authorization and optimistic concurrency checks.
+- Direct Quote conversion is not offered. V2-04 owns the atomic conversion to
+  a persisted Quote.
+- The application database was forward-migrated to V2-03 head without a
+  downgrade. The test database remains the only target for destructive
+  migration verification.
 
 ## Manual visual evidence
 
