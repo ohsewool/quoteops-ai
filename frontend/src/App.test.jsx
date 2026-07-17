@@ -60,7 +60,7 @@ describe("V2-02A public landing and session behavior", () => {
     setRoute("/app");
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "Viewer님의 업무 공간" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "대시보드" })).toBeInTheDocument();
     expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining("/api/auth/me"), expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer session-token" }) }));
   });
 
@@ -72,5 +72,41 @@ describe("V2-02A public landing and session behavior", () => {
 
     await waitFor(() => expect(window.location.pathname).toBe("/login"));
     expect(window.sessionStorage.getItem(authStorageKey)).toBeNull();
+  });
+
+  it("shows role-aware navigation and keeps admin operations hidden from viewers", async () => {
+    window.sessionStorage.setItem(authStorageKey, JSON.stringify({ accessToken: "viewer-token", expiresAt: "2099-01-01T00:00:00Z" }));
+    global.fetch.mockResolvedValueOnce(jsonResponse({ id: 7, username: "viewer", display_name: "Viewer", role: "viewer", active: true }));
+    setRoute("/app/dashboard");
+    render(<App />);
+
+    expect(await screen.findByRole("navigation", { name: "업무 공간 탐색" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /고객 요청/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /운영/ })).not.toBeInTheDocument();
+    expect(screen.getByText("본문으로 건너뛰기")).toBeInTheDocument();
+  });
+
+  it("loads safe operations status only for an admin deep link", async () => {
+    window.sessionStorage.setItem(authStorageKey, JSON.stringify({ accessToken: "admin-token", expiresAt: "2099-01-01T00:00:00Z" }));
+    global.fetch
+      .mockResolvedValueOnce(jsonResponse({ id: 1, username: "admin", display_name: "Admin", role: "admin", active: true }))
+      .mockResolvedValueOnce(jsonResponse({ environment: "local", database_configured: true, docs_enabled: true, openapi_enabled: true, demo_enabled: false, cors_origin_count: 1 }));
+    setRoute("/app/operations");
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "운영" })).toBeInTheDocument();
+    expect(await screen.findByText("확인됨")).toBeInTheDocument();
+    expect(screen.queryByText(/postgresql\+psycopg/i)).not.toBeInTheDocument();
+  });
+
+  it("returns an honest planned-phase page for a stable deep link", async () => {
+    window.sessionStorage.setItem(authStorageKey, JSON.stringify({ accessToken: "manager-token", expiresAt: "2099-01-01T00:00:00Z" }));
+    global.fetch.mockResolvedValueOnce(jsonResponse({ id: 2, username: "manager", display_name: "Manager", role: "manager", active: true }));
+    setRoute("/app/quotes");
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "견적" })).toBeInTheDocument();
+    expect(screen.getByText("Planned in V2-04")).toBeInTheDocument();
+    expect(screen.queryByText(/₩[0-9]/)).not.toBeInTheDocument();
   });
 });
