@@ -2,9 +2,9 @@
 
 ## Run status
 
-V2-01 through V2-08 are complete. This local-only checkpoint records the
-verified Grounded Pricing Copilot and its activated application schema;
-authorized autonomous work resumes at V2-09A after the V2-08 checkpoint merge.
+V2-01 through V2-09 are complete. This local-only checkpoint records the
+verified Operations, Guided Demo, and selected adapter boundary; authorized
+autonomous work resumes at V2-10A after the V2-09 checkpoint merge.
 
 ## V1 evidence
 
@@ -12,7 +12,7 @@ V1 remained read-only on `pr-48-cpq-workflow-app-shell-restructure`. Its only wo
 
 ## V2 repository state
 
-The local-only V2 repository is on `v2-08-grounded-pricing-copilot` before its
+The local-only V2 repository is on `v2-09-operations-demo-adapters` before its
 verified checkpoint merge. No remote was added, no push, pull request, or
 deployment was performed, and `.env` remains ignored and untracked.
 
@@ -37,7 +37,10 @@ deployment was performed, and `.env` remains ignored and untracked.
 | V2-08A | VERIFIED | Immutable grounded copilot domain, provider fallback boundary, PostgreSQL guards, and API passed. |
 | V2-08B | VERIFIED | Contextual grounded-draft panels, role boundary, frontend regression, and build passed. |
 | V2-08 parent | VERIFIED | Test-only migration cycle, application forward activation, security gates, and full regression passed. |
-| V2-09A through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
+| V2-09A | VERIFIED | Safe diagnostics/audit search and isolated competitor-reference CSV adapter passed. |
+| V2-09B | VERIFIED | Explicit admin-only two-product guided demo and guide-state reset passed. |
+| V2-09 parent | VERIFIED | Test-only migration recovery, application forward activation, security gates, full backend/frontend regression, and build passed. |
+| V2-10A through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
 
 ## V2-01 application database activation
 
@@ -140,14 +143,14 @@ frontend regression=20 passed in 10.71s
 frontend production build=47 modules transformed; built in 2.32s
 ```
 
-## V2-08 checkpoint action
+## V2-09 checkpoint action
 
-Merge the verified local V2-08 checkpoint into `main`, then create the
-V2-09 branch from updated local `main`.
+Merge the verified local V2-09 checkpoint into `main`, then create the
+V2-10 branch from updated local `main`.
 
 ## Current verdict
 
-V2-08 VERIFIED
+V2-09 VERIFIED
 
 ## V2-07 evidence
 
@@ -296,3 +299,43 @@ The application database was forward-migrated once from V2-07 to V2-08 and
 never downgraded. All destructive migration proof remained limited to
 `quoteops_ai_v2_test`. V1 remained unchanged and no remote, push, pull
 request, deployment, or V2-09 work occurred.
+
+## V2-09 evidence
+
+V2-09 adds a restrained admin Operations console, one isolated versioned
+competitor-reference CSV adapter, and an explicitly enabled admin guided demo.
+The adapter uses a fixed schema/header, bounded size and row count, exact
+Decimal monetary parsing, whole-import validation, and one transaction. Viewer
+access to the CSV endpoints is denied. Diagnostics and audit search are
+admin-only, return no secret or raw connection value, and persist only
+sanitized audit metadata.
+
+The guided demo is unavailable unless enabled in a non-production setting. It
+does not seed users, passwords, credentials, or data at startup. A run is an
+explicit admin action and exposes exactly the two supported product codes:
+`a3_flyer` and `brand_sticker`. Reset changes persisted guide state only and
+does not delete or alter business workflow records.
+
+```text
+test migration cycle: 0009 -> 0008 -> 0009 on test DB only
+focused operations PostgreSQL API/schema: 4 passed in 98.47s
+backend regression after final V2-09 review: 55 passed in 931.85s (0:15:31)
+frontend V2-09 target: 10 passed in 10.76s
+frontend regression: 30 passed in 15.84s
+frontend production build: 57 modules transformed; built in 1.69s
+V2 security gates: 13 passed in 4.79s
+application_alembic_revision=0009_operations_demo_domain
+application_tables_match_v2_09=True
+application_readiness_status=200
+application_openapi_operations_and_demo_routes_present=True
+application_user_count_unchanged_after_start=True
+v2_env_ignored=True
+v2_env_tracked=False
+risky_tracked_files=[]
+V1 tracked diff=empty
+```
+
+The application database was forward-migrated once from V2-08 to V2-09 and
+never downgraded. Destructive recovery proof was restricted to the V2 test
+database. V1 remained unchanged; no remote, push, pull request, deployment,
+Docker installation, or external AI call occurred.

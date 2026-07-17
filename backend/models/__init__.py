@@ -3,6 +3,7 @@ from backend.models.approval import ApprovalDecision, ApprovalRequest
 from backend.models.base import Base
 from backend.models.customer_request import CustomerRequest
 from backend.models.copilot_output import CopilotOutput
+from backend.models.demo_run import DemoRun
 from backend.models.html_report import HtmlReport
 from backend.models.pricing import (
     Competitor,
@@ -25,6 +26,7 @@ __all__ = [
     "Base",
     "CustomerRequest",
     "CopilotOutput",
+    "DemoRun",
     "HtmlReport",
     "Competitor",
     "CompetitorReference",

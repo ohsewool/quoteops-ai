@@ -6,7 +6,7 @@ const allNavigation = [
   { href: "/app/approvals", label: "승인" },
   { href: "/app/reports", label: "리포트" },
   { href: "/app/operations", label: "운영", roles: ["admin"] },
-  { href: "/app/demo", label: "데모", roles: ["admin", "manager"], demoOnly: true }
+  { href: "/app/demo", label: "데모", roles: ["admin"], demoOnly: true }
 ];
 
 export function navigationFor(role, { demoEnabled = false } = {}) {
