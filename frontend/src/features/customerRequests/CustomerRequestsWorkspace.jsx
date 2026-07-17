@@ -11,6 +11,7 @@ import {
   transitionCustomerRequest,
   updateCustomerRequest
 } from "./customerRequestApi.js";
+import { createQuoteFromCustomerRequest } from "../quotes/quoteApi.js";
 
 const PRODUCT_LABELS = {
   a3_flyer: "A3 Flyer",
@@ -49,7 +50,7 @@ function requestErrorMessage(error) {
   if (error.code === "stale_customer_request") return "다른 변경이 먼저 저장되었습니다. 최신 요청을 다시 확인하세요.";
   if (error.code === "permission_denied") return "이 작업을 수행할 권한이 없습니다.";
   if (error.code === "customer_request_not_found") return "고객 요청을 찾을 수 없습니다.";
-  if (error.code === "quote_conversion_required") return "견적 전환은 V2-04에서 실제 Quote와 함께 수행됩니다.";
+  if (error.code === "request_not_convertible") return "검토 중인 고객 요청만 견적으로 전환할 수 있습니다.";
   if (error.code === "network_unavailable") return "서버에 연결할 수 없습니다. 연결 상태를 확인하세요.";
   if (error.code === "validation_error") return "입력 값을 확인하세요.";
   return "요청을 처리하지 못했습니다. 잠시 후 다시 시도하세요.";
@@ -372,6 +373,22 @@ export function CustomerRequestDetailPage({ customerRequestId }) {
     }
   };
 
+  const convertToQuote = async () => {
+    if (!state.item) return;
+    setSubmitting(true);
+    setState((current) => ({ ...current, error: "" }));
+    try {
+      const quote = await createQuoteFromCustomerRequest(request, customerRequestId, {
+        request_version: state.item.version
+      });
+      navigate(`/app/quotes/${quote.id}`);
+    } catch (error) {
+      setState((current) => ({ ...current, error: requestErrorMessage(error) }));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (state.loading) return <p className="inline-state" role="status">고객 요청을 불러오는 중입니다.</p>;
   if (!state.item) {
     return (
@@ -415,7 +432,8 @@ export function CustomerRequestDetailPage({ customerRequestId }) {
           </dl>
           {item.notes ? <div className="request-notes-display"><h2>요청 메모</h2><p>{item.notes}</p></div> : null}
           {editable ? <div className="request-actions"><button className="button button-secondary" disabled={submitting} onClick={() => setEditing(true)} type="button">요청 수정</button>{availableActions.map((status) => <button className={status === "cancelled" ? "button button-danger" : "button button-primary"} disabled={submitting} key={status} onClick={() => transition(status)} type="button">{STATUS_ACTIONS[status]}</button>)}</div> : <p className="read-only-note">Viewer 권한에서는 이 요청을 변경할 수 없습니다.</p>}
-          {item.ready_for_quote_conversion ? <p className="quote-conversion-note">견적 생성은 V2-04에서 영속 Quote와 함께 수행됩니다. 이 화면에서는 고객 요청만 관리합니다.</p> : null}
+          {item.ready_for_quote_conversion && editable ? <div className="quote-conversion-note"><p>현재 요청 버전을 실제 초안 견적으로 전환합니다. 전환 뒤에는 견적 라인과 revision을 별도로 관리합니다.</p><button className="button button-primary" disabled={submitting} onClick={convertToQuote} type="button">견적으로 전환</button></div> : null}
+          {item.ready_for_quote_conversion && !editable ? <p className="quote-conversion-note">이 요청은 견적으로 전환할 수 있지만 Viewer 권한에서는 전환할 수 없습니다.</p> : null}
         </>
       )}
       <section className="request-audit-section" aria-labelledby="audit-title">

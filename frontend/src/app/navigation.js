@@ -1,7 +1,7 @@
 const allNavigation = [
   { href: "/app/dashboard", label: "대시보드" },
   { href: "/app/requests", label: "고객 요청" },
-  { href: "/app/quotes", label: "견적", phase: "V2-04" },
+  { href: "/app/quotes", label: "견적" },
   { href: "/app/pricing", label: "가격 검토", phase: "V2-05" },
   { href: "/app/approvals", label: "승인", phase: "V2-06" },
   { href: "/app/reports", label: "리포트", phase: "V2-07" },
