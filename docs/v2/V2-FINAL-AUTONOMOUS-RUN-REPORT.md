@@ -2,9 +2,9 @@
 
 ## Run status
 
-V2-01 through V2-07 are complete. This local-only checkpoint records the
-verified Report Center and its activated application schema; authorized
-autonomous work resumes at V2-08A.
+V2-01 through V2-08 are complete. This local-only checkpoint records the
+verified Grounded Pricing Copilot and its activated application schema;
+authorized autonomous work resumes at V2-09A after the V2-08 checkpoint merge.
 
 ## V1 evidence
 
@@ -12,9 +12,9 @@ V1 remained read-only on `pr-48-cpq-workflow-app-shell-restructure`. Its only wo
 
 ## V2 repository state
 
-The local-only V2 repository is on `v2-07-report-center` before its verified
-checkpoint merge. No remote was added, no push, pull request, or deployment
-was performed, and `.env` remains ignored and untracked.
+The local-only V2 repository is on `v2-08-grounded-pricing-copilot` before its
+verified checkpoint merge. No remote was added, no push, pull request, or
+deployment was performed, and `.env` remains ignored and untracked.
 
 ## Verdicts
 
@@ -34,9 +34,12 @@ was performed, and `.env` remains ignored and untracked.
 | V2-05 parent | VERIFIED | Application DB forward activation, backend/frontend regression, and readiness passed. |
 | V2-06 parent | VERIFIED | Approval lineage and approval inbox checks passed. |
 | V2-07 parent | VERIFIED | Approved-Quote reports, safe preview, lineage, and application activation passed. |
-| V2-08A through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
+| V2-08A | VERIFIED | Immutable grounded copilot domain, provider fallback boundary, PostgreSQL guards, and API passed. |
+| V2-08B | VERIFIED | Contextual grounded-draft panels, role boundary, frontend regression, and build passed. |
+| V2-08 parent | VERIFIED | Test-only migration cycle, application forward activation, security gates, and full regression passed. |
+| V2-09A through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
 
-## Application database activation
+## V2-01 application database activation
 
 The application database was confirmed as `quoteops_ai_v2`; the test database was confirmed as `quoteops_ai_v2_test`; their parsed URLs were distinct without printing either value. The application database had no V2 tables, was upgraded to Alembic head, and now has only `alembic_version`, `users`, and `audit_events`. No application-database downgrade was run.
 
@@ -137,14 +140,14 @@ frontend regression=20 passed in 10.71s
 frontend production build=47 modules transformed; built in 2.32s
 ```
 
-## Next action
+## V2-08 checkpoint action
 
-Merge the verified local V2-07 checkpoint into `main`, then create
-`v2-08-grounded-pricing-copilot` from updated local `main`.
+Merge the verified local V2-08 checkpoint into `main`, then create the
+V2-09 branch from updated local `main`.
 
 ## Current verdict
 
-V2-07 VERIFIED
+V2-08 VERIFIED
 
 ## V2-07 evidence
 
@@ -258,3 +261,38 @@ backend regression=33 passed in 184.45s (0:03:04)
 frontend regression=17 passed in 15.41s
 frontend production build=45 modules transformed; built in 3.61s
 ```
+
+## V2-08 evidence
+
+V2-08 adds immutable, grounded copilot text outputs. Each output is linked to
+the existing Quote/revision and purpose-specific persisted evidence. The API
+accepts no pricing, validation, approval, report, or workflow-state write
+field. The default provider is disabled and produces a deterministic fallback;
+test-only providers prove success, failure, and unsupported-output behavior.
+No external AI request is made.
+
+```text
+test migration cycle: 0008 -> 0006 -> 0008 on test DB only
+focused copilot PostgreSQL API/schema: 4 passed in 220.50s
+backend regression: 51 passed in 830.15s (0:13:50)
+frontend copilot/pricing/approval/report target: 11 passed in 8.71s
+frontend regression: 28 passed in 13.14s
+frontend production build: 53 modules transformed; built in 6.93s
+V2 security gates: 14 passed in 4.58s
+application_alembic_revision=0008_copilot_context_guard
+application_tables_match_v2_08=True
+application_copilot_constraints_present=True
+application_copilot_triggers_match=True
+application_readiness_status=200
+application_openapi_copilot_routes_present=True
+application_user_count_unchanged_after_app_start=True
+v2_env_ignored=True
+v2_env_tracked=False
+risky_tracked_files=[]
+V1 tracked diff=empty
+```
+
+The application database was forward-migrated once from V2-07 to V2-08 and
+never downgraded. All destructive migration proof remained limited to
+`quoteops_ai_v2_test`. V1 remained unchanged and no remote, push, pull
+request, deployment, or V2-09 work occurred.

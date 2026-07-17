@@ -2,6 +2,7 @@ from backend.models.audit_event import AuditEvent
 from backend.models.approval import ApprovalDecision, ApprovalRequest
 from backend.models.base import Base
 from backend.models.customer_request import CustomerRequest
+from backend.models.copilot_output import CopilotOutput
 from backend.models.html_report import HtmlReport
 from backend.models.pricing import (
     Competitor,
@@ -23,6 +24,7 @@ __all__ = [
     "ApprovalRequest",
     "Base",
     "CustomerRequest",
+    "CopilotOutput",
     "HtmlReport",
     "Competitor",
     "CompetitorReference",

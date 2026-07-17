@@ -4,6 +4,7 @@ import { ApiClientError } from "../../app/api/client.js";
 import { useAuth } from "../../app/auth/AuthProvider.jsx";
 import { navigate, useLocation } from "../../app/router.jsx";
 import { listApprovalRequests } from "../approvals/approvalApi.js";
+import { CopilotPanel } from "../copilot/CopilotPanel.jsx";
 import { createHtmlReport, getHtmlReport, getHtmlReportContent, listHtmlReports } from "./reportApi.js";
 
 function canManage(role) {
@@ -208,7 +209,22 @@ export function ReportCenterPage() {
       {!listState.loading && !listState.error ? <section className="report-list-section" aria-labelledby="report-list-title"><div><h2 id="report-list-title">문서 목록</h2><p>각 artifact는 생성 당시의 승인 source와 content hash를 유지합니다.</p></div><ReportList items={listState.items} onSelect={selectReport} selectedId={selectedId} /></section> : null}
       {detailState.loading ? <p className="inline-state" role="status">문서 근거를 불러오는 중입니다.</p> : null}
       {detailState.error ? <div className="request-message request-message-error" role="alert"><p>{detailState.error}</p><button className="button button-secondary" onClick={loadDetail} type="button">다시 시도</button></div> : null}
-      {detailState.report ? <ReportDetail content={contentState.content} contentError={contentState.error} contentLoading={contentState.loading} onRegenerate={create} regenerating={saving} report={detailState.report} user={user} /> : null}
+      {detailState.report ? <>
+        <ReportDetail content={contentState.content} contentError={contentState.error} contentLoading={contentState.loading} onRegenerate={create} regenerating={saving} report={detailState.report} user={user} />
+        <CopilotPanel
+          quoteId={detailState.report.quote_id}
+          title="Report evidence copilot"
+          actions={[{
+            id: "report-summary-draft",
+            label: "Generate report summary draft",
+            payload: {
+              purpose: "report_summary_draft",
+              quote_revision_id: detailState.report.source_quote_revision_id,
+              report_id: detailState.report.id
+            }
+          }]}
+        />
+      </> : null}
     </section>
   );
 }
