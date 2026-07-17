@@ -1,6 +1,6 @@
 # V2-05 Gap Log
 
-No known mandatory V2-05A or V2-05B implementation gaps remain after verification.
+No known mandatory V2-05 gaps remain after verification.
 
 ## Verified V2-05A scope
 
@@ -19,8 +19,9 @@ No known mandatory V2-05A or V2-05B implementation gaps remain after verificatio
   profiles, raw component costs, or competitor-reference management APIs.
 - Pricing evidence rows are database-immutable; the test database downgrade
   and re-upgrade recovery cycle passed.
-- The application database remains untouched at V2-04 head. Destructive tests
-  remained limited to the V2 test database.
+- V2-05A did not alter the application database; only the V2 test database was
+  used for destructive recovery proof. The parent forward-only activation is
+  recorded below.
 - V1 remains unchanged. The ignored root `.env` remains untracked.
 
 ## Verified V2-05B scope
@@ -37,6 +38,20 @@ No known mandatory V2-05A or V2-05B implementation gaps remain after verificatio
   raw competitor-reference fields are absent from browser responses and tests.
 - Loading, empty, error, stale/source prerequisite, and ineligible Quote states
   are explicit. The frontend test and production-build gates passed.
+
+## Verified parent activation
+
+- The V2 application database was confirmed as `quoteops_ai_v2` and upgraded
+  forward from V2-04 to `0004_pricing_check_domain` only after V2-05A/B passed.
+- The V2 test database remains `quoteops_ai_v2_test`, distinct from the
+  application database, and remains at V2-05 head after the destructive
+  recovery cycle.
+- The application schema exactly contains the approved V2-01 through V2-05
+  tables, expected pricing constraints, and immutable evidence triggers.
+- Application readiness remains a healthy JSON `200` response.
+- No application-database downgrade, V1 database connection, V1 modification,
+  remote, push, pull request, deployment, price-table activation, approval,
+  report, or AI action occurred.
 
 ## Deferred only to V2-05B and later scopes
 

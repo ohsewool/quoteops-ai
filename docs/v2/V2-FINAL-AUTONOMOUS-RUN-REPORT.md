@@ -2,9 +2,9 @@
 
 ## Run status
 
-V2-01 through V2-04 and V2-05A/B are complete. This local-only checkpoint
-records the verified deterministic pricing workspace; V2-05 parent database
-activation is the next local-only step.
+V2-01 through V2-05 are complete. This local-only checkpoint records the
+verified deterministic Pricing Check Workspace and its activated application
+schema; authorized autonomous work resumes at V2-06A.
 
 ## V1 evidence
 
@@ -31,7 +31,7 @@ and untracked.
 | V2-04 parent | VERIFIED | Application DB forward activation, backend/frontend regression, and readiness passed. |
 | V2-05A | VERIFIED | Deterministic pricing source/evidence PostgreSQL domain and APIs passed. |
 | V2-05B | VERIFIED | API-backed Pricing Check Workspace passed. |
-| V2-05 parent | Pending activation | Forward-only application migration and parent regression remain. |
+| V2-05 parent | VERIFIED | Application DB forward activation, backend/frontend regression, and readiness passed. |
 | V2-06A through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
 
 ## Application database activation
@@ -98,9 +98,8 @@ pricing target after recovery=6 passed in 125.20s
 backend regression=39 passed in 287.34s (0:04:47)
 ```
 
-The application database is deliberately unchanged at V2-04 head; it has not
-been downgraded and will receive only a forward V2-05 migration after V2-05B
-and parent verification. V1 remains unchanged.
+The V2-05A application-database boundary was preserved until V2-05B and the
+parent gate passed. V1 remains unchanged.
 
 ## V2-05B evidence
 
@@ -117,15 +116,33 @@ frontend regression=20 passed in 10.71s
 frontend production build=47 modules transformed; built in 2.32s
 ```
 
+## V2-05 parent evidence
+
+The application database was confirmed at V2-04 head with no V2-05 tables,
+then forward-migrated once to `0004_pricing_check_domain`. No application
+database downgrade occurred. The test database remained the only destructive
+recovery target.
+
+```text
+application_alembic_revision=0004_pricing_check_domain
+application_tables_match_v2_05=True
+application_pricing_constraints_present=True
+application_pricing_evidence_triggers_match=True
+test_alembic_revision=0004_pricing_check_domain
+application_readiness_status=200
+backend regression=39 passed in 281.40s (0:04:41)
+frontend regression=20 passed in 10.71s
+frontend production build=47 modules transformed; built in 2.32s
+```
+
 ## Next action
 
-Create the verified local V2-05B checkpoint, forward-migrate the application
-database only, perform V2-05 parent verification, then merge locally into
-`main` and create `v2-06-approval-inbox`.
+Merge the verified local V2-05 checkpoint into `main`, then create
+`v2-06-approval-inbox` from the updated local main.
 
 ## Current verdict
 
-V2-05A VERIFIED
+V2-05 VERIFIED
 
 ## V2-04 parent evidence
 

@@ -2,8 +2,8 @@
 
 | Subphase | Scope | Commit | Tests | Independent review | Verdict |
 |---|---|---|---|---|---|
-| V2-05A | Deterministic pricing source data, candidates, validation, immutable evidence, and authenticated APIs | Pending local checkpoint | Pricing target: 6 passed; full backend: 39 passed | Decimal formulas, validation severities, immutable triggers, source lineage, role-safe DTOs, migration recovery, and raw-cost boundaries were reviewed. | V2-05A VERIFIED |
-| V2-05B | Pricing Check Workspace | Pending local checkpoint | Feature target: 3 passed; frontend regression: 20 passed; production build passed | Actual API loading, manager create action, Viewer read-only state, URL selection, safe rendering, and responsive CSS were reviewed. | V2-05B VERIFIED |
+| V2-05A | Deterministic pricing source data, candidates, validation, immutable evidence, and authenticated APIs | `98bfe38` | Pricing target: 6 passed; full backend: 39 passed | Decimal formulas, validation severities, immutable triggers, source lineage, role-safe DTOs, migration recovery, and raw-cost boundaries were reviewed. | V2-05A VERIFIED |
+| V2-05B | Pricing Check Workspace | `fd6d360` | Feature target: 3 passed; frontend regression: 20 passed; production build passed | Actual API loading, manager create action, Viewer read-only state, URL selection, safe rendering, and responsive CSS were reviewed. | V2-05B VERIFIED |
 
 ## V2-05A delivery
 
@@ -155,5 +155,38 @@ V2-05B frontend regression=20 passed in 10.71s
 V2-05B Vite production build=47 modules transformed; built in 2.32s
 ```
 
-V2-05 parent application-database activation remains pending after this
-subphase checkpoint. No application database migration was run by V2-05B.
+## V2-05 parent activation
+
+After both subphases passed, the application database and test database names
+were parsed without printing either URL and confirmed distinct. The application
+database was still exactly at V2-04 head with no V2-05 tables. It was then
+forward-migrated once, from `0003_quote_domain` to
+`0004_pricing_check_domain`. No application-database downgrade was run.
+
+```text
+application_database_name=quoteops_ai_v2
+test_database_name=quoteops_ai_v2_test
+database_names_distinct=True
+application_alembic_revision_before=0003_quote_domain
+application_tables_match_v2_04=True
+application_pricing_tables_absent_before=True
+application_alembic_revision=0004_pricing_check_domain
+application_tables_match_v2_05=True
+application_pricing_constraints_present=True
+application_pricing_evidence_triggers_match=True
+test_alembic_revision=0004_pricing_check_domain
+application_readiness_status=200
+application_readiness_is_json=True
+```
+
+The V2 test database remained the only target for downgrade/re-upgrade proof.
+The parent regression at the V2-05B checkpoint passed:
+
+```text
+python -m compileall backend alembic: completed successfully
+backend regression=39 passed in 281.40s (0:04:41)
+frontend regression=20 passed in 10.71s
+frontend production build=47 modules transformed; built in 2.32s
+```
+
+V2-05 VERIFIED.
