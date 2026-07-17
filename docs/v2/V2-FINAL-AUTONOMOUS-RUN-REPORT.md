@@ -2,9 +2,9 @@
 
 ## Run status
 
-V2-01 through V2-04 and V2-05A are complete. This local-only checkpoint
-records the verified deterministic pricing evidence backend; authorized
-autonomous work resumes at V2-05B.
+V2-01 through V2-04 and V2-05A/B are complete. This local-only checkpoint
+records the verified deterministic pricing workspace; V2-05 parent database
+activation is the next local-only step.
 
 ## V1 evidence
 
@@ -30,7 +30,9 @@ and untracked.
 | V2-04C | VERIFIED | API-backed Quote workspace passed. |
 | V2-04 parent | VERIFIED | Application DB forward activation, backend/frontend regression, and readiness passed. |
 | V2-05A | VERIFIED | Deterministic pricing source/evidence PostgreSQL domain and APIs passed. |
-| V2-05B through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
+| V2-05B | VERIFIED | API-backed Pricing Check Workspace passed. |
+| V2-05 parent | Pending activation | Forward-only application migration and parent regression remain. |
+| V2-06A through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
 
 ## Application database activation
 
@@ -100,10 +102,26 @@ The application database is deliberately unchanged at V2-04 head; it has not
 been downgraded and will receive only a forward V2-05 migration after V2-05B
 and parent verification. V1 remains unchanged.
 
+## V2-05B evidence
+
+The authenticated `/app/pricing` workspace now loads persisted Quote and
+pricing-check APIs, supports direct `quote_id` routing and saved Quote
+selection, lets only manager/admin create a check from the current Quote
+version/revision, and shows viewer-safe saved evidence. It never calculates or
+generates prices in the browser and does not send raw cost components or source
+configuration to the browser.
+
+```text
+frontend pricing target=3 passed in 0.93s
+frontend regression=20 passed in 10.71s
+frontend production build=47 modules transformed; built in 2.32s
+```
+
 ## Next action
 
-Create the verified local V2-05A checkpoint, then implement the API-backed
-V2-05B Pricing Check Workspace before V2-05 parent activation.
+Create the verified local V2-05B checkpoint, forward-migrate the application
+database only, perform V2-05 parent verification, then merge locally into
+`main` and create `v2-06-approval-inbox`.
 
 ## Current verdict
 

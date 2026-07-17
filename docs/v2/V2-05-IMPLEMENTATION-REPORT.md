@@ -3,7 +3,7 @@
 | Subphase | Scope | Commit | Tests | Independent review | Verdict |
 |---|---|---|---|---|---|
 | V2-05A | Deterministic pricing source data, candidates, validation, immutable evidence, and authenticated APIs | Pending local checkpoint | Pricing target: 6 passed; full backend: 39 passed | Decimal formulas, validation severities, immutable triggers, source lineage, role-safe DTOs, migration recovery, and raw-cost boundaries were reviewed. | V2-05A VERIFIED |
-| V2-05B | Pricing Check Workspace and parent activation | Not started | Not started | Not started | Pending |
+| V2-05B | Pricing Check Workspace | Pending local checkpoint | Feature target: 3 passed; frontend regression: 20 passed; production build passed | Actual API loading, manager create action, Viewer read-only state, URL selection, safe rendering, and responsive CSS were reviewed. | V2-05B VERIFIED |
 
 ## V2-05A delivery
 
@@ -125,3 +125,35 @@ uniqueness, and actual immutable-evidence update rejection.
 No price table activation, approval decision, report, AI action, automatic
 customer price change, V1 modification, remote, push, pull request, or
 deployment is included in V2-05A.
+
+## V2-05B delivery
+
+`/app/pricing` is now an authenticated, API-backed Pricing Check Workspace.
+It accepts an optional `quote_id` query parameter from the Quote workspace and
+also offers a real saved-Quote selector when opened directly. It loads the
+persisted Quote, its pricing-check history, and the selected immutable detail
+through the V2 API; it does not manufacture candidates or calculate totals in
+the browser.
+
+Managers and admins can choose one of the fixed server-supported strategies
+and whether to include competitor context, then POST the current Quote version
+and current immutable revision ID. The created server snapshot becomes the
+selected view. Viewers can select a Quote and read its existing snapshot but
+have no creation control. The page includes loading, empty, safe error,
+permission, ineligible Quote, saved-history, summary, candidate comparison,
+and selected validation states.
+
+The table renders only server-provided aggregate total cost, total price, gross
+profit, margin, validation, and risk. It contains no raw material/labor/
+overhead/profile fields, raw competitor references, browser-side formula, or
+AI call. The responsive table uses horizontal containment on narrow screens;
+the summary and validation rows collapse to stable single-column layouts.
+
+```text
+V2-05B frontend target=3 passed in 0.93s
+V2-05B frontend regression=20 passed in 10.71s
+V2-05B Vite production build=47 modules transformed; built in 2.32s
+```
+
+V2-05 parent application-database activation remains pending after this
+subphase checkpoint. No application database migration was run by V2-05B.

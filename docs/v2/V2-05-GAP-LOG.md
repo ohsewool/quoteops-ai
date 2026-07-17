@@ -1,6 +1,6 @@
 # V2-05 Gap Log
 
-No known mandatory V2-05A gaps remain after verification.
+No known mandatory V2-05A or V2-05B implementation gaps remain after verification.
 
 ## Verified V2-05A scope
 
@@ -23,9 +23,23 @@ No known mandatory V2-05A gaps remain after verification.
   remained limited to the V2 test database.
 - V1 remains unchanged. The ignored root `.env` remains untracked.
 
+## Verified V2-05B scope
+
+- `/app/pricing` is a real authenticated Pricing Check Workspace rather than a
+  future-phase placeholder.
+- The route supports direct URL opening with `quote_id` and a safe saved-Quote
+  selector when no query is present.
+- Manager/admin creation sends the current persisted Quote version, current
+  immutable revision ID, selected server strategy, and competitor-context flag
+  to the V2 API; Viewer controls remain read-only.
+- Existing snapshots render their aggregate totals, candidates, validation,
+  risk, and context summary from server data only. Raw source-cost/profile and
+  raw competitor-reference fields are absent from browser responses and tests.
+- Loading, empty, error, stale/source prerequisite, and ineligible Quote states
+  are explicit. The frontend test and production-build gates passed.
+
 ## Deferred only to V2-05B and later scopes
 
-- The API-backed Pricing Check Workspace is V2-05B work, not a backend gap.
 - Quote workflow transition into approval is V2-06 work. V2-05A preserves a
   draft Quote after a check so a manager can correct it before submission.
 - Approval requests, reports, AI outputs, price-table activation, CSV tools,

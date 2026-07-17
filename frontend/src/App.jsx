@@ -15,12 +15,12 @@ import LoginPage from "./app/pages/LoginPage.jsx";
 import OperationsPage from "./app/pages/OperationsPage.jsx";
 import ProtectedRoute from "./app/pages/ProtectedRoute.jsx";
 import PublicLanding from "./app/pages/PublicLanding.jsx";
+import { PricingChecksPage } from "./features/pricingChecks/PricingChecksWorkspace.jsx";
 import { QuoteDetailPage, QuotesPage } from "./features/quotes/QuoteWorkspace.jsx";
 
 const demoEnabled = import.meta.env.VITE_DEMO_ENABLED === "true";
 
 const plannedPages = {
-  "/app/pricing": { title: "가격 검토", phase: "V2-05", description: "결정적 candidate와 validation workspace는 V2-05에서 구현됩니다." },
   "/app/approvals": { title: "승인", phase: "V2-06", description: "Quote-scoped approval inbox는 V2-06에서 구현됩니다." },
   "/app/reports": { title: "리포트", phase: "V2-07", description: "승인된 견적 기반 report center는 V2-07에서 구현됩니다." }
 };
@@ -45,6 +45,8 @@ function WorkspaceRoutes() {
     page = <QuotesPage />;
   } else if (/^\/app\/quotes\/\d+$/.test(path)) {
     page = <QuoteDetailPage quoteId={Number(path.split("/").at(-1))} />;
+  } else if (path === "/app/pricing") {
+    page = <PricingChecksPage />;
   } else if (plannedPages[path]) {
     page = <FuturePhasePage {...plannedPages[path]} />;
   } else if (path === "/app/operations") {
