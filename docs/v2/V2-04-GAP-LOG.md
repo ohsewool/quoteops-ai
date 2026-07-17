@@ -1,6 +1,6 @@
 # V2-04 Gap Log
 
-No known mandatory V2-04B gaps remain after verification.
+No known mandatory V2-04 gaps remain after verification.
 
 ## Verified V2-04A scope
 
@@ -26,13 +26,23 @@ No known mandatory V2-04B gaps remain after verification.
 - No pricing candidate, pricing check, approval, report, AI action, or price
   table activation has been added.
 
-## Remaining planned work
+## Verified V2-04C and parent scope
 
-- V2-04C must replace the V2-02 Quote placeholder with a responsive,
-  accessible, API-backed list and workspace without fabricated prices or
-  pricing candidates.
-- Parent V2-04 activation must forward-migrate only the V2 application
-  database after V2-04B/C verification.
+- The authenticated Quote worklist and detail workspace are backed by the
+  persisted V2-04 APIs, with real loading, empty, safe-error, filtering, and
+  read-only Viewer states.
+- Managers/admins can convert a reviewing request through the atomic Quote API,
+  then update draft metadata or replace complete ordered lines using the
+  server-provided optimistic version. Stale line edits remain visible after a
+  conflict.
+- The browser does not generate prices, totals, candidates, validation,
+  approvals, reports, or AI output. Money is sent as exact strings and totals
+  are rendered from deterministic server responses.
+- The application database was forward-migrated to V2-04 head without a
+  downgrade. The V2 test database remains the only destructive migration-test
+  target and is also at V2-04 head.
+- The root `.env` is ignored and untracked; no V1 file, branch, database,
+  remote, deployment, or rescue branch was touched.
 
 ## Manual visual evidence
 
