@@ -2,9 +2,9 @@
 
 ## Run status
 
-V2-01 through V2-04 are complete. This local-only checkpoint records the
-verified persistent Customer Request -> Quote workflow; authorized autonomous
-work resumes at V2-05A.
+V2-01 through V2-05 are complete. This local-only checkpoint records the
+verified deterministic Pricing Check Workspace and its activated application
+schema; authorized autonomous work resumes at V2-06A.
 
 ## V1 evidence
 
@@ -12,7 +12,7 @@ V1 remained read-only on `pr-48-cpq-workflow-app-shell-restructure`. Its only wo
 
 ## V2 repository state
 
-The local-only V2 repository is on `v2-04-quote-domain`; no remote was added,
+The local-only V2 repository is on `v2-05-pricing-check`; no remote was added,
 no push, pull request, or deployment was performed, and `.env` remains ignored
 and untracked.
 
@@ -29,7 +29,10 @@ and untracked.
 | V2-04B | VERIFIED | Atomic request-to-Quote API and audit contract passed. |
 | V2-04C | VERIFIED | API-backed Quote workspace passed. |
 | V2-04 parent | VERIFIED | Application DB forward activation, backend/frontend regression, and readiness passed. |
-| V2-05A through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
+| V2-05A | VERIFIED | Deterministic pricing source/evidence PostgreSQL domain and APIs passed. |
+| V2-05B | VERIFIED | API-backed Pricing Check Workspace passed. |
+| V2-05 parent | VERIFIED | Application DB forward activation, backend/frontend regression, and readiness passed. |
+| V2-06A through V2-10B | Not started in this report | Authorized to proceed sequentially after this checkpoint. |
 
 ## Application database activation
 
@@ -77,14 +80,69 @@ No known mandatory V2-01 gaps remain after verification.
 
 Only the V2 application and test databases were used. V1 was never connected. The application database was upgraded once and not downgraded. Destructive proof was restricted to `quoteops_ai_v2_test`.
 
+## V2-05A evidence
+
+Migration `0004_pricing_check_domain` provides products, active cost profiles,
+competitor references, immutable pricing checks/candidates/validations, and
+the authenticated V2 pricing-check API. Candidate calculation uses only
+Decimal deterministic services and persists formula, rule, rounding, source
+profile/version, and normalized competitor context snapshots. Viewer pricing
+responses exclude raw cost components and raw source configuration.
+
+```text
+test_downgrade_revision=0003_quote_domain
+pricing_tables_absent_after_downgrade=True
+pricing_enums_absent_after_downgrade=True
+test_reupgrade_to_0004=OK
+pricing target after recovery=6 passed in 125.20s
+backend regression=39 passed in 287.34s (0:04:47)
+```
+
+The V2-05A application-database boundary was preserved until V2-05B and the
+parent gate passed. V1 remains unchanged.
+
+## V2-05B evidence
+
+The authenticated `/app/pricing` workspace now loads persisted Quote and
+pricing-check APIs, supports direct `quote_id` routing and saved Quote
+selection, lets only manager/admin create a check from the current Quote
+version/revision, and shows viewer-safe saved evidence. It never calculates or
+generates prices in the browser and does not send raw cost components or source
+configuration to the browser.
+
+```text
+frontend pricing target=3 passed in 0.93s
+frontend regression=20 passed in 10.71s
+frontend production build=47 modules transformed; built in 2.32s
+```
+
+## V2-05 parent evidence
+
+The application database was confirmed at V2-04 head with no V2-05 tables,
+then forward-migrated once to `0004_pricing_check_domain`. No application
+database downgrade occurred. The test database remained the only destructive
+recovery target.
+
+```text
+application_alembic_revision=0004_pricing_check_domain
+application_tables_match_v2_05=True
+application_pricing_constraints_present=True
+application_pricing_evidence_triggers_match=True
+test_alembic_revision=0004_pricing_check_domain
+application_readiness_status=200
+backend regression=39 passed in 281.40s (0:04:41)
+frontend regression=20 passed in 10.71s
+frontend production build=47 modules transformed; built in 2.32s
+```
+
 ## Next action
 
-Create the verified local V2-04 checkpoint, merge it locally into `main`, then
-create `v2-05-pricing-check` from updated local `main`.
+Merge the verified local V2-05 checkpoint into `main`, then create
+`v2-06-approval-inbox` from the updated local main.
 
 ## Current verdict
 
-V2-04 VERIFIED
+V2-05 VERIFIED
 
 ## V2-04 parent evidence
 
