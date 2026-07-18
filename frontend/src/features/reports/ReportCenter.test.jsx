@@ -111,6 +111,9 @@ describe("V2-07B report center", () => {
     render(<App />);
 
     expect(await screen.findByRole("heading", { name: "리포트" })).toBeInTheDocument();
+    const approvalSource = await screen.findByLabelText("승인된 Quote");
+    await user.selectOptions(approvalSource, "801");
+    expect(approvalSource).toHaveValue("801");
     await user.type(await screen.findByLabelText("문서 제목"), "고객 공유용 승인 견적");
     await user.click(screen.getByRole("button", { name: "문서 생성" }));
 
