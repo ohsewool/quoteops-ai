@@ -42,7 +42,7 @@ deployment was performed, and `.env` remains ignored and untracked.
 | V2-09B | VERIFIED | Explicit admin-only two-product guided demo and guide-state reset passed. |
 | V2-09 parent | VERIFIED | Test-only migration recovery, application forward activation, security gates, full backend/frontend regression, and build passed. |
 | V2-10A | VERIFIED | Local full regression, security, base rollback/rebuild, release smoke, and V1-boundary checks passed. |
-| V2-10B | Not started in this report | Manual visual/staging/migration/cutover readiness review remains pending. |
+| V2-10B | Local preparation complete; authenticated review pending | Clean-launch decision, explicit reviewer provisioning, local regression, and public visual evidence are recorded. Authenticated QA, staging, rollback, and cutover remain pending. |
 
 ## V2-01 application database activation
 
@@ -380,24 +380,54 @@ quarantined when it differs by more than `0.01` KRW.
 V1 export transformer target: 6 passed in 0.39s
 CLI clean-export smoke: passed
 database_writes_performed=False
-complete PostgreSQL backend regression: 63 passed in 939.95s (0:15:39)
-frontend regression: 30 passed in 21.92s
-frontend production build: 57 modules transformed; built in 2.75s
+complete PostgreSQL backend regression: 69 passed in 833.65s (0:13:53)
+frontend regression: 30 passed in 78.51s
+frontend production build: 57 modules transformed; built in 2.77s
 release_readiness=VERIFIED_LOCAL
+application/test Alembic revision=0009_operations_demo_domain
+application_user_count=0
 desktop landing/login visual smoke: passed
 390px public viewport: innerWidth=390, clientWidth=390, documentScrollWidth=390
 390px login viewport: innerWidth=390, clientWidth=390, documentScrollWidth=390
-application_user_count=0
 V1 tracked diff=empty; pre-existing V1 docs/v2/ untracked content was untouched
 ```
 
 The public and login visual checks are complete. Authenticated core-workflow
 visual verification was correctly not bypassed: no user was created at startup
-or for testing, and no reviewer credentials were supplied. The real V1 export,
-separate V2 staging deployment, staging migration/import dry run, rollback
-rehearsal, and a human cutover decision are mandatory external tasks. The run
-was explicitly prohibited from deployment and V1 database access.
+or for testing, and no reviewer credentials were supplied. Separate V2 staging
+deployment, rollback rehearsal, and a human cutover decision remain mandatory
+external tasks. The run was explicitly prohibited from deployment and V1
+database access.
 
-**V2-10B BLOCKED.** V2-10 is not complete, no cutover is authorized, and the
-repository is left ready for the manual release-readiness process described in
-the V2-10 runbooks.
+## Clean V2 launch decision
+
+On 2026-07-18, the release owner selected a clean V2 launch. **V1 data
+migration is NOT APPLICABLE:** the former V1 database contained disposable
+demo data and was deleted, and the V2 database is new and clean. No V1 rows
+will be exported or imported, and no V1 database connection is required. The
+V1 source repository and Git history remain preserved as read-only evidence.
+
+This removes only the former V1 export/import/migration-dry-run gate. It does
+not claim that a migration dry run passed, and it does not remove authenticated
+QA, staging smoke, rollback rehearsal, or human cutover approval.
+
+## V2-10B local manual-review preparation
+
+The V2 application database remains a clean review target with zero users.
+No user is created at startup. The existing first-user command now shares
+safe local provisioning safeguards with a dedicated subsequent-user command,
+which requires an existing active admin actor and records only non-secret audit
+metadata. Passwords can be supplied through ignored `QUOTEOPS_REVIEW_*`
+environment variables or a non-echoing prompt; no password values were
+provided during this run.
+
+The required admin, two-manager, and viewer accounts are therefore not yet
+present, and authenticated browser QA has not been performed or inferred. The
+remaining required evidence before a V2-10 merge is: explicit account
+provisioning, the full authenticated core journey on desktop and true 390px
+mobile, a separate V2 staging smoke, a staging rollback rehearsal, and a named
+human cutover decision.
+
+**V2 LOCAL MANUAL REVIEW BLOCKED.** V2-10 is not complete, no cutover is
+authorized, and the repository is left ready for the manual
+release-readiness process described in the V2-10 runbooks.

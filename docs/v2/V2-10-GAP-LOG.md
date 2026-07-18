@@ -20,32 +20,46 @@
 - V1 Float-derived values are accepted only as exact decimal strings. Legacy
   price evidence is recomputed against the V2 formula and quarantined when the
   difference exceeds `0.01` KRW.
-- The final complete PostgreSQL backend regression passed with `63 passed in
-  939.95s`; frontend regression passed with `30 passed in 21.92s`, and the
-  production build completed with 57 transformed modules in 2.75s.
+- The final complete PostgreSQL backend regression passed with `69 passed in
+  833.65s`; frontend regression passed with `30 passed in 78.51s`, and the
+  production build completed with 57 transformed modules in 2.77s.
+- The non-destructive release-readiness command returned
+  `release_readiness=VERIFIED_LOCAL`. Both V2 databases are at
+  `0009_operations_demo_domain`; the application database has zero users.
 - Public landing and login visual checks passed at desktop and at a true 390px
   emulated mobile viewport with no horizontal document overflow.
 - The V2 application has zero users. The run did not auto-create a user or
   bypass the explicit first-user CLI policy.
+- The first-user CLI and a subsequent-user CLI are available only as explicit
+  local commands. The latter requires an active admin actor, rejects the test
+  database, writes a safe provisioning audit event, and never receives a
+  password through an audit event.
+
+## Clean-launch migration decision
+
+- **V1 data migration: NOT APPLICABLE.** The former V1 database contained
+  disposable demo data and was deleted. V2 launches against a new clean V2
+  database, so no V1 data will be exported or imported.
+- The V1 repository and Git history remain preserved as read-only evidence;
+  no V1 database connection is required or permitted for this launch.
+- This removes only the V1 export/import/migration-dry-run gate. It does not
+  represent a passed migration dry run and does not remove authenticated QA,
+  staging smoke, rollback rehearsal, or human cutover approval.
 
 ## Mandatory external blockers
 
-1. No authorized, versioned read-only V1 export has been supplied. The V1
-   database was not accessed, and the autonomous-run boundary prohibits
-   connecting V1 to either V2 database.
-2. No separate V2 staging deployment, staging credentials, or staging rollback
+1. No separate V2 staging deployment, staging credentials, or staging rollback
    environment is available. Deployment is explicitly prohibited for this run.
-3. Protected browser workflow QA needs a deliberately provisioned reviewer
+2. Protected browser workflow QA needs a deliberately provisioned reviewer
    account through the first-user CLI, with credentials supplied through an
    ignored local environment file or interactive input. No credentials were
    provided and none were created automatically.
-4. The real export transform/import dry run, quarantine review, staging
-   rollback rehearsal, and separately authorized cutover decision cannot occur
-   until the preceding gates are satisfied.
+3. The staging rollback rehearsal and separately authorized cutover decision
+   cannot occur until the preceding gates are satisfied.
 
 The autonomous run has not deployed, created a remote, pushed, opened a pull
 request, modified V1, or connected V1 to either V2 database. Those safeguards
 remain in force.
 
-V2-10B BLOCKED. The parent V2-10 release gate is blocked pending the mandatory
-external evidence above.
+V2 LOCAL MANUAL REVIEW BLOCKED. The parent V2-10 release gate is blocked
+pending the mandatory external evidence above.

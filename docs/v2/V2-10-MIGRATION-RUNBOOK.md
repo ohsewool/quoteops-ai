@@ -1,10 +1,21 @@
 # V2-10 Migration Runbook
 
-## Purpose
+## Clean-launch decision
 
-This runbook governs the V1-to-V2 migration preflight. It is intentionally
-read-only on the V1 side and does not authorize a live import or a cutover.
-V1 remains available and unchanged throughout the process.
+**V1 data migration: NOT APPLICABLE.** On 2026-07-18, the release owner chose
+a clean V2 launch. The former V1 database contained disposable demo data and
+has been deleted. The configured V2 application database is a new clean V2
+database.
+
+- No V1 rows will be exported or imported.
+- No V1 database connection is required or permitted for this launch.
+- The V1 source repository and Git history remain preserved as read-only
+  evidence; they are not deleted, overwritten, or merged into V2.
+- This decision removes only the V1 export/transform/import gate. It does not
+  satisfy authenticated QA, staging smoke, rollback rehearsal, or human
+  cutover approval.
+
+No migration dry run has been performed or claimed as passed.
 
 ## Local artifact
 
@@ -18,11 +29,13 @@ python scripts/transform_v1_readonly_export.py \
   --require-clean
 ```
 
-It accepts only `quoteops-v1-readonly-export` with format version `v1`. It
-does not read `.env`, open a database, create a user, mutate V1, or write V2.
-It writes two local JSON artifacts and reports only aggregate counts.
+It remains a tested, database-free artifact for a future explicitly approved
+migration. It is not part of the clean V2 launch and must not be run against a
+deleted or unavailable V1 database. It accepts only
+`quoteops-v1-readonly-export` with format version `v1`; it does not read
+`.env`, open a database, create a user, mutate V1, or write V2.
 
-## Export contract
+## Future export contract
 
 The deployment owner supplies a versioned, read-only JSON export with an
 ISO-8601 timezone-aware `exported_at` value and only the intended migration
@@ -42,7 +55,7 @@ records, validated legacy evidence, quarantine items, and aggregate counts. A
 quarantine item records only a source entity, numeric source ID when valid, and
 reason code. It does not copy rejected raw values.
 
-## Required migration sequence
+## Future migration sequence
 
 1. The V1 deployment owner produces the authorized read-only export outside
    this repository and confirms it contains no real secrets.
@@ -72,5 +85,6 @@ reason code. It does not copy rejected raw values.
 - missing dedicated staging environment or migration actor;
 - any V1/V2 database, credential, or deployment boundary breach.
 
-No live import or cutover is permitted until every blocking condition is
-cleared and the separate cutover/rollback runbook is approved.
+For the current clean V2 launch, the export/import sequence is not applicable.
+No cutover is permitted until the separate authenticated QA, staging smoke,
+rollback rehearsal, and human approval gates are cleared.
