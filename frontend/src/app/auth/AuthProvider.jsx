@@ -59,15 +59,21 @@ export function AuthProvider({ children, client = authApi }) {
   }, [clearSession, client]);
 
   const login = useCallback(async ({ username, password }) => {
-    const response = await client.login({ username, password });
-    const currentUser = await client.currentUser(response.access_token);
-    const session = { accessToken: response.access_token, expiresAt: response.expires_at };
-    saveSession(session);
-    setUser(currentUser);
-    setToken(response.access_token);
-    setState("authenticated");
-    return currentUser;
-  }, [client]);
+    setState("authenticating");
+    try {
+      const response = await client.login({ username, password });
+      const currentUser = await client.currentUser(response.access_token);
+      const session = { accessToken: response.access_token, expiresAt: response.expires_at };
+      saveSession(session);
+      setUser(currentUser);
+      setToken(response.access_token);
+      setState("authenticated");
+      return currentUser;
+    } catch (error) {
+      clearSession();
+      throw error;
+    }
+  }, [clearSession, client]);
 
   const authorizedRequest = useCallback(async (path, options = {}) => {
     try {

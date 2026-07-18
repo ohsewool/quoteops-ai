@@ -12,14 +12,15 @@ V2-10A is verified. V2-10B local deliverables are verified:
   production build completed with 57 transformed modules in 2.77s;
 - the non-destructive release-readiness command returned
   `release_readiness=VERIFIED_LOCAL`; both V2 databases are reachable at
-  Alembic revision `0009_operations_demo_domain`, and the application database
-  remains a clean review target with zero users;
+  Alembic revision `0009_operations_demo_domain`;
 - the versioned V1 export transformer, manifest, and quarantine report are
   covered by six focused tests and a real CLI subprocess check;
 - public landing and login visual checks passed at desktop and a true 390px
   emulated mobile viewport with no horizontal document overflow;
 - no user was auto-created, no secret was logged, and no V1 runtime/database
-  connection was made.
+  connection was made; and
+- the explicit local review now has four provisioned accounts and completed
+  authenticated browser evidence described below.
 
 ## Clean-launch migration decision
 
@@ -52,27 +53,50 @@ safe audit event, and never runs during application startup.
 
 ## Authenticated manual-review status
 
-The local authenticated review has **not** been performed. The V2 application
-database has zero users, and no password values were supplied, created, or
-recorded during this preparation. The four commands above are deliberately
-explicit and must be run against the V2 application database before starting
-the local backend and frontend.
+The local authenticated review is complete. The V2 application database has
+exactly four explicitly provisioned review users: one admin, two managers, and
+one viewer. Passwords were read only from ignored local environment variables;
+their values were not printed, logged, committed, or captured in screenshots.
+Startup created no user.
 
-After those accounts exist, the reviewer must record real browser evidence for:
+The local review environment used the sanitized addresses
+`http://127.0.0.1:8000` (backend) and `http://localhost:5173` (frontend).
+Public health, live, readiness, and OpenAPI returned `200`. Authenticated
+admin system status returned `200`; health and system-status responses did not
+contain any tested secret marker.
 
-- admin, manager, and viewer login;
-- protected-route redirect and role-aware navigation;
-- customer-request creation, request-to-Quote conversion, quote lines, and
-  totals;
-- deterministic candidate generation and pricing-check snapshot;
-- approval submission, self-approval rejection, decision by a different
-  manager, and rejection with a required reason;
-- approved-report generation and end-to-end audit lineage;
-- viewer read-only enforcement; and
-- loading, empty, error, conflict, and permission states on desktop and a
-  true 390px authenticated mobile viewport.
+Real browser evidence passed for:
 
-No item in this list is inferred from unit or API regression coverage.
+- fresh admin, manager, and viewer login, anonymous protected-route redirect,
+  and role-aware navigation;
+- customer-request creation, review transition, request-to-Quote conversion,
+  quote-line persistence, and server-calculated totals;
+- deterministic three-candidate pricing-check creation and immutable snapshot;
+- approval submission, requester self-approval prohibition, approval by a
+  different manager, blank-reason rejection prevention, and a persisted
+  rejection with a reason;
+- approved HTML-report generation and sandboxed preview, with audit lineage
+  for request, quote, pricing check, approval, decision, and report events;
+- viewer read-only behavior for requests, Quotes, pricing checks, reports, and
+  admin navigation; and
+- loading, empty, not-found error, stale-version conflict, and permission
+  states on desktop, plus a true 390px authenticated viewport with no
+  horizontal document overflow.
+
+During the review, a fresh-login race was reproduced: after a successful login
+the protected route could briefly observe the prior anonymous state. The
+frontend now has an explicit `authenticating` state, treats it as a protected
+route loading state, and has a regression test for successful login followed
+by protected navigation. The focused test, full frontend suite, and production
+build pass.
+
+The historical full PostgreSQL regression remains `69 passed in 833.65s` from
+the V2-10B checkpoint. A new full rerun against the isolated test database was
+stopped after the local 20-minute execution limit without a failure result;
+the backend was unchanged by this review. The current verification includes
+`41 passed, 28 skipped` in the default backend suite, a real PostgreSQL
+foundation smoke of `1 passed`, and
+`release_readiness=VERIFIED_LOCAL` with both databases at Alembic head.
 
 ## Staging configuration checklist
 
@@ -93,14 +117,14 @@ must verify:
 | Gate | Current result | Owner/action |
 |---|---|---|
 | V1 export/import and migration dry run | Not applicable | Clean V2 launch was explicitly selected; no V1 data remains to migrate. |
-| Authenticated browser core journey | Not performed | Reviewer provisions a staging account using the explicit first-user CLI and executes the full workflow. |
+| Local authenticated browser core journey | Passed | Repeat the same core workflow against separate V2 staging before release. |
 | V2 staging deployment smoke | Not performed | Deployment owner deploys only to separate V2 staging. |
 | Rollback rehearsal | Not performed | Release owner rehearses the checked-in runbook on staging. |
 | Cutover approval or rejection | Not made | Named human release owner records the final decision after all evidence. |
 
 ## Decision
 
-**V2 LOCAL MANUAL REVIEW BLOCKED.** Local code and evidence are ready for
-manual review, but authenticated QA, staging deployment smoke, rollback
-rehearsal, and human cutover approval remain mandatory gates. No release or
-cutover is authorized by this document.
+**V2 LOCAL MANUAL REVIEW PASSED.** This records only the local review gate.
+V2-10 remains unmerged and no release or cutover is authorized: separate V2
+staging smoke, staging rollback rehearsal, and named human cutover approval
+remain mandatory external gates.

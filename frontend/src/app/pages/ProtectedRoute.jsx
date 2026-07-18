@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children }) {
     }
   }, [state]);
 
-  if (state === "restoring") {
+  if (state === "restoring" || state === "authenticating") {
     return <main className="route-state" aria-live="polite">세션을 확인하고 있습니다.</main>;
   }
   if (!isAuthenticated) {

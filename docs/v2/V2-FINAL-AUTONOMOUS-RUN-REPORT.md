@@ -2,10 +2,10 @@
 
 ## Run status
 
-V2-01 through V2-09 and V2-10A are complete. This local-only checkpoint
-records the verified release-regression and migration-recovery evidence;
-authorized autonomous work resumes at V2-10B for manual/staging readiness
-review.
+V2-01 through V2-10A are complete. V2-10B local implementation,
+authenticated manual review, and local release-readiness evidence are now
+complete. V2-10 remains unmerged while separate staging, rollback, and human
+cutover gates remain pending.
 
 ## V1 evidence
 
@@ -42,7 +42,7 @@ deployment was performed, and `.env` remains ignored and untracked.
 | V2-09B | VERIFIED | Explicit admin-only two-product guided demo and guide-state reset passed. |
 | V2-09 parent | VERIFIED | Test-only migration recovery, application forward activation, security gates, full backend/frontend regression, and build passed. |
 | V2-10A | VERIFIED | Local full regression, security, base rollback/rebuild, release smoke, and V1-boundary checks passed. |
-| V2-10B | Local preparation complete; authenticated review pending | Clean-launch decision, explicit reviewer provisioning, local regression, and public visual evidence are recorded. Authenticated QA, staging, rollback, and cutover remain pending. |
+| V2-10B | Local manual review passed; external release gates pending | Clean-launch decision, explicit review provisioning, authenticated browser QA, local regression, and release-readiness evidence are recorded. Staging, rollback, and cutover remain pending. |
 
 ## V2-01 application database activation
 
@@ -152,7 +152,8 @@ V2-10 branch from updated local `main`.
 
 ## Current verdict
 
-V2-09 VERIFIED
+V2 LOCAL MANUAL REVIEW PASSED. V2-10 remains unmerged pending separate V2
+staging smoke, staging rollback rehearsal, and named human cutover approval.
 
 ## V2-07 evidence
 
@@ -367,7 +368,7 @@ The V2 application database was not downgraded. V2-10B remains the separate
 manual/staging readiness gate; no deployment, V1 database connection, remote,
 push, pull request, or cutover occurred.
 
-## V2-10B local evidence and blocked release gates
+## V2-10B pre-authentication local evidence
 
 V2-10B implemented a pure, versioned V1 export transformer and separate
 quarantine report. The transformer is intentionally limited to a supplied
@@ -385,19 +386,20 @@ frontend regression: 30 passed in 78.51s
 frontend production build: 57 modules transformed; built in 2.77s
 release_readiness=VERIFIED_LOCAL
 application/test Alembic revision=0009_operations_demo_domain
-application_user_count=0
+application_user_count_before_explicit_review_provisioning=0
 desktop landing/login visual smoke: passed
 390px public viewport: innerWidth=390, clientWidth=390, documentScrollWidth=390
 390px login viewport: innerWidth=390, clientWidth=390, documentScrollWidth=390
 V1 tracked diff=empty; pre-existing V1 docs/v2/ untracked content was untouched
 ```
 
-The public and login visual checks are complete. Authenticated core-workflow
-visual verification was correctly not bypassed: no user was created at startup
-or for testing, and no reviewer credentials were supplied. Separate V2 staging
-deployment, rollback rehearsal, and a human cutover decision remain mandatory
-external tasks. The run was explicitly prohibited from deployment and V1
-database access.
+At this pre-authentication checkpoint, public and login visual checks were
+complete. Authenticated core-workflow visual verification was correctly not
+bypassed: no user was created at startup or for testing, and no reviewer
+credentials had yet been supplied. The later authenticated local review is
+recorded below. Separate V2 staging deployment, rollback rehearsal, and a
+human cutover decision remain mandatory external tasks. The run was explicitly
+prohibited from deployment and V1 database access.
 
 ## Clean V2 launch decision
 
@@ -411,23 +413,42 @@ This removes only the former V1 export/import/migration-dry-run gate. It does
 not claim that a migration dry run passed, and it does not remove authenticated
 QA, staging smoke, rollback rehearsal, or human cutover approval.
 
-## V2-10B local manual-review preparation
+## V2-10B authenticated local manual review
 
-The V2 application database remains a clean review target with zero users.
-No user is created at startup. The existing first-user command now shares
-safe local provisioning safeguards with a dedicated subsequent-user command,
-which requires an existing active admin actor and records only non-secret audit
-metadata. Passwords can be supplied through ignored `QUOTEOPS_REVIEW_*`
-environment variables or a non-echoing prompt; no password values were
-provided during this run.
+The V2 application database now has exactly four explicit review accounts:
+one admin, two managers, and one viewer. They were created only through the
+first-user/subsequent-user CLI commands against the V2 application database.
+No account was seeded at startup, and no password value was printed, logged,
+committed, or included in browser evidence.
 
-The required admin, two-manager, and viewer accounts are therefore not yet
-present, and authenticated browser QA has not been performed or inferred. The
-remaining required evidence before a V2-10 merge is: explicit account
-provisioning, the full authenticated core journey on desktop and true 390px
-mobile, a separate V2 staging smoke, a staging rollback rehearsal, and a named
-human cutover decision.
+The local backend at `http://127.0.0.1:8000` and frontend at
+`http://localhost:5173` passed public health/live/readiness/OpenAPI checks.
+Authenticated admin system status also returned `200`; tested response bodies
+contained no database URL, password, API-key, auth-secret, or private-key
+marker.
 
-**V2 LOCAL MANUAL REVIEW BLOCKED.** V2-10 is not complete, no cutover is
-authorized, and the repository is left ready for the manual
-release-readiness process described in the V2-10 runbooks.
+Fresh browser login passed for admin, manager, and viewer. The manual workflow
+covered persisted customer-request creation and review, request-to-Quote
+conversion, Quote-line totals, deterministic candidate generation, approval
+submission, self-approval prohibition, another manager's approval, required
+rejection reason, approved report preview, and end-to-end audit lineage.
+Viewer read-only routes, protected-route redirect, role-aware navigation,
+loading, empty, error, stale-conflict, permission, desktop, and true 390px
+mobile states passed.
+
+A fresh-login protected-route race was found and fixed locally by adding an
+explicit `authenticating` state. The targeted frontend regression and the full
+frontend suite passed with `31 passed`; the production build passed with 57
+modules transformed. The historical V2-10B complete PostgreSQL backend result
+is `69 passed in 833.65s`. A fresh full rerun against the isolated test
+database exceeded the local 20-minute execution limit without a failure
+result; backend code was unchanged. The current default backend suite passed
+with `41 passed, 28 skipped`, PostgreSQL foundation smoke passed with `1
+passed`, and `release_readiness=VERIFIED_LOCAL` confirmed both V2 databases at
+Alembic head.
+
+**V2 LOCAL MANUAL REVIEW PASSED.** This is not a deployment or cutover
+authorization. Before merging V2-10 into local `main`, the remaining actions
+are a separate V2 staging smoke, a staging rollback rehearsal, and a named
+human cutover approval. V1 remains unchanged; no remote, push, deployment,
+or merge was performed.

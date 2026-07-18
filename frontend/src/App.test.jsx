@@ -54,6 +54,31 @@ describe("V2-02A public landing and session behavior", () => {
     expect(screen.queryByText("private-value")).not.toBeInTheDocument();
   });
 
+  it("keeps a successful login transition authenticated through protected navigation", async () => {
+    const user = userEvent.setup();
+    global.fetch.mockImplementation((url) => {
+      const path = String(url);
+      if (path.includes("/api/auth/login")) {
+        return Promise.resolve(jsonResponse({ access_token: "new-session-token", expires_at: "2099-01-01T00:00:00Z" }));
+      }
+      if (path.includes("/api/auth/me")) {
+        return Promise.resolve(jsonResponse({ id: 2, username: "manager", display_name: "Manager", role: "manager", active: true }));
+      }
+      return Promise.reject(new Error(`Unexpected request: ${path}`));
+    });
+    setRoute("/login?next=%2Fapp");
+    render(<App />);
+
+    await user.type(document.querySelector("#username"), "manager");
+    await user.type(document.querySelector("#password"), "test-password");
+    await user.click(document.querySelector("button[type=submit]"));
+
+    await waitFor(() => expect(document.querySelector("#dashboard-title")).not.toBeNull());
+    expect(window.location.pathname).toBe("/app");
+    expect(window.location.search).toBe("");
+    expect(window.sessionStorage.getItem(authStorageKey)).toContain("new-session-token");
+  });
+
   it("restores a valid session before exposing the protected workspace", async () => {
     window.sessionStorage.setItem(authStorageKey, JSON.stringify({ accessToken: "session-token", expiresAt: "2099-01-01T00:00:00Z" }));
     global.fetch.mockResolvedValueOnce(jsonResponse({ id: 7, username: "viewer", display_name: "Viewer", role: "viewer", active: true }));

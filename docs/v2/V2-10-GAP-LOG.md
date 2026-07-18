@@ -25,11 +25,13 @@
   production build completed with 57 transformed modules in 2.77s.
 - The non-destructive release-readiness command returned
   `release_readiness=VERIFIED_LOCAL`. Both V2 databases are at
-  `0009_operations_demo_domain`; the application database has zero users.
+  `0009_operations_demo_domain`; the application database had zero users at
+  the pre-review-provisioning checkpoint.
 - Public landing and login visual checks passed at desktop and at a true 390px
   emulated mobile viewport with no horizontal document overflow.
-- The V2 application has zero users. The run did not auto-create a user or
-  bypass the explicit first-user CLI policy.
+- The V2 application now has four explicitly provisioned local review users.
+  The run did not auto-create a user or bypass the explicit first-user CLI
+  policy.
 - The first-user CLI and a subsequent-user CLI are available only as explicit
   local commands. The latter requires an active admin actor, rejects the test
   database, writes a safe provisioning audit event, and never receives a
@@ -46,14 +48,37 @@
   represent a passed migration dry run and does not remove authenticated QA,
   staging smoke, rollback rehearsal, or human cutover approval.
 
+## Authenticated local-review closure
+
+- Explicit review provisioning created one admin, two managers, and one viewer
+  on the V2 application database without logging or committing password values.
+- Fresh admin, manager, and viewer login, anonymous protected-route redirect,
+  role-aware navigation, and the full persisted request-to-report workflow
+  passed in a real local browser.
+- The review verified deterministic pricing-check evidence, requester
+  self-approval prohibition, decision by a different manager, required
+  rejection reason, report lineage, viewer read-only enforcement, and loading,
+  empty, error, stale-conflict, permission, desktop, and 390px mobile states.
+- A reproduced fresh-login protected-route race was fixed with an explicit
+  `authenticating` state and a frontend regression test. The full frontend
+  suite passed with `31 passed`; the production build passed with 57 modules
+  transformed.
+- The current non-destructive release-readiness check passed. A fresh full
+  PostgreSQL suite rerun exceeded the local 20-minute execution limit without
+  returning a failure result; backend code was unchanged and the prior
+  V2-10B full PostgreSQL result remains `69 passed in 833.65s`. The current
+  V2-only PostgreSQL foundation smoke passed and both databases remain at
+  Alembic head.
+
+No known mandatory local manual-review gaps remain after verification.
+
 ## Mandatory external blockers
 
 1. No separate V2 staging deployment, staging credentials, or staging rollback
    environment is available. Deployment is explicitly prohibited for this run.
-2. Protected browser workflow QA needs a deliberately provisioned reviewer
-   account through the first-user CLI, with credentials supplied through an
-   ignored local environment file or interactive input. No credentials were
-   provided and none were created automatically.
+2. The authenticated core workflow must be repeated against separately
+   provisioned V2 staging accounts before release. Local browser evidence does
+   not substitute for staging smoke.
 3. The staging rollback rehearsal and separately authorized cutover decision
    cannot occur until the preceding gates are satisfied.
 
@@ -61,5 +86,5 @@ The autonomous run has not deployed, created a remote, pushed, opened a pull
 request, modified V1, or connected V1 to either V2 database. Those safeguards
 remain in force.
 
-V2 LOCAL MANUAL REVIEW BLOCKED. The parent V2-10 release gate is blocked
-pending the mandatory external evidence above.
+V2 LOCAL MANUAL REVIEW PASSED. The parent V2-10 release gate remains blocked
+only pending the mandatory external evidence above.
