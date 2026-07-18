@@ -1,176 +1,104 @@
-import os
-from dataclasses import dataclass
-from urllib.parse import urlsplit, urlunsplit
+"""Strict, secret-safe configuration for the clean V2 repository."""
+
+from __future__ import annotations
+
+from enum import StrEnum
+from functools import cached_property
+from typing import Annotated
+
+from pydantic import SecretStr, field_validator, model_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
-DEFAULT_DATABASE_URL = "sqlite:///./quoteops.db"
-DEFAULT_CORS_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-POSTGRESQL_SCHEMES = {
-    "postgresql",
-    "postgresql+psycopg",
-    "postgresql+psycopg2",
-}
+DEFAULT_DATABASE_URL = "postgresql+psycopg://quoteops_v2:CHANGE_ME@localhost:5432/quoteops_v2"
 
 
-@dataclass(frozen=True)
-class Settings:
-    database_url: str
-    cors_origins: list[str]
-    environment: str
-    openai_configured: bool
-    demo_tools_enabled: bool
-
-    @property
-    def allowed_origins(self) -> list[str]:
-        return self.cors_origins
-
-    @property
-    def database_type(self) -> str:
-        return get_database_type(self.database_url)
-
-    @property
-    def database_url_safe(self) -> str:
-        return mask_database_url(self.database_url)
-
-    @property
-    def cors_origins_configured(self) -> bool:
-        return bool(self.cors_origins)
-
-    @property
-    def cors_origin_count(self) -> int:
-        return len(self.cors_origins)
-
-    @property
-    def cors_wildcard_enabled(self) -> bool:
-        return "*" in self.cors_origins
+class Environment(StrEnum):
+    LOCAL = "local"
+    TEST = "test"
+    STAGING = "staging"
+    PRODUCTION = "production"
 
 
-def get_settings() -> Settings:
-    environment = get_environment()
-    return Settings(
-        database_url=get_database_url(),
-        cors_origins=get_cors_origins(environment=environment),
-        environment=environment,
-        openai_configured=bool(os.getenv("OPENAI_API_KEY")),
-        demo_tools_enabled=_bool_env(
-            os.getenv(
-                "QUOTEOPS_DEMO_TOOLS_ENABLED",
-                os.getenv("DEMO_TOOLS_ENABLED", "false"),
-            )
-        ),
+class Settings(BaseSettings):
+    """Configuration with secure production defaults and no implicit database."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_prefix="QUOTEOPS_",
+        extra="ignore",
     )
 
+    environment: Environment = Environment.LOCAL
+    database_url: str = DEFAULT_DATABASE_URL
+    test_database_url: str | None = None
+    cors_origins: Annotated[tuple[str, ...], NoDecode] = ("http://localhost:5173",)
+    auth_secret: SecretStr | None = None
+    auth_issuer: str = "quoteops-ai-v2"
+    auth_token_ttl_minutes: int = 480
+    demo_enabled: bool = False
+    docs_enabled: bool = True
+    openapi_enabled: bool = True
 
-def _bool_env(value: str) -> bool:
-    return value.lower() in {"1", "true", "yes", "on"}
+    @field_validator("database_url", "test_database_url")
+    @classmethod
+    def require_postgresql_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        if not value.startswith(("postgresql://", "postgresql+psycopg://")):
+            raise ValueError("V2 database URLs must target PostgreSQL")
+        return value
 
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value: object) -> tuple[str, ...]:
+        if isinstance(value, str):
+            return tuple(origin.strip() for origin in value.split(",") if origin.strip())
+        if isinstance(value, (list, tuple)):
+            return tuple(str(origin).strip() for origin in value if str(origin).strip())
+        raise ValueError("CORS origins must be a comma-separated string or sequence")
 
-def get_environment(raw_environment: str | None = None) -> str:
-    resolved = (
-        raw_environment
-        if raw_environment is not None
-        else os.getenv("QUOTEOPS_ENV", "local")
-    )
-    return resolved.strip() or "local"
+    @field_validator("auth_token_ttl_minutes")
+    @classmethod
+    def require_positive_token_ttl(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("Authentication token TTL must be positive")
+        return value
 
+    @model_validator(mode="after")
+    def enforce_environment_policy(self) -> "Settings":
+        if not self.cors_origins:
+            raise ValueError("At least one CORS origin is required")
+        if "*" in self.cors_origins:
+            raise ValueError("Wildcard CORS is prohibited in every V2 environment")
+        if self.test_database_url and self.test_database_url == self.database_url:
+            raise ValueError("Test and application databases must be distinct")
+        if self.environment in {Environment.STAGING, Environment.PRODUCTION}:
+            if self.demo_enabled:
+                raise ValueError("Demo mode is prohibited in staging and production")
+            if self.docs_enabled or self.openapi_enabled:
+                raise ValueError("Staging and production docs and OpenAPI must be disabled")
+            if self.auth_secret is None or self.auth_secret.get_secret_value().startswith("CHANGE_ME"):
+                raise ValueError("Staging and production require a configured authentication secret")
+        return self
 
-def get_cors_origins(
-    raw_origins: str | None = None,
-    *,
-    environment: str | None = None,
-) -> list[str]:
-    resolved_environment = get_environment(environment)
-    configured = raw_origins
-    if configured is None:
-        configured = os.getenv("QUOTEOPS_CORS_ORIGINS")
-    if configured is None:
-        configured = os.getenv("ALLOWED_ORIGINS")
-    if configured is None:
-        origins = DEFAULT_CORS_ORIGINS
-    else:
-        origins = [origin.strip() for origin in configured.split(",")]
+    @cached_property
+    def is_production_like(self) -> bool:
+        return self.environment in {Environment.STAGING, Environment.PRODUCTION}
 
-    cleaned = _dedupe_preserving_order([origin for origin in origins if origin])
-    if resolved_environment.lower() == "production":
-        return [origin for origin in cleaned if origin != "*"]
-    return cleaned
+    @cached_property
+    def database_is_configured(self) -> bool:
+        return "CHANGE_ME" not in self.database_url
 
+    def safe_summary(self) -> dict[str, object]:
+        """Return only non-sensitive configuration state for diagnostics."""
 
-def is_demo_tools_enabled(raw_value: str | None = None) -> bool:
-    if raw_value is not None:
-        return _bool_env(raw_value)
-    return _bool_env(
-        os.getenv(
-            "QUOTEOPS_DEMO_TOOLS_ENABLED",
-            os.getenv("DEMO_TOOLS_ENABLED", "false"),
-        )
-    )
-
-
-def get_safe_config_summary() -> dict[str, int | str | bool]:
-    settings = get_settings()
-    return {
-        "environment": settings.environment,
-        "database_type": settings.database_type,
-        "cors_origins_configured": settings.cors_origins_configured,
-        "cors_origin_count": settings.cors_origin_count,
-        "cors_wildcard_enabled": settings.cors_wildcard_enabled,
-        "demo_tools_enabled": settings.demo_tools_enabled,
-        "openai_configured": settings.openai_configured,
-    }
-
-
-def _dedupe_preserving_order(values: list[str]) -> list[str]:
-    seen: set[str] = set()
-    deduped: list[str] = []
-    for value in values:
-        if value in seen:
-            continue
-        seen.add(value)
-        deduped.append(value)
-    return deduped
-
-
-def get_database_url(raw_url: str | None = None) -> str:
-    resolved = raw_url if raw_url is not None else os.getenv("DATABASE_URL")
-    if not resolved:
-        return DEFAULT_DATABASE_URL
-    return normalize_database_url(resolved.strip())
-
-
-def normalize_database_url(database_url: str) -> str:
-    if database_url.startswith("postgres://"):
-        return "postgresql://" + database_url.removeprefix("postgres://")
-    return database_url
-
-
-def get_database_type(database_url: str | None = None) -> str:
-    resolved = get_database_url(database_url)
-    scheme = urlsplit(resolved).scheme
-    if scheme.startswith("sqlite"):
-        return "sqlite"
-    if scheme in POSTGRESQL_SCHEMES:
-        return "postgresql"
-    return "other"
-
-
-def get_safe_database_label(database_url: str | None = None) -> str:
-    return mask_database_url(get_database_url(database_url))
-
-
-def mask_database_url(database_url: str | None = None) -> str:
-    resolved = get_database_url(database_url)
-    if get_database_type(resolved) != "postgresql":
-        return resolved
-
-    parsed = urlsplit(resolved)
-    host = parsed.hostname or ""
-    port = f":{parsed.port}" if parsed.port else ""
-    database_name = parsed.path or ""
-    safe_netloc = f"***:***@{host}{port}" if host else "***"
-    return urlunsplit((parsed.scheme, safe_netloc, database_name, "", ""))
+        return {
+            "environment": self.environment.value,
+            "database_configured": self.database_is_configured,
+            "docs_enabled": self.docs_enabled,
+            "openapi_enabled": self.openapi_enabled,
+            "demo_enabled": self.demo_enabled,
+            "cors_origin_count": len(self.cors_origins),
+        }

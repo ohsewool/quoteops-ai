@@ -1,44 +1,31 @@
-from collections.abc import Generator
+"""PostgreSQL-only SQLAlchemy session lifecycle for V2."""
 
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from __future__ import annotations
 
-from backend.config import get_database_type, get_settings
+from collections.abc import Callable
 
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
-def get_engine_kwargs(database_url: str) -> dict:
-    database_type = get_database_type(database_url)
-    if database_type == "sqlite":
-        return {"connect_args": {"check_same_thread": False}}
-    if database_type == "postgresql":
-        return {"pool_pre_ping": True}
-    return {}
+from backend.config import Settings
+
+SessionFactory = Callable[[], Session]
 
 
-settings = get_settings()
-engine = create_engine(settings.database_url, **get_engine_kwargs(settings.database_url))
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+def build_engine(settings: Settings) -> Engine:
+    """Create an engine without connecting or creating schema at import time."""
+
+    return create_engine(
+        settings.database_url,
+        pool_pre_ping=True,
+        future=True,
+    )
 
 
-def create_db_and_tables() -> None:
-    from backend import models  # noqa: F401
-
-    Base.metadata.create_all(bind=engine)
-
-
-def database_connection_ok() -> bool:
-    try:
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
-        return True
-    except Exception:
-        return False
-
-
-def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+def build_session_factory(settings: Settings) -> sessionmaker[Session]:
+    return sessionmaker(
+        bind=build_engine(settings),
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+    )
