@@ -1,23 +1,31 @@
 # Python
+.venv/
 __pycache__/
 *.py[cod]
-.venv/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Environment and local data
 .env
-*.env
-.env.local
-quoteops.db
-quoteops_audit_tmp.db
+.env.*
+!.env.example
 *.sqlite
 *.sqlite3
 *.db
 
-# Node
-node_modules/
-dist/
-.vite/
-frontend/node_modules/
-frontend/dist/
-
-# OS
+# Editors and operating systems
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
+
+# Build and runtime artifacts
+*.log
+reports/runtime/
