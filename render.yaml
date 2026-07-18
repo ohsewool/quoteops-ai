@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: quoteops-ai-backend
+    runtime: python
+    rootDir: .
+    buildCommand: python -m pip install --upgrade pip && python -m pip install -r requirements.lock
+    preDeployCommand: python -m alembic upgrade head
+    startCommand: python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health/ready
+    autoDeployTrigger: "off"
+    envVars:
+      - key: QUOTEOPS_ENVIRONMENT
+        value: production
+      - key: QUOTEOPS_DATABASE_URL
+        sync: false
+      - key: QUOTEOPS_AUTH_SECRET
+        generateValue: true
+      - key: QUOTEOPS_CORS_ORIGINS
+        sync: false
+      - key: QUOTEOPS_DEMO_ENABLED
+        value: "false"
+      - key: QUOTEOPS_DOCS_ENABLED
+        value: "false"
+      - key: QUOTEOPS_OPENAPI_ENABLED
+        value: "false"
