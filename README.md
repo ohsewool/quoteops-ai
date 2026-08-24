@@ -1,56 +1,72 @@
-# QuoteOps AI V2
+# QuoteOps AI
 
-QuoteOps AI V2 is a lightweight pricing operations SaaS and grounded pricing operations copilot. It connects customer requests, persistent quotes, deterministic pricing checks, human approval or rejection, and report generation.
+**견적·가격 운영(CPQ) SaaS — 결재가 숫자에 묶이는 곳**
 
-## Current checkpoint
+> **가격 승인은 어디에나 있는데, "누가 어떤 견적의 어떤 가격을 승인했는가"는 어디에도 남지 않습니다.**
 
-`V2-01A` establishes a clean repository, strict environment policy, dependency locks, neutral React foundation, and documentation structure. It does not contain product domains, business APIs, demo data, or a completed product UI.
+**고객 요청부터 견적·가격 점검·승인·리포트까지를 하나의 데이터 계보로 잇습니다. AI는 근거를 설명할 뿐, 숫자와 상태는 결정론적 백엔드와 사람만 바꿉니다.**
 
-`V2-01B` prepares the FastAPI, SQLAlchemy, Alembic, authentication, audit, Decimal, and security baseline. Its mandatory real PostgreSQL integration verification is blocked until an explicitly identified V2-only PostgreSQL target is available.
+```
+고객 요청 → 견적 작성 → 결정론적 가격 점검 → 승인 요청 → 승인/반려 → 리포트
+```
 
-The authoritative product and security decisions are in [docs/v2/V2-00-PRODUCT-CONTRACT.md](docs/v2/V2-00-PRODUCT-CONTRACT.md).
+이 저장소는 그 흐름을 **두 번 지은 기록**입니다. 넓게 만든 V1(API 99개, 테스트 410개)을
+스스로 감사해 "승인이 견적에 묶이지 않는다"는 결함을 찾았고, V1을 증거로 동결한 뒤
+좁고 깊은 V2를 다시 지었습니다 — 경위는 [CASE_STUDY.md](docs/CASE_STUDY.md) 한 장에,
+전체 결정은 [V2-00 제품 계약](docs/v2/V2-00-PRODUCT-CONTRACT.md)에 있습니다.
 
-## Local prerequisites
+## 현재 상태 — 정직하게
 
-- Python 3.12+
-- Node.js 24+ and pnpm 11+
-- A clearly identified V2-only PostgreSQL development or test database before database migrations run
+| | |
+|---|---|
+| V2 구현 | **V2-01 보안 게이트 ~ V2-10B 독립 릴리스 리뷰까지 완주** ([리뷰 문서](docs/v2/V2-10-RELEASE-READINESS-REVIEW.md)) |
+| 테스트 | 백엔드 **69개** (CI가 실제 PostgreSQL 16으로 전부 실행) · 프런트엔드 **31개** |
+| 배포 | `render.yaml`은 있으나 **인스턴스는 휴면 상태** — 로컬 실행이 기본 경로입니다 |
+| 상태 | 완성 후 동결. 기능 추가 계획 없음 — [비목표](docs/v2/V2-00-PRODUCT-CONTRACT.md)가 계약에 명시돼 있습니다 |
 
-Docker, Docker Compose, V1 databases, shared databases, and production databases are not local-development prerequisites.
+## 무엇이 다른가
 
-## Foundation commands
+- **AI는 숫자를 못 바꿉니다.** 가격 계산·검증·승인·상태 전이는 결정론적 서비스와
+  권한 있는 사람만 수행하고, 핵심 흐름은 LLM 없이 완주됩니다. copilot은 저장된
+  근거의 설명과 제안까지만 합니다.
+- **금액은 Decimal 문자열만.** Float 유래 값은 반올림하지 않고 격리합니다. V1
+  가격표는 V2 재계산과 0.01 KRW 안에서 일치할 때만 증거로 보존됩니다.
+- **시드 계정이 없습니다.** 첫 관리자도 명시적 CLI(`backend.cli.create_first_user`)로만
+  만들어집니다 — V1의 무조건 시드·공개 쓰기 API·선택적 인증 승인은 V2가 상속하지
+  않은 결함 목록에 있습니다.
 
-Create an isolated virtual environment, install the pinned backend dependencies, then run the foundation checks:
+## 로컬 실행
+
+Python 3.12+ · Node 24+ · pnpm. 통합 테스트까지 돌리려면 **V2 전용 PostgreSQL**이
+필요합니다([안내](docs/development/native-postgresql.md)) — 없으면 통합 28개는
+명시적 사유와 함께 skip됩니다(41개는 그대로 돕니다).
+
+**Linux / macOS**
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements.lock
+.venv/bin/python -m pytest -q backend/tests        # 69 tests (DB 없으면 41 passed + 28 skipped)
+cd frontend && pnpm install --frozen-lockfile && pnpm test && pnpm build
+```
+
+**Windows (PowerShell)**
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python -m pip install -r requirements.lock
 .\.venv\Scripts\python -m pytest -q backend/tests
+.\scripts\validate-v2-environment.ps1 -Environment local   # URL·시크릿을 출력하지 않는 환경 점검
 ```
 
-For the frontend, use pnpm from the `frontend` directory:
+DB 준비 후 첫 관리자 생성:
 
-```powershell
-pnpm install --frozen-lockfile
-pnpm test
-pnpm build
+```bash
+.venv/bin/python -m backend.cli.create_first_user --username admin --display-name "V2 Admin"
 ```
 
-Before database work, read [docs/development/native-postgresql.md](docs/development/native-postgresql.md). The environment-check script never prints URLs or secrets:
+## 더 읽기
 
-```powershell
-.\scripts\validate-v2-environment.ps1 -Environment local
-```
-
-After Alembic has successfully prepared a V2-only database, create the first administrator explicitly. No account is seeded at application startup:
-
-```powershell
-.\.venv\Scripts\python -m backend.cli.create_first_user --username admin --display-name "V2 Admin"
-```
-
-## Safety boundary
-
-- V1 remains read-only evidence and is not modified by this repository.
-- The initial V2 currency is KRW. Saved money and rates use `Decimal` and PostgreSQL `NUMERIC`, never `Float`.
-- No anonymous business mutation, optional-auth approval mutation, automatic price activation, or AI numeric/workflow mutation is permitted.
-- Production demo users, demo seed data, docs/OpenAPI exposure, and detailed system-status access are prohibited by default.
+- [CASE_STUDY.md](docs/CASE_STUDY.md) — V1을 반성하고 V2를 다시 지은 경위, 한 장
+- [V2-00 제품 계약](docs/v2/V2-00-PRODUCT-CONTRACT.md) — 제품·보안·수치·경계의 전체 결정 (1,974줄)
+- [V2-10B 릴리스 준비 리뷰](docs/v2/V2-10-RELEASE-READINESS-REVIEW.md) — 독립 검토와 릴리스 판정
+- `docs/v2/V2-01 ~ V2-10` — 단계별 구현 보고서와 갭 로그

@@ -44,6 +44,25 @@ jobs:
           alembic current
           python -m pytest -q backend/tests
 
+      - name: Refuse a README that miscounts its own tests
+        # 손으로 적은 수는 낡는다 — 이 README의 앞 판은 저장소가 V2-10까지 간
+        # 뒤에도 "V2-01B 기초 단계"라고 말하고 있었고, 외부 평가가 그 문장을
+        # 근거로 저장소를 실제보다 낮게 봤다. 문장 전체를 기계가 지킬 수는
+        # 없지만 숫자는 지킬 수 있다.
+        run: |
+          claimed=$(grep -oE '백엔드 \*\*[0-9]+개\*\*' README.md | grep -oE '[0-9]+')
+          collected=$(python -m pytest --collect-only -q backend/tests 2>/dev/null \
+            | grep -oE '[0-9]+ tests? collected' | grep -oE '^[0-9]+')
+          echo "README ${claimed:-none} vs collected ${collected:-none}"
+          if [ -z "${claimed}" ] || [ -z "${collected}" ]; then
+            echo "::error::수를 읽지 못했다. 문장이 바뀌었으면 이 관문도 함께 고쳐라 — 빈 값으로 통과시키지 않는다."
+            exit 1
+          fi
+          if [ "${claimed}" != "${collected}" ]; then
+            echo "::error::README says ${claimed} backend tests; pytest collects ${collected}."
+            exit 1
+          fi
+
   frontend-foundation:
     runs-on: ubuntu-latest
     steps:
