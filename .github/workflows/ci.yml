@@ -51,15 +51,16 @@ jobs:
         # 없지만 숫자는 지킬 수 있다.
         run: |
           claimed=$(grep -oE '백엔드 \*\*[0-9]+개\*\*' README.md | grep -oE '[0-9]+')
+          comment=$(grep -oE '# [0-9]+ tests' README.md | grep -oE '[0-9]+' | head -1)
           collected=$(python -m pytest --collect-only -q backend/tests 2>/dev/null \
             | grep -oE '[0-9]+ tests? collected' | grep -oE '^[0-9]+')
-          echo "README ${claimed:-none} vs collected ${collected:-none}"
-          if [ -z "${claimed}" ] || [ -z "${collected}" ]; then
+          echo "README 표 ${claimed:-none} · 명령 주석 ${comment:-none} vs collected ${collected:-none}"
+          if [ -z "${claimed}" ] || [ -z "${comment}" ] || [ -z "${collected}" ]; then
             echo "::error::수를 읽지 못했다. 문장이 바뀌었으면 이 관문도 함께 고쳐라 — 빈 값으로 통과시키지 않는다."
             exit 1
           fi
-          if [ "${claimed}" != "${collected}" ]; then
-            echo "::error::README says ${claimed} backend tests; pytest collects ${collected}."
+          if [ "${claimed}" != "${collected}" ] || [ "${comment}" != "${collected}" ]; then
+            echo "::error::README says ${claimed}/${comment} backend tests; pytest collects ${collected}."
             exit 1
           fi
 
