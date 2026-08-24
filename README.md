@@ -21,7 +21,7 @@
 |---|---|
 | V2 구현 | **V2-01 보안 게이트 ~ V2-10B 독립 릴리스 리뷰까지 완주** ([리뷰 문서](docs/v2/V2-10-RELEASE-READINESS-REVIEW.md)) |
 | 테스트 | 백엔드 **69개** (CI가 실제 PostgreSQL 16으로 전부 실행) · 프런트엔드 **31개** |
-| 배포 | `render.yaml`은 있으나 **인스턴스는 휴면 상태** — 로컬 실행이 기본 경로입니다 |
+| 배포 | **Render에 백엔드·프런트를 실제 배포하고 배포본 스모크 QA까지 운영한 경험**(V1, [당시 스크립트·문서](https://github.com/ohsewool/quoteops-ai/commit/fa54f3ce3cf4921f41839a5f0a35d4f21fe633cb)는 git 이력에) · V2용 프로덕션 설정(`render.yaml`: 마이그레이션 pre-deploy, readiness 게이트, docs/demo 차단) 완비 · **현재 인스턴스는 휴면** — 로컬 실행이 기본 경로입니다 |
 | 상태 | 완성 후 동결. 기능 추가 계획 없음 — [비목표](docs/v2/V2-00-PRODUCT-CONTRACT.md)가 계약에 명시돼 있습니다 |
 
 ## 무엇이 다른가
